@@ -7,8 +7,7 @@
 //! reason, including the caller dropping the future, the process is killed
 //! and reaped before the call returns.
 
-use std::ffi::OsStr;
-use std::fmt;
+use std::ffi::OsString;
 use std::future::Future;
 use std::path::Path;
 use std::pin::pin;
@@ -23,7 +22,7 @@ use tokio_util::sync::CancellationToken;
 use tracing::Instrument;
 
 use super::FfmpegCommand;
-use super::command::write_quoted;
+use super::command::ShellLine;
 use super::probe::{self, ProbeError, ProbeResult};
 use super::progress::{Progress, ProgressParser};
 use super::tools::{Tool, Tools};
@@ -140,6 +139,16 @@ impl Runner {
 		&self.tools
 	}
 
+	/// The exact invocation [`Runner::run`] makes for `cmd`: the configured
+	/// ffmpeg program followed by every argument, housekeeping flags
+	/// included. This is what a job shows as its command.
+	#[must_use]
+	pub fn ffmpeg_invocation(&self, cmd: &FfmpegCommand) -> Vec<OsString> {
+		let mut argv = vec![self.tools.ffmpeg.clone().into_os_string()];
+		argv.extend(ffmpeg_argv(cmd));
+		argv
+	}
+
 	/// Runs ffmpeg with `cmd` and waits for it to finish.
 	///
 	/// Each progress block ffmpeg reports is sent to `progress` as it
@@ -155,12 +164,29 @@ impl Runner {
 		limits: &Limits,
 		progress: Option<mpsc::Sender<Progress>>,
 	) -> Result<Completed, RunError> {
+		self.run_with_log(cmd, limits, progress, None).await
+	}
+
+	/// [`Runner::run`], additionally sending every stderr line to `log` as
+	/// it arrives, for a live job log. A closed receiver stops the sending;
+	/// the output is still drained and its tail returned.
+	///
+	/// # Errors
+	/// See [`RunError`]. When this returns, the process has exited.
+	pub async fn run_with_log(
+		&self,
+		cmd: &FfmpegCommand,
+		limits: &Limits,
+		progress: Option<mpsc::Sender<Progress>>,
+		log: Option<mpsc::Sender<String>>,
+	) -> Result<Completed, RunError> {
 		let argv = ffmpeg_argv(cmd);
-		tracing::info!(target: "ffmpeg", command = %Argv(&argv), "starting ffmpeg");
+		tracing::info!(target: "ffmpeg", command = %ShellLine(&argv), "starting ffmpeg");
 		let mut child = self.spawn(Tool::Ffmpeg, &argv)?;
 		let stdout = child.stdout.take();
 		let stderr = child.stderr.take();
-		let pipes = async { tokio::join!(pump_progress(stdout, progress), collect_log(stderr)) };
+		let pipes =
+			async { tokio::join!(pump_progress(stdout, progress), collect_log(stderr, log)) };
 		let span = tracing::info_span!("ffmpeg", pid = child.id());
 		let (status, (), log_tail) = supervise(&mut child, Tool::Ffmpeg, limits, pipes)
 			.instrument(span)
@@ -182,11 +208,11 @@ impl Runner {
 	/// See [`RunError`]. ffprobe fails for files it cannot open or read.
 	pub async fn probe(&self, path: &Path, limits: &Limits) -> Result<ProbeResult, RunError> {
 		let argv = ffprobe_argv(path);
-		tracing::info!(target: "ffprobe", command = %Argv(&argv), "starting ffprobe");
+		tracing::info!(target: "ffprobe", command = %ShellLine(&argv), "starting ffprobe");
 		let mut child = self.spawn(Tool::Ffprobe, &argv)?;
 		let stdout = child.stdout.take();
 		let stderr = child.stderr.take();
-		let pipes = async { tokio::join!(read_all(stdout), collect_log(stderr)) };
+		let pipes = async { tokio::join!(read_all(stdout), collect_log(stderr, None)) };
 		let span = tracing::info_span!("ffprobe", pid = child.id());
 		let (status, json, log_tail) = supervise(&mut child, Tool::Ffprobe, limits, pipes)
 			.instrument(span)
@@ -238,7 +264,7 @@ impl Runner {
 		clippy::disallowed_methods,
 		reason = "the runner is the one process spawner"
 	)]
-	fn spawn(&self, tool: Tool, argv: &[std::ffi::OsString]) -> Result<Child, RunError> {
+	fn spawn(&self, tool: Tool, argv: &[OsString]) -> Result<Child, RunError> {
 		let path = self.tools.path(tool);
 		Command::new(path)
 			.args(argv)
@@ -263,8 +289,8 @@ impl Runner {
 /// - `-nostats`: no carriage-return progress line on stderr; progress comes
 ///   as `-progress` blocks on stdout instead.
 /// - `-progress pipe:1`: machine-readable progress on stdout.
-pub(crate) fn ffmpeg_argv(cmd: &FfmpegCommand) -> Vec<std::ffi::OsString> {
-	let mut argv: Vec<std::ffi::OsString> = [
+pub(crate) fn ffmpeg_argv(cmd: &FfmpegCommand) -> Vec<OsString> {
+	let mut argv: Vec<OsString> = [
 		"-hide_banner",
 		"-nostdin",
 		"-nostats",
@@ -279,8 +305,8 @@ pub(crate) fn ffmpeg_argv(cmd: &FfmpegCommand) -> Vec<std::ffi::OsString> {
 }
 
 /// The ffprobe argument list for a full report on `path`.
-pub(crate) fn ffprobe_argv(path: &Path) -> Vec<std::ffi::OsString> {
-	let mut argv: Vec<std::ffi::OsString> = [
+pub(crate) fn ffprobe_argv(path: &Path) -> Vec<OsString> {
+	let mut argv: Vec<OsString> = [
 		"-hide_banner",
 		"-v",
 		"error",
@@ -378,8 +404,12 @@ async fn pump_progress(
 	}
 }
 
-/// Logs every stderr line and returns the last [`LOG_TAIL_LINES`] of them.
-async fn collect_log(stderr: Option<impl AsyncRead + Unpin>) -> String {
+/// Logs every stderr line, forwards it to `log` and returns the last
+/// [`LOG_TAIL_LINES`] of them.
+async fn collect_log(
+	stderr: Option<impl AsyncRead + Unpin>,
+	mut log: Option<mpsc::Sender<String>>,
+) -> String {
 	let Some(stderr) = stderr else {
 		return String::new();
 	};
@@ -387,6 +417,12 @@ async fn collect_log(stderr: Option<impl AsyncRead + Unpin>) -> String {
 	let mut tail = std::collections::VecDeque::with_capacity(LOG_TAIL_LINES);
 	while let Ok(Some(line)) = lines.next_line().await {
 		tracing::debug!(target: "ffmpeg", "{line}");
+		if let Some(tx) = &log
+			&& tx.send(line.clone()).await.is_err()
+		{
+			// Nobody listens any more; keep draining so ffmpeg never blocks.
+			log = None;
+		}
 		if tail.len() == LOG_TAIL_LINES {
 			tail.pop_front();
 		}
@@ -407,21 +443,6 @@ async fn read_all(pipe: Option<impl AsyncRead + Unpin>) -> String {
 	text
 }
 
-/// Renders an argument list for the log, quoted like a shell line.
-struct Argv<'a>(&'a [std::ffi::OsString]);
-
-impl fmt::Display for Argv<'_> {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		for (i, arg) in self.0.iter().enumerate() {
-			if i > 0 {
-				f.write_str(" ")?;
-			}
-			write_quoted(f, OsStr::new(arg))?;
-		}
-		Ok(())
-	}
-}
-
 #[cfg(test)]
 mod tests {
 	use super::super::operations::remux;
@@ -430,12 +451,12 @@ mod tests {
 	#[test]
 	fn ffmpeg_argv_adds_runner_flags_before_the_operation() {
 		let argv = ffmpeg_argv(&remux(Path::new("in.mkv"), Path::new("out dir/out.mp4")));
-		insta::assert_snapshot!(Argv(&argv));
+		insta::assert_snapshot!(ShellLine(&argv));
 	}
 
 	#[test]
 	fn ffprobe_argv_asks_for_a_full_json_report() {
-		insta::assert_snapshot!(Argv(&ffprobe_argv(Path::new("/media/in/movie.mkv"))));
+		insta::assert_snapshot!(ShellLine(&ffprobe_argv(Path::new("/media/in/movie.mkv"))));
 	}
 
 	#[tokio::test]

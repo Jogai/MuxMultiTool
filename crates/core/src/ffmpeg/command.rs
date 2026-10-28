@@ -91,6 +91,24 @@ impl fmt::Display for FfmpegCommand {
 	}
 }
 
+/// Renders a full argument list, program included, as a shell-style line
+/// with the same quoting as [`FfmpegCommand`]'s `Display`. For logs and the
+/// command preview of a job.
+#[derive(Debug, Clone, Copy)]
+pub struct ShellLine<'a>(pub &'a [OsString]);
+
+impl fmt::Display for ShellLine<'_> {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		for (i, arg) in self.0.iter().enumerate() {
+			if i > 0 {
+				f.write_str(" ")?;
+			}
+			write_quoted(f, arg)?;
+		}
+		Ok(())
+	}
+}
+
 /// Writes `arg` so a POSIX shell would read it back as one word.
 pub(crate) fn write_quoted(f: &mut fmt::Formatter<'_>, arg: &OsStr) -> fmt::Result {
 	let text = arg.to_string_lossy();
@@ -116,6 +134,18 @@ mod tests {
 		assert_eq!(
 			cmd.to_string(),
 			r"ffmpeg -i '/in/a b.mkv' -metadata 'title=it'\''s' -y out.mp4"
+		);
+	}
+
+	#[test]
+	fn shell_line_starts_with_the_program() {
+		let argv: Vec<OsString> = ["/opt/mmt/ffmpeg", "-i", "a b.mkv", "out.mp4"]
+			.iter()
+			.map(Into::into)
+			.collect();
+		assert_eq!(
+			ShellLine(&argv).to_string(),
+			"/opt/mmt/ffmpeg -i 'a b.mkv' out.mp4"
 		);
 	}
 
