@@ -10,7 +10,9 @@ use std::process::ExitCode;
 
 use clap::Parser;
 use muxmultitool_core::ffmpeg::tools::{FFMPEG_ENV, FFPROBE_ENV};
-use muxmultitool_server::{Config, DEFAULT_FRONTEND_DIR, DEFAULT_PORT, Server, VERSION};
+use muxmultitool_server::{
+	Config, DEFAULT_FRONTEND_DIR, DEFAULT_JOB_CONCURRENCY, DEFAULT_PORT, Server, VERSION,
+};
 use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
 
@@ -47,6 +49,10 @@ struct Cli {
 	/// Folder with the built frontend (the output of `vite build`).
 	#[arg(long, env = "MMT_FRONTEND_DIR", default_value = DEFAULT_FRONTEND_DIR, value_name = "DIR")]
 	frontend_dir: PathBuf,
+
+	/// How many jobs run at the same time; the rest wait in the queue.
+	#[arg(long, env = "MMT_JOBS", default_value_t = DEFAULT_JOB_CONCURRENCY, value_name = "N")]
+	jobs: usize,
 }
 
 impl From<Cli> for Config {
@@ -56,6 +62,7 @@ impl From<Cli> for Config {
 			port: cli.port,
 			media_roots: cli.media_roots,
 			frontend_dir: cli.frontend_dir,
+			job_concurrency: cli.jobs,
 			..Self::default()
 		};
 		if let Some(ffmpeg) = cli.ffmpeg {
@@ -84,6 +91,7 @@ async fn main() -> ExitCode {
 		ffprobe = %config.tools.ffprobe.display(),
 		frontend_dir = %config.frontend_dir.display(),
 		media_roots = ?config.media_roots,
+		jobs = config.job_concurrency,
 		"starting"
 	);
 

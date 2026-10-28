@@ -20,6 +20,7 @@ connectrpc = { version = "0.9", default-features = false, features = [
 	"gzip",
 	"json",
 ] }
+futures-util = { version = "0.3.34", default-features = false }
 muxmultitool-core = { path = "../core", version = "0.1.0" }
 muxmultitool-proto = { path = "../proto", version = "0.1.0" }
 tokio = { version = "1.54.1", features = [

@@ -777,6 +777,7 @@ dependencies = [
  "buffa",
  "clap",
  "connectrpc",
+ "futures-util",
  "http",
  "http-body-util",
  "muxmultitool-core",
