@@ -227,6 +227,37 @@ impl Runner {
 		Ok(probe::parse(&json)?)
 	}
 
+	/// Runs `tool` with plain `args` (no runner flags) and returns its stdout.
+	///
+	/// For short queries such as `ffmpeg -encoders`. Nothing in the output is
+	/// interpreted here.
+	///
+	/// # Errors
+	/// See [`RunError`]. A non-zero exit is [`RunError::Failed`].
+	pub async fn capture(
+		&self,
+		tool: Tool,
+		args: &[&str],
+		limits: &Limits,
+	) -> Result<String, RunError> {
+		let command: Vec<std::ffi::OsString> = args.iter().map(Into::into).collect();
+		tracing::debug!(target: "ffmpeg", command = %ShellLine(&command), "starting {tool} query");
+		let mut child = self.spawn(tool, &command)?;
+		let stdout = child.stdout.take();
+		let stderr = child.stderr.take();
+		let pipes = async { tokio::join!(read_all(stdout), collect_log(stderr, None)) };
+		let (status, text, log_tail) = supervise(&mut child, tool, limits, pipes).await?;
+		if status.success() {
+			Ok(text)
+		} else {
+			Err(RunError::Failed {
+				tool,
+				status,
+				log_tail,
+			})
+		}
+	}
+
 	/// Lists the keyframe times of stream `stream_index` of `path`, ascending.
 	///
 	/// This demuxes the whole file (no decoding), so it costs one read of
@@ -241,11 +272,11 @@ impl Runner {
 		limits: &Limits,
 	) -> Result<Vec<f64>, RunError> {
 		let argv = ffprobe_keyframes_argv(path, stream_index);
-		tracing::info!(target: "ffprobe", command = %Argv(&argv), "starting ffprobe");
+		tracing::info!(target: "ffprobe", command = %ShellLine(&argv), "starting ffprobe");
 		let mut child = self.spawn(Tool::Ffprobe, &argv)?;
 		let stdout = child.stdout.take();
 		let stderr = child.stderr.take();
-		let pipes = async { tokio::join!(read_all(stdout), collect_log(stderr)) };
+		let pipes = async { tokio::join!(read_all(stdout), collect_log(stderr, None)) };
 		let span = tracing::info_span!("ffprobe", pid = child.id());
 		let (status, csv, log_tail) = supervise(&mut child, Tool::Ffprobe, limits, pipes)
 			.instrument(span)
@@ -485,7 +516,7 @@ mod tests {
 
 	#[test]
 	fn ffprobe_keyframes_argv_lists_one_stream_as_csv() {
-		insta::assert_snapshot!(Argv(&ffprobe_keyframes_argv(
+		insta::assert_snapshot!(ShellLine(&ffprobe_keyframes_argv(
 			Path::new("/media/in/movie.mkv"),
 			3
 		)));

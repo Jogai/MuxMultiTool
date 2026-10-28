@@ -102,6 +102,20 @@ Jobs only read and write inside the media roots. A stream can be read with curl 
 ```sh
 printf '\0\0\0\0\2{}' | curl -sN -X POST -H 'content-type: application/connect+json' --data-binary @- \
   http://127.0.0.1:8080/rpc/muxmultitool.jobs.v1.JobsService/WatchQueue
+
+### Preview (HLS)
+
+The player never gets a source file: `MediaService/StartPreview` starts a preview session for a file and returns the playlist path, `/media/{id}/hls/index.m3u8`, which hls.js plays. Segments (`/media/{id}/hls/{n}.ts`) are H.264 + AAC in MPEG-TS, produced on demand by ffmpeg from wherever the player seeks: copied when the source already is H.264 (8-bit 4:2:0) and AAC, transcoded with x264 otherwise (hardware encoders come after the MVP). Exports always read the original file.
+
+- Transcoded segments are 2 s on a fixed grid; copied segments start at the source's keyframes (at least 2 s, at most 30 s apart, else the video is transcoded). The playlist is fixed when the session starts.
+- Seek target: playback resumes within about 3 s after a seek on a typical machine (a 1080p source; 4K sources are scaled to 1080p). Measured here with a 720p HEVC/DTS MKV in headless Chromium: first frame after 1.0 s, a seek into unencoded video resumed after 0.55 s.
+- ffmpeg stops after 30 s without segment requests and restarts where the player continues; a session and its segments are removed after 30 min without requests, on `StopPreview`, or when the server stops. Segments live under the system temporary folder (`TMPDIR`), in a `muxmultitool-preview-*` folder with a random name, made with the first session.
+- Until `FilesService` issues file ids, `file_id` is the absolute path of a file inside a media root (`--media-root`).
+
+```sh
+curl -X POST -H 'content-type: application/json' -d '{"fileId":"/media/movie.mkv"}' \
+  http://127.0.0.1:8080/rpc/muxmultitool.media.v1.MediaService/StartPreview
+# {"mediaId":"…","playlistUrl":"/media/…/hls/index.m3u8","durationSeconds":5400.0,"mode":"PREVIEW_MODE_TRANSCODE","segmentCount":2700}
 ```
 
 ### Editor setup and git hooks
