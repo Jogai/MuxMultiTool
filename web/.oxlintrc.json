@@ -1,0 +1,10 @@
+{
+	"plugins": ["typescript", "unicorn", "import", "promise", "vue"],
+	"categories": { "correctness": "error" },
+	"rules": {
+		"typescript/no-floating-promises": "error",
+		"typescript/no-misused-promises": "error",
+		"typescript/await-thenable": "error"
+	},
+	"ignorePatterns": ["dist", "src/auto-imports.d.ts", "src/components.d.ts", "src/typed-router.d.ts"]
+}
