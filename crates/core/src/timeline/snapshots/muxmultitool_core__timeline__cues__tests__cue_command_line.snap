@@ -1,0 +1,5 @@
+---
+source: crates/core/src/timeline/cues.rs
+expression: "command(Path::new(\"/media/in/movie.mkv\"), 3, Path::new(\"/tmp/mmt/cues-3.vtt\"))"
+---
+ffmpeg -i /media/in/movie.mkv -map 0:3 -f webvtt -flush_packets 1 -y /tmp/mmt/cues-3.vtt

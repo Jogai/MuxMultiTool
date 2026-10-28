@@ -3,7 +3,14 @@ allow-unwrap-in-tests = true
 allow-expect-in-tests = true
 allow-panic-in-tests = true
 # Names that clippy::doc_markdown would otherwise want in backticks. `..` keeps the defaults.
-doc-valid-idents = ["MuxMultiTool", "ConnectRPC", ".."]
+doc-valid-idents = [
+	"MuxMultiTool",
+	"ConnectRPC",
+	"WebVTT",
+	"SubRip",
+	"VobSub",
+	"..",
+]
 # Every ffmpeg/ffprobe call goes through `core::ffmpeg::Runner`. Only that
 # module may spawn processes; it opts out with `#[expect(clippy::disallowed_methods)]`.
 disallowed-methods = [

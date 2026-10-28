@@ -14,6 +14,25 @@ service MediaService {
   // StopPreview ends a preview session: ffmpeg is stopped and the temporary
   // segments are removed. Unknown ids are fine; the session may have expired.
   rpc StopPreview(StopPreviewRequest) returns (StopPreviewResponse);
+
+  // GetThumbnails generates the timeline thumbnails of a file in the
+  // background and streams how far it got: the sheet layout first, then a
+  // message each time another sprite is ready, and a last one with done set.
+  // The sprites themselves are images on GET /media/{id}/thumbs/{n}.jpg.
+  // Results are cached per file until the file changes; a later call for a
+  // finished file answers with one message.
+  rpc GetThumbnails(GetThumbnailsRequest) returns (stream GetThumbnailsResponse);
+
+  // GetWaveform streams the waveform peaks of one audio stream for a time
+  // window at a requested resolution, as they are analysed. The analysis of
+  // a file runs once in the background and is cached; a window of an
+  // analysed file answers with one message.
+  rpc GetWaveform(GetWaveformRequest) returns (stream GetWaveformResponse);
+
+  // GetSubtitleCues streams the cues of one text subtitle stream as they are
+  // read, ending with a message with done set. Image-based subtitles (PGS,
+  // VobSub, DVB) are refused with FAILED_PRECONDITION.
+  rpc GetSubtitleCues(GetSubtitleCuesRequest) returns (stream GetSubtitleCuesResponse);
 }
 
 message StartPreviewRequest {
@@ -53,3 +72,109 @@ message StopPreviewRequest {
 }
 
 message StopPreviewResponse {}
+
+message GetThumbnailsRequest {
+  // file_id identifies the source file: an id from FilesService, or, as in
+  // StartPreviewRequest, the absolute path of a file inside a media root.
+  string file_id = 1;
+}
+
+message GetThumbnailsResponse {
+  // sheet is the layout. It is sent in every message; tile_count and
+  // sprite_count are the plan until done is set and the real numbers after.
+  ThumbnailSheet sheet = 1;
+  // sprites_ready is how many sprites can be fetched: 0 to sprites_ready-1.
+  uint32 sprites_ready = 2;
+  // done is set on the last message.
+  bool done = 3;
+}
+
+// ThumbnailSheet maps a time to a tile in a sprite image.
+//
+// Tile i shows the picture at i * interval_seconds. Tiles are laid out row
+// by row, columns * rows per sprite, so tile i is in sprite i / (columns *
+// rows), at column (i % (columns * rows)) % columns and row (i % (columns *
+// rows)) / columns. A time past the last tile shows the last tile.
+message ThumbnailSheet {
+  // media_id is the {id} of the sprite route. It changes when the file does.
+  string media_id = 1;
+  // sprite_url_template is the path of a sprite on this server with "{n}"
+  // in place of the sprite number, e.g. "/media/{media_id}/thumbs/{n}.jpg".
+  string sprite_url_template = 2;
+  // interval_seconds is the time between two tiles.
+  double interval_seconds = 3;
+  // tile_width and tile_height are the size of one tile in pixels.
+  uint32 tile_width = 4;
+  uint32 tile_height = 5;
+  // columns and rows are the grid of one sprite.
+  uint32 columns = 6;
+  uint32 rows = 7;
+  // tile_count is the number of tiles over all sprites. Until done it is
+  // the plan, ceil(duration / interval); the real number can be lower when
+  // the pictures stop before the probed duration ends.
+  uint32 tile_count = 8;
+  // sprite_count is the number of sprite images, ceil(tile_count / (columns * rows)).
+  uint32 sprite_count = 9;
+  // keyframes_only is set when, for speed on long files, only keyframes
+  // were decoded: a tile then shows the last keyframe before its time.
+  bool keyframes_only = 10;
+}
+
+message GetWaveformRequest {
+  // file_id identifies the source file; see GetThumbnailsRequest.
+  string file_id = 1;
+  // stream_index is the index of an audio stream in the file (ffprobe's
+  // index, what -map 0:{index} refers to).
+  uint32 stream_index = 2;
+  // from_seconds and to_seconds are the window. to_seconds 0 means the end
+  // of the file; both are clamped to the file's duration.
+  double from_seconds = 3;
+  double to_seconds = 4;
+  // peak_count is the number of peaks to return for the window: the
+  // resolution, typically the width of the waveform in pixels. At most
+  // 8192.
+  uint32 peak_count = 5;
+}
+
+message GetWaveformResponse {
+  // from_seconds, to_seconds and peak_count are the window as served, after
+  // clamping. Peak i covers [from + i * w, from + (i + 1) * w) with
+  // w = (to - from) / peak_count.
+  double from_seconds = 1;
+  double to_seconds = 2;
+  uint32 peak_count = 3;
+  // offset is the index of the first peak in this message. Messages
+  // deliver the peaks in order, from offset 0 to peak_count.
+  uint32 offset = 4;
+  // mins and maxs are the lowest and highest sample value in each peak's
+  // span, in -1..1 over all channels. Both have the same length.
+  repeated float mins = 5;
+  repeated float maxs = 6;
+  // analyzed_seconds is how far the background analysis of the stream got.
+  double analyzed_seconds = 7;
+  // done is set on the last message, when every peak of the window was sent.
+  bool done = 8;
+}
+
+message GetSubtitleCuesRequest {
+  // file_id identifies the source file; see GetThumbnailsRequest.
+  string file_id = 1;
+  // stream_index is the index of a text subtitle stream in the file.
+  uint32 stream_index = 2;
+}
+
+message GetSubtitleCuesResponse {
+  // cues are the next cues in file order.
+  repeated SubtitleCue cues = 1;
+  // done is set on the last message.
+  bool done = 2;
+}
+
+// SubtitleCue is one subtitle: when it shows and its text.
+message SubtitleCue {
+  double start_seconds = 1;
+  double end_seconds = 2;
+  // text is plain text, lines separated by "\n". Formatting tags and
+  // positioning are dropped.
+  string text = 3;
+}

@@ -10,7 +10,8 @@
 //!   JSON in development and binary protobuf in release builds, and `curl`
 //!   can always send JSON.
 //! - `/media/…`: the plain HTTP media routes (the HLS preview, module
-//!   `media`); `/files/…` follows with the download feature.
+//!   `media`; thumbnail sprites, module `timeline`); `/files/…` follows
+//!   with the download feature.
 //! - everything else: the built frontend, with `index.html` for unknown paths
 //!   so the router's history mode works on a page reload.
 
@@ -27,6 +28,7 @@ use muxmultitool_core::ffmpeg::{CapabilityCache, Runner};
 use muxmultitool_core::files::MediaRoots;
 use muxmultitool_core::jobs::{Queue, QueueConfig};
 use muxmultitool_core::preview::{PreviewConfig, PreviewManager};
+use muxmultitool_core::timeline::{TimelineConfig, TimelineManager};
 use system::System;
 use tokio::net::TcpListener;
 use tower_http::services::{ServeDir, ServeFile};
@@ -39,6 +41,7 @@ mod jobs;
 mod media;
 mod report;
 mod system;
+mod timeline;
 
 pub use config::{Config, DEFAULT_FRONTEND_DIR, DEFAULT_JOB_CONCURRENCY, DEFAULT_PORT};
 pub use system::VERSION;
@@ -66,6 +69,9 @@ pub struct AppState {
 	/// The HLS preview sessions, with their segments under the system
 	/// temporary folder (`TMPDIR`).
 	pub previews: PreviewManager,
+	/// The timeline analyses (thumbnails, waveform peaks, subtitle cues),
+	/// with their sprites under the system temporary folder.
+	pub timelines: TimelineManager,
 }
 
 impl AppState {
@@ -81,6 +87,7 @@ impl AppState {
 				},
 			),
 			previews: PreviewManager::in_temp_dir(runner.clone(), PreviewConfig::default()),
+			timelines: TimelineManager::in_temp_dir(runner.clone(), TimelineConfig::default()),
 			runner,
 			media_roots: config.media_roots.clone(),
 			capabilities: CapabilityCache::new(),
@@ -117,6 +124,7 @@ fn app_with_state(state: Arc<AppState>) -> Router {
 	Router::new()
 		.nest_service(RPC_PREFIX, rpc.into_axum_service())
 		.merge(media::routes())
+		.merge(timeline::routes())
 		.fallback_service(frontend)
 		.layer(TraceLayer::new_for_http())
 		.with_state(state)
@@ -162,7 +170,7 @@ impl Server {
 	/// Serves until `shutdown` completes, then stops the job queue (every
 	/// ffmpeg process is killed and waited for, every watch stream ends),
 	/// waits for in-flight requests to finish, and finally stops the preview
-	/// sessions and removes their segments.
+	/// sessions and the timeline analyses and removes their files.
 	///
 	/// The queue stops before the drain: a watch stream is an in-flight
 	/// response that only ends when its watch does, so draining first would
@@ -181,6 +189,7 @@ impl Server {
 			})
 			.await?;
 		self.state.previews.shutdown().await;
+		self.state.timelines.shutdown().await;
 		info!("stopped");
 		Ok(())
 	}

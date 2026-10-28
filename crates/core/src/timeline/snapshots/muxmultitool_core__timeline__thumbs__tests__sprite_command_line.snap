@@ -1,0 +1,5 @@
+---
+source: crates/core/src/timeline/thumbs.rs
+expression: "command(Path::new(\"/media/in/movie.mkv\"), 0, &sheet,\nPath::new(\"/tmp/mmt/thumbs\"))"
+---
+ffmpeg -v repeat+info -skip_frame nokey -i /media/in/movie.mkv -map 0:0 -vf fps=1/6:start_time=0,metadata=mode=add:key=mmt.tile:value=1,metadata=mode=print:key=mmt.tile,scale=160:90,tile=10x10 -q:v 5 -start_number 0 -f image2 -atomic_writing 1 /tmp/mmt/thumbs/%d.jpg

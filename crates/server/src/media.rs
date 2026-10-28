@@ -12,6 +12,10 @@
 //!   sends it (`Range`, `Last-Modified`, `Content-Length`). Cacheable: a
 //!   segment's content for a given id and number does not change.
 //!
+//! The timeline methods of the service (thumbnails, waveform, subtitle
+//! cues) and the sprite route are in [`crate::timeline`]; the trait
+//! implementation here only delegates to them.
+//!
 //! File ids: until `FilesService` issues ids, a file id is the absolute path
 //! of a file inside one of the configured media roots. [`resolve_file`] is
 //! the seam where real ids plug in.
@@ -26,17 +30,20 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use connectrpc::{
 	ConnectError, RequestContext, Response as RpcResponse, ServiceRequest, ServiceResult,
+	ServiceStream,
 };
 use muxmultitool_core::preview::{Mode, PreviewError, SegmentError};
 use muxmultitool_proto::connect::muxmultitool::media::v1::MediaService;
 use muxmultitool_proto::proto::muxmultitool::media::v1::{
-	PreviewMode, StartPreviewRequest, StartPreviewResponse, StopPreviewRequest, StopPreviewResponse,
+	GetSubtitleCuesRequest, GetSubtitleCuesResponse, GetThumbnailsRequest, GetThumbnailsResponse,
+	GetWaveformRequest, GetWaveformResponse, PreviewMode, StartPreviewRequest,
+	StartPreviewResponse, StopPreviewRequest, StopPreviewResponse,
 };
 use tower::ServiceExt;
 use tower_http::services::ServeFile;
 use tracing::warn;
 
-use crate::AppState;
+use crate::{AppState, timeline};
 
 /// Implements the media service.
 #[derive(Debug)]
@@ -89,6 +96,30 @@ impl MediaService for Media {
 		self.state.previews.stop(request.media_id).await;
 		Ok(RpcResponse::new(StopPreviewResponse::default()))
 	}
+
+	async fn get_thumbnails(
+		&self,
+		_ctx: RequestContext,
+		request: ServiceRequest<'_, GetThumbnailsRequest>,
+	) -> ServiceResult<ServiceStream<GetThumbnailsResponse>> {
+		timeline::get_thumbnails(&self.state, request.to_owned_message()).await
+	}
+
+	async fn get_waveform(
+		&self,
+		_ctx: RequestContext,
+		request: ServiceRequest<'_, GetWaveformRequest>,
+	) -> ServiceResult<ServiceStream<GetWaveformResponse>> {
+		timeline::get_waveform(&self.state, request.to_owned_message()).await
+	}
+
+	async fn get_subtitle_cues(
+		&self,
+		_ctx: RequestContext,
+		request: ServiceRequest<'_, GetSubtitleCuesRequest>,
+	) -> ServiceResult<ServiceStream<GetSubtitleCuesResponse>> {
+		timeline::get_subtitle_cues(&self.state, request.to_owned_message()).await
+	}
 }
 
 /// The playlist path of session `id`, relative to the server origin.
@@ -103,7 +134,10 @@ fn playlist_path(id: &str) -> String {
 /// leave the roots. Desktop mode, where native dialogs hand out paths
 /// outside any root, is not covered yet; it needs the ids from
 /// `FilesService`.
-async fn resolve_file(media_roots: &[PathBuf], file_id: &str) -> Result<PathBuf, ConnectError> {
+pub(crate) async fn resolve_file(
+	media_roots: &[PathBuf],
+	file_id: &str,
+) -> Result<PathBuf, ConnectError> {
 	if media_roots.is_empty() {
 		return Err(ConnectError::failed_precondition(
 			"no media roots are configured",

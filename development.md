@@ -141,6 +141,16 @@ curl -X POST -H 'content-type: application/json' -d '{"fileId":"/media/movie.mkv
 # {"mediaId":"…","playlistUrl":"/media/…/hls/index.m3u8","durationSeconds":5400.0,"mode":"PREVIEW_MODE_TRANSCODE","segmentCount":2700}
 ```
 
+### Timeline: thumbnails, waveform, subtitle cues
+
+The cut editor's timeline is fed by three background analyses in `MediaService`, each a server stream that sends what is known at once and then every addition until the analysis ends (`muxmultitool_core::timeline`). Results are cached per file and reused until the file changes (size or modification time); a changed file starts over under a new id.
+
+- `GetThumbnails` plans a sprite sheet (160 px wide tiles, 10 × 10 per sprite, at most 1200 tiles, at least 0.5 s apart) and generates it with one ffmpeg process. The sprites are images the browser fetches by URL, `/media/{id}/thumbs/{n}.jpg`, cacheable for a day. The response's `sheet` maps a time to a tile; files with more than 36 000 frames are decoded keyframes-only (`keyframes_only`), so a tile shows the last keyframe before its time.
+- `GetWaveform` returns the peaks of one audio stream for a time window at a requested resolution (at most 8192 peaks), as `mins` and `maxs` in -1..1. ffmpeg measures 50 peaks per second once per stream (`astats`, reported on stderr, nothing on disk); every window is a downsample of that.
+- `GetSubtitleCues` returns the cues of a text subtitle stream as plain text (tags and positioning dropped), converted by ffmpeg to WebVTT. Image-based subtitles (PGS, VobSub, DVB) are refused with `FAILED_PRECONDITION`.
+- `file_id` is an id from `FilesService`, or the absolute-path form `StartPreview` takes. Sprites live under a `muxmultitool-timeline-*` folder with a random name in the system temporary folder, made with the first file; at most 16 files are cached, the least recently used is dropped beyond that, and everything is removed when the server stops.
+- All three are server streams, so `curl` needs the Connect streaming envelope described under "Jobs" above.
+
 ### Editor setup and git hooks
 
 `.editorconfig` sets tabs as the baseline (YAML and `.proto` use two spaces). `.vscode/` makes the oxc extension the formatter for `.ts` and `.vue`, turns off Vue (Official)'s formatter and sets tab indentation; accept the recommended extensions when VS Code asks.
