@@ -1,0 +1,5 @@
+---
+source: crates/core/src/ffmpeg/runner.rs
+expression: "Argv(&ffprobe_keyframes_argv(Path::new(\"/media/in/movie.mkv\"), 3))"
+---
+-hide_banner -v error -select_streams 3 -show_entries packet=pts_time,dts_time,flags -of csv=p=0 -i /media/in/movie.mkv

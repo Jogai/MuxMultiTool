@@ -1,0 +1,5 @@
+---
+source: crates/core/src/preview/command.rs
+expression: cmd
+---
+ffmpeg -readrate 2 -readrate_initial_burst 20 -ss 3.650935 -i /media/in/movie.mkv -copyts -start_at_zero -map 0:0 -map 0:1 -c:v copy -c:a copy -f segment -segment_format mpegts -segment_start_number 1 -segment_time_delta 0.001000 -segment_list /tmp/mmt/s2/run-1/segments.csv -segment_list_type csv -reset_timestamps 0 -segment_times 3.480000,5.480000 /tmp/mmt/s2/run-1/%d.ts

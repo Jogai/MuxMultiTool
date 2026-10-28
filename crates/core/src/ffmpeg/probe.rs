@@ -27,6 +27,32 @@ pub fn parse(json: &str) -> Result<ProbeResult, ProbeError> {
 	Ok(serde_json::from_str(json)?)
 }
 
+/// Parses the keyframe times out of a packet listing.
+///
+/// The runner asks ffprobe for `-show_entries packet=pts_time,dts_time,flags`
+/// as CSV, one line per packet of one stream: `3.520000,3.520000,K__`. A
+/// keyframe has `K` in its flags; its time is the pts, or the dts when the
+/// pts is `N/A`. The result is ascending without duplicates.
+#[must_use]
+pub fn parse_keyframes(csv: &str) -> Vec<f64> {
+	let mut times: Vec<f64> = csv
+		.lines()
+		.filter_map(|line| {
+			let mut fields = line.trim().split(',');
+			let pts = fields.next()?;
+			let dts = fields.next()?;
+			let flags = fields.next()?;
+			if !flags.contains('K') {
+				return None;
+			}
+			pts.parse().ok().or_else(|| dts.parse().ok())
+		})
+		.collect();
+	times.sort_by(f64::total_cmp);
+	times.dedup();
+	times
+}
+
 /// Everything ffprobe reports about one file.
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
 pub struct ProbeResult {
@@ -501,6 +527,14 @@ mod tests {
 		let err = parse(r#"{"format":{"size":"lots"}}"#).unwrap_err();
 		assert!(err.to_string().contains("lots"), "{err}");
 		assert!(parse("not json").is_err());
+	}
+
+	#[test]
+	fn keyframes_from_packet_csv() {
+		let csv = "0.000000,0.000000,K__\n0.040000,0.040000,___\n\
+			N/A,3.520000,K__\n3.520000,3.520000,K__\n7.000000,7.000000,K_D\n\ngarbage\n";
+		assert_eq!(parse_keyframes(csv), vec![0.0, 3.52, 7.0]);
+		assert_eq!(parse_keyframes(""), Vec::<f64>::new());
 	}
 
 	#[test]

@@ -9,8 +9,8 @@
 //!   axum router. Connect decides the encoding per request: the frontend sends
 //!   JSON in development and binary protobuf in release builds, and `curl`
 //!   can always send JSON.
-//! - `/media/…` and `/files/…`: the plain HTTP media routes, added by later
-//!   features next to the RPC mount.
+//! - `/media/…`: the plain HTTP media routes (the HLS preview, module
+//!   `media`); `/files/…` follows with the download feature.
 //! - everything else: the built frontend, with `index.html` for unknown paths
 //!   so the router's history mode works on a page reload.
 
@@ -89,8 +89,17 @@ impl AppState {
 /// The queue in the router's state is never shut down this way; drop the
 /// router to kill its jobs, or use [`Server`] for a clean stop.
 pub fn app(config: &Config) -> Router {
-	app_with_state(Arc::new(AppState::new(config)))
+	build(config).0
 }
+
+/// [`app`] plus the state it was built with, for the server's shutdown.
+fn build(config: &Config) -> (Router, Arc<AppState>) {
+	let runner = Runner::new(config.tools.clone());
+	let state = Arc::new(AppState {
+		previews: PreviewManager::in_temp_dir(runner.clone(), PreviewConfig::default()),
+		runner,
+		media_roots: config.media_roots.clone(),
+	});
 
 /// Builds the full router around an existing `state`.
 fn app_with_state(state: Arc<AppState>) -> Router {
@@ -104,11 +113,12 @@ fn app_with_state(state: Arc<AppState>) -> Router {
 	let index = state.frontend_dir.join("index.html");
 	let frontend = ServeDir::new(&state.frontend_dir).fallback(ServeFile::new(index));
 
-	Router::new()
+	let router = Router::new()
 		.nest_service(RPC_PREFIX, rpc.into_axum_service())
 		.fallback_service(frontend)
 		.layer(TraceLayer::new_for_http())
-		.with_state(state)
+		.with_state(Arc::clone(&state));
+	(router, state)
 }
 
 /// A bound listener and the router that serves it.
@@ -119,7 +129,7 @@ fn app_with_state(state: Arc<AppState>) -> Router {
 pub struct Server {
 	listener: TcpListener,
 	app: Router,
-	queue: Queue,
+	state: Arc<AppState>,
 }
 
 impl Server {
@@ -130,12 +140,11 @@ impl Server {
 	pub async fn bind(config: &Config) -> io::Result<Self> {
 		warn_about_missing_folders(config);
 		let listener = TcpListener::bind(config.socket_addr()).await?;
-		let state = Arc::new(AppState::new(config));
-		tokio::spawn(detect_at_startup(Arc::clone(&state)));
+		let (app, state) = build(config);
 		Ok(Self {
 			listener,
-			queue: state.queue.clone(),
-			app: app_with_state(state),
+			app,
+			state,
 		})
 	}
 
@@ -148,13 +157,8 @@ impl Server {
 		self.listener.local_addr()
 	}
 
-	/// Serves until `shutdown` completes, then stops the job queue (every
-	/// ffmpeg process is killed and waited for, every watch stream ends) and
-	/// waits for in-flight requests to finish.
-	///
-	/// The queue stops before the drain: a watch stream is an in-flight
-	/// response that only ends when its watch does, so draining first would
-	/// wait for the last client to hang up.
+	/// Serves until `shutdown` completes, then waits for in-flight requests
+	/// to finish, stops the preview sessions and removes their segments.
 	///
 	/// # Errors
 	/// Fails when accepting connections fails.
@@ -168,6 +172,7 @@ impl Server {
 				queue.shutdown().await;
 			})
 			.await?;
+		self.state.previews.shutdown().await;
 		info!("stopped");
 		Ok(())
 	}

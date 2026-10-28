@@ -227,35 +227,37 @@ impl Runner {
 		Ok(probe::parse(&json)?)
 	}
 
-	/// Runs `tool` with plain `args` (no runner flags) and returns its stdout.
+	/// Lists the keyframe times of stream `stream_index` of `path`, ascending.
 	///
-	/// For short queries such as `ffmpeg -encoders`. Nothing in the output is
-	/// interpreted here.
+	/// This demuxes the whole file (no decoding), so it costs one read of
+	/// the file: fast from an SSD, long from a network share.
 	///
 	/// # Errors
-	/// See [`RunError`]. A non-zero exit is [`RunError::Failed`].
-	pub async fn capture(
+	/// See [`RunError`].
+	pub async fn keyframes(
 		&self,
-		tool: Tool,
-		args: &[&str],
+		path: &Path,
+		stream_index: u32,
 		limits: &Limits,
-	) -> Result<String, RunError> {
-		let command: Vec<std::ffi::OsString> = args.iter().map(Into::into).collect();
-		tracing::debug!(target: "ffmpeg", command = %ShellLine(&command), "starting {tool} query");
-		let mut child = self.spawn(tool, &command)?;
+	) -> Result<Vec<f64>, RunError> {
+		let argv = ffprobe_keyframes_argv(path, stream_index);
+		tracing::info!(target: "ffprobe", command = %Argv(&argv), "starting ffprobe");
+		let mut child = self.spawn(Tool::Ffprobe, &argv)?;
 		let stdout = child.stdout.take();
 		let stderr = child.stderr.take();
-		let pipes = async { tokio::join!(read_all(stdout), collect_log(stderr, None)) };
-		let (status, text, log_tail) = supervise(&mut child, tool, limits, pipes).await?;
-		if status.success() {
-			Ok(text)
-		} else {
-			Err(RunError::Failed {
-				tool,
+		let pipes = async { tokio::join!(read_all(stdout), collect_log(stderr)) };
+		let span = tracing::info_span!("ffprobe", pid = child.id());
+		let (status, csv, log_tail) = supervise(&mut child, Tool::Ffprobe, limits, pipes)
+			.instrument(span)
+			.await?;
+		if !status.success() {
+			return Err(RunError::Failed {
+				tool: Tool::Ffprobe,
 				status,
 				log_tail,
-			})
+			});
 		}
+		Ok(probe::parse_keyframes(&csv))
 	}
 
 	/// Starts `tool` with `argv`, piping stdout and stderr and closing stdin.
@@ -315,6 +317,28 @@ pub(crate) fn ffprobe_argv(path: &Path) -> Vec<OsString> {
 		"-show_format",
 		"-show_streams",
 		"-show_chapters",
+		"-i",
+	]
+	.iter()
+	.map(Into::into)
+	.collect();
+	argv.push(path.into());
+	argv
+}
+
+/// The ffprobe argument list for the packets of one stream of `path`, as
+/// CSV lines of `pts_time,dts_time,flags`; see [`probe::parse_keyframes`].
+pub(crate) fn ffprobe_keyframes_argv(path: &Path, stream_index: u32) -> Vec<std::ffi::OsString> {
+	let mut argv: Vec<std::ffi::OsString> = [
+		"-hide_banner",
+		"-v",
+		"error",
+		"-select_streams",
+		&stream_index.to_string(),
+		"-show_entries",
+		"packet=pts_time,dts_time,flags",
+		"-of",
+		"csv=p=0",
 		"-i",
 	]
 	.iter()
@@ -457,6 +481,14 @@ mod tests {
 	#[test]
 	fn ffprobe_argv_asks_for_a_full_json_report() {
 		insta::assert_snapshot!(ShellLine(&ffprobe_argv(Path::new("/media/in/movie.mkv"))));
+	}
+
+	#[test]
+	fn ffprobe_keyframes_argv_lists_one_stream_as_csv() {
+		insta::assert_snapshot!(Argv(&ffprobe_keyframes_argv(
+			Path::new("/media/in/movie.mkv"),
+			3
+		)));
 	}
 
 	#[tokio::test]

@@ -4,5 +4,5 @@
 //! cutting and the job queue. The server and desktop crates only wrap it.
 
 pub mod ffmpeg;
-pub mod files;
-pub mod jobs;
+pub mod fs;
+pub mod preview;
