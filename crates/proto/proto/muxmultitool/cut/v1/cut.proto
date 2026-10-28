@@ -66,6 +66,37 @@ service CutService {
   rpc PlanCut(PlanCutRequest) returns (PlanCutResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+  // Project state: the segments and modes of a source file, kept on the
+  // server so they survive a reload, another browser or an app restart,
+  // with undo and redo for every change. The state is keyed by the source
+  // file and stored in the server's data folder, never next to the media.
+  // The file is remembered by size and modification time, so a source that
+  // changed or disappeared since the last save is reported
+  // (Project.source_status); the saved segments are returned anyway
+  // and the user decides whether they still apply.
+  //
+  // GetProject returns what is saved for the file, or an empty project
+  // (saved false) when nothing is. The file may be missing: its id or path
+  // must still name a place inside the media roots.
+  rpc GetProject(GetProjectRequest) returns (GetProjectResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // UpdateProject replaces the project state with the request's and saves
+  // it. The previous state goes on the undo stack and the redo stack is
+  // cleared; a state equal to the current one changes nothing. The
+  // segments are stored as sent: normalisation happens when they are cut.
+  rpc UpdateProject(UpdateProjectRequest) returns (UpdateProjectResponse);
+
+  // UndoProject goes back one change (FAILED_PRECONDITION when there is
+  // none) and saves the result. The history is kept for the server run:
+  // a page reload keeps it, a server restart starts with an empty one.
+  rpc UndoProject(UndoProjectRequest) returns (UndoProjectResponse);
+
+  // RedoProject reapplies the last undone change (FAILED_PRECONDITION when
+  // there is none) and saves the result.
+  rpc RedoProject(RedoProjectRequest) returns (RedoProjectResponse);
 }
 
 message GetKeyframesRequest {
@@ -192,4 +223,83 @@ message PlannedSegment {
   // output is the file this range goes to; the merged file for a merged
   // export.
   string output = 5;
+}
+
+// ProjectState is what the cut editor keeps for a source file: its
+// segments and the modes they are cut with. An export is a CutOperation
+// built from it plus an output path.
+message ProjectState {
+  repeated CutSegment segments = 1;
+  SegmentMode segment_mode = 2;
+  CutMode cut_mode = 3;
+  CutExport export = 4;
+}
+
+// SourceStatus is how the source file compares to the last save.
+enum SourceStatus {
+  SOURCE_STATUS_UNSPECIFIED = 0;
+  // The file is as it was when the project was last saved, or the project
+  // has never been saved.
+  SOURCE_STATUS_UNCHANGED = 1;
+  // The file's size or modification time differs from the last save, so
+  // the segments may no longer fit it.
+  SOURCE_STATUS_CHANGED = 2;
+  // There is no file at the source's place any more.
+  SOURCE_STATUS_MISSING = 3;
+}
+
+message GetProjectRequest {
+  // file_id is an id from FilesService, or the absolute path of a file
+  // inside a configured media root.
+  string file_id = 1;
+}
+
+message UpdateProjectRequest {
+  // file_id is the source; see GetProjectRequest.
+  string file_id = 1;
+  // state replaces the current state entirely. Times must be finite and
+  // non-negative; nothing else is checked.
+  ProjectState state = 2;
+}
+
+message UndoProjectRequest {
+  // file_id is the source; see GetProjectRequest.
+  string file_id = 1;
+}
+
+message RedoProjectRequest {
+  // file_id is the source; see GetProjectRequest.
+  string file_id = 1;
+}
+
+message GetProjectResponse {
+  Project project = 1;
+}
+
+message UpdateProjectResponse {
+  Project project = 1;
+}
+
+message UndoProjectResponse {
+  Project project = 1;
+}
+
+message RedoProjectResponse {
+  Project project = 1;
+}
+
+// Project is the state of a source file's project as every project
+// method returns it.
+message Project {
+  // state is the current state: empty for a file without a project.
+  ProjectState state = 1;
+  // saved tells whether a project is stored for the file.
+  bool saved = 2;
+  // undo_depth and redo_depth are how many changes UndoProject and
+  // RedoProject can step through right now.
+  uint32 undo_depth = 3;
+  uint32 redo_depth = 4;
+  SourceStatus source_status = 5;
+  // source_path is the file the project belongs to, as the server sees it.
+  string source_path = 6;
 }

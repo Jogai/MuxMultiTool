@@ -54,7 +54,7 @@ struct Cli {
 	#[arg(long, env = "MMT_JOBS", default_value_t = DEFAULT_JOB_CONCURRENCY, value_name = "N")]
 	jobs: usize,
 
-	/// Folder for the user settings (settings.json). Kept in memory for this run when absent.
+	/// Folder for the user settings (settings.json) and the cut projects (projects/). Kept in memory for this run when absent.
 	#[arg(long, env = "MMT_DATA_DIR", value_name = "DIR")]
 	data_dir: Option<PathBuf>,
 

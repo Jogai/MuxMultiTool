@@ -43,7 +43,9 @@ pub struct Config {
 	/// How many jobs run at the same time. The rest wait in the queue.
 	pub job_concurrency: usize,
 	/// Folder for what the server keeps between runs: the user settings
-	/// (`settings.json`). `None` keeps them in memory for this run only.
+	/// (`settings.json`) and the cut projects (`projects/`, one file per
+	/// source, so project state never lands in a media folder). `None`
+	/// keeps them in memory for this run only.
 	pub data_dir: Option<PathBuf>,
 }
 

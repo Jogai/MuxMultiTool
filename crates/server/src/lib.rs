@@ -26,6 +26,7 @@ use axum::Router;
 use connectrpc::Router as ConnectRouter;
 use files::Files;
 use jobs::Jobs;
+use muxmultitool_core::cut::project::ProjectStore;
 use muxmultitool_core::ffmpeg::{CapabilityCache, Runner};
 use muxmultitool_core::files::MediaRoots;
 use muxmultitool_core::jobs::{Queue, QueueConfig};
@@ -50,6 +51,7 @@ pub mod health;
 mod jobs;
 mod media;
 mod merge;
+mod project;
 mod report;
 mod streams;
 mod system;
@@ -86,6 +88,9 @@ pub struct AppState {
 	pub timelines: TimelineManager,
 	/// The user settings (the theme), in [`Config::data_dir`] when set.
 	pub settings: SettingsStore,
+	/// The cut projects (segments per source file, with undo and redo),
+	/// under `projects/` in [`Config::data_dir`] when set.
+	pub projects: ProjectStore,
 }
 
 impl AppState {
@@ -108,6 +113,7 @@ impl AppState {
 			files: MediaRoots::new(config.media_roots.clone(), config.desktop),
 			frontend_dir: config.frontend_dir.clone(),
 			settings: SettingsStore::from_config(config.data_dir.as_deref()),
+			projects: ProjectStore::from_config(config.data_dir.as_deref()),
 		}
 	}
 }

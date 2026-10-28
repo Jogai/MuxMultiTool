@@ -26,7 +26,9 @@ use muxmultitool_core::jobs::JobSpec;
 use muxmultitool_proto::connect::muxmultitool::cut::v1::CutService;
 use muxmultitool_proto::proto::muxmultitool::cut::v1::{
 	self as proto, CutExport, CutOperation, GetKeyframesRequest, GetKeyframesResponse,
-	ParseTimeRequest, ParseTimeResponse, PlanCutRequest, PlanCutResponse,
+	GetProjectRequest, GetProjectResponse, ParseTimeRequest, ParseTimeResponse, PlanCutRequest,
+	PlanCutResponse, RedoProjectRequest, RedoProjectResponse, UndoProjectRequest,
+	UndoProjectResponse, UpdateProjectRequest, UpdateProjectResponse,
 };
 
 use crate::AppState;
@@ -143,6 +145,61 @@ impl CutService for Cut {
 			command: ShellLine(&argv).to_string(),
 			total_duration_seconds: plan.total_length(),
 			concat_list: plan.concat_list(&input).unwrap_or_default(),
+			..Default::default()
+		}))
+	}
+
+	// The project methods live in `crate::project`.
+
+	async fn get_project(
+		&self,
+		_ctx: RequestContext,
+		request: ServiceRequest<'_, GetProjectRequest>,
+	) -> ServiceResult<GetProjectResponse> {
+		let request = request.to_owned_message();
+		let project = crate::project::get(&self.jobs, &request.file_id).await?;
+		Ok(Response::new(GetProjectResponse {
+			project: Some(project).into(),
+			..Default::default()
+		}))
+	}
+
+	async fn update_project(
+		&self,
+		_ctx: RequestContext,
+		request: ServiceRequest<'_, UpdateProjectRequest>,
+	) -> ServiceResult<UpdateProjectResponse> {
+		let request = request.to_owned_message();
+		let state = request.state.into_option();
+		let project = crate::project::update(&self.jobs, &request.file_id, state).await?;
+		Ok(Response::new(UpdateProjectResponse {
+			project: Some(project).into(),
+			..Default::default()
+		}))
+	}
+
+	async fn undo_project(
+		&self,
+		_ctx: RequestContext,
+		request: ServiceRequest<'_, UndoProjectRequest>,
+	) -> ServiceResult<UndoProjectResponse> {
+		let request = request.to_owned_message();
+		let project = crate::project::undo(&self.jobs, &request.file_id).await?;
+		Ok(Response::new(UndoProjectResponse {
+			project: Some(project).into(),
+			..Default::default()
+		}))
+	}
+
+	async fn redo_project(
+		&self,
+		_ctx: RequestContext,
+		request: ServiceRequest<'_, RedoProjectRequest>,
+	) -> ServiceResult<RedoProjectResponse> {
+		let request = request.to_owned_message();
+		let project = crate::project::redo(&self.jobs, &request.file_id).await?;
+		Ok(Response::new(RedoProjectResponse {
+			project: Some(project).into(),
 			..Default::default()
 		}))
 	}
@@ -318,7 +375,7 @@ fn cut_request(operation: &CutOperation) -> Result<Request, ConnectError> {
 }
 
 /// A finite, non-negative time field.
-fn finite(value: f64, field: &str) -> Result<f64, ConnectError> {
+pub(crate) fn finite(value: f64, field: &str) -> Result<f64, ConnectError> {
 	if value.is_finite() && value >= 0.0 {
 		Ok(value)
 	} else {

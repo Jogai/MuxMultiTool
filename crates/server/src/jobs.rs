@@ -268,7 +268,11 @@ impl Jobs {
 
 	/// Jobs may only read and write inside the configured media roots.
 	/// `canonical` must already be canonical, so symlinks cannot escape.
-	fn inside_media_roots(&self, canonical: &Path, what: &str) -> Result<(), ConnectError> {
+	pub(crate) fn inside_media_roots(
+		&self,
+		canonical: &Path,
+		what: &str,
+	) -> Result<(), ConnectError> {
 		if self.state.media_roots.is_empty() {
 			return Err(ConnectError::failed_precondition(
 				"no media roots are configured; start the server with --media-root",

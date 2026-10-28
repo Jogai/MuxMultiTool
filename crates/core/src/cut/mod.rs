@@ -58,6 +58,7 @@ use std::time::Duration;
 use crate::ffmpeg::probe::{CodecType, Keyframe, ProbeResult};
 
 pub mod command;
+pub mod project;
 pub mod segments;
 pub mod timecode;
 
