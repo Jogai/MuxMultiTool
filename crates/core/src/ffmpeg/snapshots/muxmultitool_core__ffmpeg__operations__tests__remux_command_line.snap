@@ -1,0 +1,5 @@
+---
+source: crates/core/src/ffmpeg/operations.rs
+expression: cmd
+---
+ffmpeg -i /media/in/movie.mkv -map 0 -c copy /media/out/movie.mp4

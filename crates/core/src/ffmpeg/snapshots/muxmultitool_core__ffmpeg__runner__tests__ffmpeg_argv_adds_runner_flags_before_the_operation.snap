@@ -1,0 +1,5 @@
+---
+source: crates/core/src/ffmpeg/runner.rs
+expression: Argv(&argv)
+---
+-hide_banner -nostdin -nostats -progress pipe:1 -i in.mkv -map 0 -c copy 'out dir/out.mp4'
