@@ -10,7 +10,13 @@ import type { InfoDialogKind } from "~/core/components/ShellInfoDialog.vue";
 const { title } = defineProps<{ title: string }>();
 const { t } = useI18n();
 const jobs = useJobsStore();
-const { variant: themeVariant, toggle: toggleTheme } = useTheme();
+const { variant: themeVariant, canToggle, familyName, toggle: toggleTheme } = useTheme();
+const themeLabel = computed(() => {
+	if (!canToggle.value) {
+		return t("topBar.theme.noToggle", { family: familyName.value });
+	}
+	return themeVariant.value === "dark" ? t("topBar.theme.toLight") : t("topBar.theme.toDark");
+});
 const info = ref<InfoDialogKind>();
 </script>
 
@@ -32,7 +38,7 @@ const info = ref<InfoDialogKind>();
 				<IconPlay />
 				<span>{{ jobs.isActive ? t("topBar.jobs.active", { running: jobs.running, queued: jobs.queued }) : t("topBar.jobs.idle") }}</span>
 			</RouterLink>
-			<ShellIconButton :label="themeVariant === 'dark' ? t('topBar.theme.toLight') : t('topBar.theme.toDark')" @click="toggleTheme()">
+			<ShellIconButton :label="themeLabel" :disabled="!canToggle" @click="toggleTheme()">
 				<IconSun v-if="themeVariant === 'dark'" />
 				<IconMoon v-else />
 			</ShellIconButton>

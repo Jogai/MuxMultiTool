@@ -42,10 +42,14 @@ declare module 'vue' {
     RekaDropdownMenuPortal: typeof import('reka-ui')['DropdownMenuPortal']
     RekaDropdownMenuRoot: typeof import('reka-ui')['DropdownMenuRoot']
     RekaDropdownMenuTrigger: typeof import('reka-ui')['DropdownMenuTrigger']
+    RekaRadioGroupItem: typeof import('reka-ui')['RadioGroupItem']
+    RekaRadioGroupRoot: typeof import('reka-ui')['RadioGroupRoot']
     RekaTabsContent: typeof import('reka-ui')['TabsContent']
     RekaTabsList: typeof import('reka-ui')['TabsList']
     RekaTabsRoot: typeof import('reka-ui')['TabsRoot']
     RekaTabsTrigger: typeof import('reka-ui')['TabsTrigger']
+    RekaToggleGroupItem: typeof import('reka-ui')['ToggleGroupItem']
+    RekaToggleGroupRoot: typeof import('reka-ui')['ToggleGroupRoot']
     RekaTooltipContent: typeof import('reka-ui')['TooltipContent']
     RekaTooltipPortal: typeof import('reka-ui')['TooltipPortal']
     RekaTooltipProvider: typeof import('reka-ui')['TooltipProvider']
@@ -59,5 +63,8 @@ declare module 'vue' {
     ShellNavRail: typeof import('./core/components/ShellNavRail.vue')['default']
     ShellStatusBar: typeof import('./core/components/ShellStatusBar.vue')['default']
     ShellTopBar: typeof import('./core/components/ShellTopBar.vue')['default']
+    ThemeFamilyPicker: typeof import('./core/components/ThemeFamilyPicker.vue')['default']
+    ThemeSwatch: typeof import('./core/components/ThemeSwatch.vue')['default']
+    ThemeVariantPicker: typeof import('./core/components/ThemeVariantPicker.vue')['default']
   }
 }

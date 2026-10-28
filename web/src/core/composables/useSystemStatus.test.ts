@@ -6,9 +6,11 @@ import { useSystemStatus } from "./useSystemStatus";
 import {
 	GetCapabilitiesResponseSchema,
 	GetHealthResponseSchema,
+	GetSettingsResponseSchema,
 	GetVersionResponseSchema,
 	HealthStatus,
-	type SystemService
+	type SystemService,
+	UpdateSettingsResponseSchema
 } from "~/generated/muxmultitool/system/v1/system_pb";
 
 function fakeClient(overrides: Partial<Client<typeof SystemService>> = {}): Client<typeof SystemService> {
@@ -16,6 +18,8 @@ function fakeClient(overrides: Partial<Client<typeof SystemService>> = {}): Clie
 		getHealth: vi.fn().mockResolvedValue(create(GetHealthResponseSchema, { status: HealthStatus.OK })),
 		getVersion: vi.fn().mockResolvedValue(create(GetVersionResponseSchema, { version: "0.1.0" })),
 		getCapabilities: vi.fn().mockResolvedValue(create(GetCapabilitiesResponseSchema)),
+		getSettings: vi.fn().mockResolvedValue(create(GetSettingsResponseSchema)),
+		updateSettings: vi.fn().mockResolvedValue(create(UpdateSettingsResponseSchema)),
 		...overrides
 	};
 }

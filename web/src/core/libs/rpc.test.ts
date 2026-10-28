@@ -18,13 +18,23 @@ function recordingFetch() {
 afterEach(() => setRpcTransport(undefined));
 
 describe("SystemService contract", () => {
-	it("defines health, version and capabilities", () => {
-		expect(SystemService.methods.map((m) => m.name)).toEqual(["GetHealth", "GetVersion", "GetCapabilities"]);
+	it("defines health, version, capabilities and the settings pair", () => {
+		expect(SystemService.methods.map((m) => m.name)).toEqual([
+			"GetHealth",
+			"GetVersion",
+			"GetCapabilities",
+			"GetSettings",
+			"UpdateSettings"
+		]);
 	});
 
-	it("marks both methods side-effect free so Connect may use GET", () => {
+	it("marks every read side-effect free so Connect may use GET, and the update not", () => {
 		for (const method of SystemService.methods) {
-			expect(method.idempotency).toBe(MethodOptions_IdempotencyLevel.NO_SIDE_EFFECTS);
+			const expected =
+				method.name === "UpdateSettings"
+					? MethodOptions_IdempotencyLevel.IDEMPOTENCY_UNKNOWN
+					: MethodOptions_IdempotencyLevel.NO_SIDE_EFFECTS;
+			expect(method.idempotency, method.name).toBe(expected);
 		}
 	});
 });

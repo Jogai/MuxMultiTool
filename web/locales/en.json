@@ -25,7 +25,8 @@
 		},
 		"theme": {
 			"toDark": "Switch to the dark theme",
-			"toLight": "Switch to the light theme"
+			"toLight": "Switch to the light theme",
+			"noToggle": "{family} has one variant; pick another family in Settings"
 		},
 		"help": "Help",
 		"menu": "Menu"
@@ -198,7 +199,21 @@
 			"backend": "Backend",
 			"backendLoading": "Connecting…",
 			"backendOk": "Connected, version {version}",
-			"refresh": "Check again"
+			"refresh": "Check again",
+			"appearance": "Appearance",
+			"family": "Family",
+			"variants": "{n} variant | {n} variants",
+			"variant": "Variant · {family}",
+			"modeSingle": "One variant",
+			"modeAuto": "Auto: light + dark",
+			"light": "Light",
+			"dark": "Dark",
+			"markLight": "Use {variant} when the system is light",
+			"markDark": "Use {variant} when the system is dark",
+			"autoHint": "Follows the OS: {light} when the system is light, {dark} when it is dark.",
+			"sameVariantHint": "A family without a light variant uses the same variant for both.",
+			"later": "Material and GitHub follow after the MVP.",
+			"saveError": "The theme could not be saved on the server; it is kept in this browser only."
 		}
 	}
 }

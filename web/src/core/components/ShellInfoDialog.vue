@@ -12,7 +12,7 @@ const open = computed(() => kind.value !== undefined);
 <template>
 	<RekaDialogRoot :open="open" @update:open="(value) => !value && (kind = undefined)">
 		<RekaDialogPortal>
-			<RekaDialogOverlay class="fixed inset-0 bg-black/40" />
+			<RekaDialogOverlay class="fixed inset-0 bg-overlay" />
 			<RekaDialogContent
 				class="fixed top-1/2 left-1/2 w-[min(28rem,calc(100vw-2rem))] -translate-1/2 rounded-lg border border-border bg-surface p-5 shadow-lg"
 			>

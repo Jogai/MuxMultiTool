@@ -10,7 +10,7 @@ const picker = useFilePickerStore();
 <template>
 	<RekaDialogRoot :open="picker.isOpen" @update:open="(value) => !value && picker.cancel()">
 		<RekaDialogPortal>
-			<RekaDialogOverlay class="fixed inset-0 bg-black/40" />
+			<RekaDialogOverlay class="fixed inset-0 bg-overlay" />
 			<RekaDialogContent
 				class="fixed top-1/2 left-1/2 w-[min(40rem,calc(100vw-2rem))] -translate-1/2 rounded-lg border border-border bg-surface p-5 shadow-lg"
 			>

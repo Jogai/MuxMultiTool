@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
 /*
- * Default palette, light and dark. The theme system (TASK-42) adds the other families as palette
- * files that set the same --mmt-* tokens; components only ever use the semantic Tailwind colours below.
+ * The theme tokens. The values here are the default light palette, what the page shows until the theme
+ * store runs; the store then sets the same --mmt-* properties on <html> from the chosen palette file
+ * (src/core/themes/families/*.ts), so switching theme swaps the variables without a rebuild.
+ * Components only ever use the semantic Tailwind colours mapped below, never palette colours.
  */
 :root {
 	color-scheme: light;
@@ -19,23 +21,7 @@
 	--mmt-danger-surface: #fef2f2;
 	--mmt-success: #15803d;
 	--mmt-warning: #b45309;
-}
-
-:root[data-theme="dark"] {
-	color-scheme: dark;
-	--mmt-surface: #18181b;
-	--mmt-surface-raised: #27272a;
-	--mmt-surface-sunken: #09090b;
-	--mmt-text: #f4f4f5;
-	--mmt-muted: #a1a1aa;
-	--mmt-border: #3f3f46;
-	--mmt-accent: #60a5fa;
-	--mmt-on-accent: #0b1220;
-	--mmt-accent-surface: #1e3a5f;
-	--mmt-danger: #f87171;
-	--mmt-danger-surface: #3b1111;
-	--mmt-success: #4ade80;
-	--mmt-warning: #fbbf24;
+	--mmt-overlay: #1a1a1a80;
 }
 
 @theme {
@@ -54,6 +40,7 @@
 	--color-danger-surface: var(--mmt-danger-surface);
 	--color-success: var(--mmt-success);
 	--color-warning: var(--mmt-warning);
+	--color-overlay: var(--mmt-overlay);
 }
 
 body {

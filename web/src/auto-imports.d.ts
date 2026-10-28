@@ -12,11 +12,13 @@ declare global {
   const JOB_LOG_LIMIT: typeof import('./core/libs/jobQueue').JOB_LOG_LIMIT
   const NAV_ENTRIES: typeof import('./core/libs/navigation').NAV_ENTRIES
   const RAW_OUTPUT_FIELDS: typeof import('./core/libs/errors').RAW_OUTPUT_FIELDS
+  const THEME_STORAGE_KEY: typeof import('./core/libs/theme').THEME_STORAGE_KEY
   const acceptHMRUpdate: typeof import('pinia').acceptHMRUpdate
   const appMode: typeof import('./core/libs/filePicker').appMode
   const applyEvent: typeof import('./core/libs/jobQueue').applyEvent
   const applyFetchedJob: typeof import('./core/libs/jobQueue').applyFetchedJob
   const applySnapshot: typeof import('./core/libs/jobQueue').applySnapshot
+  const applyThemeTokens: typeof import('./core/libs/theme').applyThemeTokens
   const asyncComputed: typeof import('@vueuse/core').asyncComputed
   const autoResetRef: typeof import('@vueuse/core').autoResetRef
   const baseName: typeof import('./core/libs/filePicker').baseName
@@ -50,6 +52,7 @@ declare global {
   const debouncedRef: typeof import('@vueuse/core').debouncedRef
   const debouncedWatch: typeof import('@vueuse/core').debouncedWatch
   const defaultRetryDelay: typeof import('./core/libs/watchStream').defaultRetryDelay
+  const defaultThemeSetting: typeof import('./core/libs/theme').defaultThemeSetting
   const defineAsyncComponent: typeof import('vue').defineAsyncComponent
   const defineComponent: typeof import('vue').defineComponent
   const definePage: typeof import('vue-router/experimental').definePage
@@ -91,6 +94,7 @@ declare global {
   const mergeLog: typeof import('./core/libs/jobQueue').mergeLog
   const navNameForPath: typeof import('./core/libs/navigation').navNameForPath
   const nextTick: typeof import('vue').nextTick
+  const normalizeThemeSetting: typeof import('./core/libs/theme').normalizeThemeSetting
   const onActivated: typeof import('vue').onActivated
   const onBeforeMount: typeof import('vue').onBeforeMount
   const onBeforeRouteLeave: typeof import('vue-router').onBeforeRouteLeave
@@ -112,6 +116,7 @@ declare global {
   const onUnmounted: typeof import('vue').onUnmounted
   const onUpdated: typeof import('vue').onUpdated
   const onWatcherCleanup: typeof import('vue').onWatcherCleanup
+  const parseStoredTheme: typeof import('./core/libs/theme').parseStoredTheme
   const pausableWatch: typeof import('@vueuse/core').pausableWatch
   const provide: typeof import('vue').provide
   const provideLocal: typeof import('@vueuse/core').provideLocal
@@ -131,6 +136,7 @@ declare global {
   const refThrottled: typeof import('@vueuse/core').refThrottled
   const refWithControl: typeof import('@vueuse/core').refWithControl
   const resolveComponent: typeof import('vue').resolveComponent
+  const resolveTheme: typeof import('./core/libs/theme').resolveTheme
   const setActivePinia: typeof import('pinia').setActivePinia
   const setMapStoreSuffix: typeof import('pinia').setMapStoreSuffix
   const setRpcTransport: typeof import('./core/libs/rpc').setRpcTransport
@@ -141,6 +147,8 @@ declare global {
   const storeToRefs: typeof import('pinia').storeToRefs
   const syncRef: typeof import('@vueuse/core').syncRef
   const syncRefs: typeof import('@vueuse/core').syncRefs
+  const themeSettingFromProto: typeof import('./core/libs/theme').themeSettingFromProto
+  const themeSettingToProto: typeof import('./core/libs/theme').themeSettingToProto
   const throttledRef: typeof import('@vueuse/core').throttledRef
   const throttledWatch: typeof import('@vueuse/core').throttledWatch
   const toAppError: typeof import('./core/libs/errors').toAppError
@@ -149,6 +157,7 @@ declare global {
   const toRef: typeof import('vue').toRef
   const toRefs: typeof import('vue').toRefs
   const toValue: typeof import('vue').toValue
+  const toggledThemeSetting: typeof import('./core/libs/theme').toggledThemeSetting
   const triggerRef: typeof import('vue').triggerRef
   const trimLog: typeof import('./core/libs/jobQueue').trimLog
   const tryOnBeforeMount: typeof import('@vueuse/core').tryOnBeforeMount
@@ -312,6 +321,8 @@ declare global {
   const useTextSelection: typeof import('@vueuse/core').useTextSelection
   const useTextareaAutosize: typeof import('@vueuse/core').useTextareaAutosize
   const useTheme: typeof import('./core/composables/useTheme').useTheme
+  const useThemeSettings: typeof import('./core/composables/useThemeSettings').useThemeSettings
+  const useThemeStore: typeof import('./core/stores/theme').useThemeStore
   const useThrottle: typeof import('@vueuse/core').useThrottle
   const useThrottleFn: typeof import('@vueuse/core').useThrottleFn
   const useThrottledRefHistory: typeof import('@vueuse/core').useThrottledRefHistory
@@ -371,8 +382,11 @@ declare global {
   export type { BackendState } from './core/composables/useSystemStatus'
   import('./core/composables/useSystemStatus')
   // @ts-ignore
-  export type { ThemeVariant } from './core/composables/useTheme'
+  export type { ThemeSide } from './core/composables/useTheme'
   import('./core/composables/useTheme')
+  // @ts-ignore
+  export type { ThemeStorage, ThemeSettingsOptions } from './core/composables/useThemeSettings'
+  import('./core/composables/useThemeSettings')
   // @ts-ignore
   export type { AppError, ToAppErrorOptions } from './core/libs/errors'
   import('./core/libs/errors')
@@ -389,6 +403,9 @@ declare global {
   export type { RpcTransportOptions } from './core/libs/rpc'
   import('./core/libs/rpc')
   // @ts-ignore
+  export type { ThemeMode, ThemeSetting, ResolvedTheme, ThemeRoot } from './core/libs/theme'
+  import('./core/libs/theme')
+  // @ts-ignore
   export type { WatchStatus, WatchStreamOptions, WatchHandle } from './core/libs/watchStream'
   import('./core/libs/watchStream')
 }
@@ -402,11 +419,13 @@ declare module 'vue' {
     readonly JOB_LOG_LIMIT: UnwrapRef<typeof import('./core/libs/jobQueue')['JOB_LOG_LIMIT']>
     readonly NAV_ENTRIES: UnwrapRef<typeof import('./core/libs/navigation')['NAV_ENTRIES']>
     readonly RAW_OUTPUT_FIELDS: UnwrapRef<typeof import('./core/libs/errors')['RAW_OUTPUT_FIELDS']>
+    readonly THEME_STORAGE_KEY: UnwrapRef<typeof import('./core/libs/theme')['THEME_STORAGE_KEY']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
     readonly appMode: UnwrapRef<typeof import('./core/libs/filePicker')['appMode']>
     readonly applyEvent: UnwrapRef<typeof import('./core/libs/jobQueue')['applyEvent']>
     readonly applyFetchedJob: UnwrapRef<typeof import('./core/libs/jobQueue')['applyFetchedJob']>
     readonly applySnapshot: UnwrapRef<typeof import('./core/libs/jobQueue')['applySnapshot']>
+    readonly applyThemeTokens: UnwrapRef<typeof import('./core/libs/theme')['applyThemeTokens']>
     readonly asyncComputed: UnwrapRef<typeof import('@vueuse/core')['asyncComputed']>
     readonly autoResetRef: UnwrapRef<typeof import('@vueuse/core')['autoResetRef']>
     readonly baseName: UnwrapRef<typeof import('./core/libs/filePicker')['baseName']>
@@ -439,6 +458,7 @@ declare module 'vue' {
     readonly debouncedRef: UnwrapRef<typeof import('@vueuse/core')['debouncedRef']>
     readonly debouncedWatch: UnwrapRef<typeof import('@vueuse/core')['debouncedWatch']>
     readonly defaultRetryDelay: UnwrapRef<typeof import('./core/libs/watchStream')['defaultRetryDelay']>
+    readonly defaultThemeSetting: UnwrapRef<typeof import('./core/libs/theme')['defaultThemeSetting']>
     readonly defineAsyncComponent: UnwrapRef<typeof import('vue')['defineAsyncComponent']>
     readonly defineComponent: UnwrapRef<typeof import('vue')['defineComponent']>
     readonly definePage: UnwrapRef<typeof import('vue-router/experimental')['definePage']>
@@ -480,6 +500,7 @@ declare module 'vue' {
     readonly mergeLog: UnwrapRef<typeof import('./core/libs/jobQueue')['mergeLog']>
     readonly navNameForPath: UnwrapRef<typeof import('./core/libs/navigation')['navNameForPath']>
     readonly nextTick: UnwrapRef<typeof import('vue')['nextTick']>
+    readonly normalizeThemeSetting: UnwrapRef<typeof import('./core/libs/theme')['normalizeThemeSetting']>
     readonly onActivated: UnwrapRef<typeof import('vue')['onActivated']>
     readonly onBeforeMount: UnwrapRef<typeof import('vue')['onBeforeMount']>
     readonly onBeforeRouteLeave: UnwrapRef<typeof import('vue-router')['onBeforeRouteLeave']>
@@ -501,6 +522,7 @@ declare module 'vue' {
     readonly onUnmounted: UnwrapRef<typeof import('vue')['onUnmounted']>
     readonly onUpdated: UnwrapRef<typeof import('vue')['onUpdated']>
     readonly onWatcherCleanup: UnwrapRef<typeof import('vue')['onWatcherCleanup']>
+    readonly parseStoredTheme: UnwrapRef<typeof import('./core/libs/theme')['parseStoredTheme']>
     readonly pausableWatch: UnwrapRef<typeof import('@vueuse/core')['pausableWatch']>
     readonly provide: UnwrapRef<typeof import('vue')['provide']>
     readonly provideLocal: UnwrapRef<typeof import('@vueuse/core')['provideLocal']>
@@ -520,6 +542,7 @@ declare module 'vue' {
     readonly refThrottled: UnwrapRef<typeof import('@vueuse/core')['refThrottled']>
     readonly refWithControl: UnwrapRef<typeof import('@vueuse/core')['refWithControl']>
     readonly resolveComponent: UnwrapRef<typeof import('vue')['resolveComponent']>
+    readonly resolveTheme: UnwrapRef<typeof import('./core/libs/theme')['resolveTheme']>
     readonly setActivePinia: UnwrapRef<typeof import('pinia')['setActivePinia']>
     readonly setMapStoreSuffix: UnwrapRef<typeof import('pinia')['setMapStoreSuffix']>
     readonly setRpcTransport: UnwrapRef<typeof import('./core/libs/rpc')['setRpcTransport']>
@@ -530,6 +553,8 @@ declare module 'vue' {
     readonly storeToRefs: UnwrapRef<typeof import('pinia')['storeToRefs']>
     readonly syncRef: UnwrapRef<typeof import('@vueuse/core')['syncRef']>
     readonly syncRefs: UnwrapRef<typeof import('@vueuse/core')['syncRefs']>
+    readonly themeSettingFromProto: UnwrapRef<typeof import('./core/libs/theme')['themeSettingFromProto']>
+    readonly themeSettingToProto: UnwrapRef<typeof import('./core/libs/theme')['themeSettingToProto']>
     readonly throttledRef: UnwrapRef<typeof import('@vueuse/core')['throttledRef']>
     readonly throttledWatch: UnwrapRef<typeof import('@vueuse/core')['throttledWatch']>
     readonly toAppError: UnwrapRef<typeof import('./core/libs/errors')['toAppError']>
@@ -538,6 +563,7 @@ declare module 'vue' {
     readonly toRef: UnwrapRef<typeof import('vue')['toRef']>
     readonly toRefs: UnwrapRef<typeof import('vue')['toRefs']>
     readonly toValue: UnwrapRef<typeof import('vue')['toValue']>
+    readonly toggledThemeSetting: UnwrapRef<typeof import('./core/libs/theme')['toggledThemeSetting']>
     readonly triggerRef: UnwrapRef<typeof import('vue')['triggerRef']>
     readonly trimLog: UnwrapRef<typeof import('./core/libs/jobQueue')['trimLog']>
     readonly tryOnBeforeMount: UnwrapRef<typeof import('@vueuse/core')['tryOnBeforeMount']>
@@ -701,6 +727,8 @@ declare module 'vue' {
     readonly useTextSelection: UnwrapRef<typeof import('@vueuse/core')['useTextSelection']>
     readonly useTextareaAutosize: UnwrapRef<typeof import('@vueuse/core')['useTextareaAutosize']>
     readonly useTheme: UnwrapRef<typeof import('./core/composables/useTheme')['useTheme']>
+    readonly useThemeSettings: UnwrapRef<typeof import('./core/composables/useThemeSettings')['useThemeSettings']>
+    readonly useThemeStore: UnwrapRef<typeof import('./core/stores/theme')['useThemeStore']>
     readonly useThrottle: UnwrapRef<typeof import('@vueuse/core')['useThrottle']>
     readonly useThrottleFn: UnwrapRef<typeof import('@vueuse/core')['useThrottleFn']>
     readonly useThrottledRefHistory: UnwrapRef<typeof import('@vueuse/core')['useThrottledRefHistory']>
