@@ -17,6 +17,10 @@ publish = false
 unsafe_code = "forbid" # Tauri glue may opt out locally with a justification
 missing_docs = "warn" # public API of core
 rust_2024_compatibility = { level = "warn", priority = -1 }
+# Generated Connect service traits return `impl Future<Output = ServiceResult<impl Encodable<..>>>`.
+# Implementing them as `async fn -> ServiceResult<Response>` refines that, which is fine:
+# the service types are crate-private, nothing depends on the refined signature.
+refining_impl_trait = { level = "allow", priority = -1 }
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
