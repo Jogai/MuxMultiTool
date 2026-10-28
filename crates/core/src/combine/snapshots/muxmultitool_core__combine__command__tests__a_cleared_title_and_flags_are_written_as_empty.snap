@@ -1,0 +1,5 @@
+---
+source: crates/core/src/combine/command.rs
+expression: "command(&[movie(), other_release()],\n&[Track::new(1, 0), Track::new(0, 1).language(\"\").as_forced(false),\nTrack::new(1, 2).title(\"\").as_default(false),],\n\"/media/out/Movie (2024).clean.mkv\")"
+---
+ffmpeg -i '/media/in/Movie (2024).mkv' -i '/media/in/Movie (2024) [other].mkv' -map 1:0 -map 0:1 -map 1:2 -c copy -metadata:s:1 language= -metadata:s:2 title= -disposition:2 0 '/media/out/Movie (2024).clean.mkv'

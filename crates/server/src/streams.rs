@@ -231,7 +231,7 @@ impl Jobs {
 
 	/// The input as a path: an opaque id from `FilesService`, or the
 	/// absolute path of a file inside a media root.
-	async fn stream_input(&self, input: &str) -> Result<PathBuf, ConnectError> {
+	pub(crate) async fn stream_input(&self, input: &str) -> Result<PathBuf, ConnectError> {
 		let id = FileId::new(input);
 		if id.decode().is_err() {
 			return self.checked_input(input);
@@ -319,7 +319,7 @@ fn rule(rule: &StreamRule) -> Result<Rule, String> {
 
 /// The output path: `output` itself when absolute, or next to `input` when
 /// it is a bare file name.
-fn output_path(input: &Path, output: &str) -> Result<PathBuf, ConnectError> {
+pub(crate) fn output_path(input: &Path, output: &str) -> Result<PathBuf, ConnectError> {
 	let path = Path::new(output);
 	if output.is_empty() {
 		return Err(ConnectError::invalid_argument("output path is required"));
@@ -339,7 +339,7 @@ fn output_path(input: &Path, output: &str) -> Result<PathBuf, ConnectError> {
 }
 
 /// The output extensions the containers claim, for a message.
-fn extensions() -> String {
+pub(crate) fn extensions() -> String {
 	streams::CONTAINERS
 		.iter()
 		.flat_map(|c| c.extensions().iter().map(|e| format!(".{e}")))
@@ -348,7 +348,7 @@ fn extensions() -> String {
 }
 
 /// The file name of `path`, for the job's label and the preview.
-fn file_name(path: &Path) -> String {
+pub(crate) fn file_name(path: &Path) -> String {
 	path.file_name()
 		.map(|n| n.to_string_lossy().into_owned())
 		.unwrap_or_default()

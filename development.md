@@ -193,6 +193,19 @@ curl -X POST -H 'content-type: application/json' \
 # {"parts":[{"path":"/media/Show S01E01.mkv","name":"Show S01E01.mkv","durationMs":"2892000","layout":"video, audio, subtitle"},…],"streams":[{"type":"STREAM_TYPE_VIDEO","cells":["h264 1920×1080 23.976","h264 1920×1080 23.976"],"identical":true},…],"canMerge":true,"totalDurationMs":"5992000","command":"…"}
 ```
 
+### Combine
+
+Streams from two or more files go into one output without re-encoding: a `JobsService` operation (`combine`) whose logic is `core::combine`, with the messages in `crates/proto/proto/muxmultitool/combine/v1/combine.proto`. The two MVP cases are the same operation with other sources: English subtitles from one MKV added to another, and one MKV from a BD rip's video with a Blu-ray's audio and subtitles (gui/03-combine). The operation lists the `sources` (labelled A, B, C, … in that order; file ids or paths inside a media root) and the output `tracks` in order, each a source and one of its streams. The command is one `-i` per used source (an unused source is left out), one `-map <input>:<stream>` per track and `-c copy`; the container follows the output's extension and is checked with the same table as the stream copy, so a track the container cannot hold is refused before anything runs.
+
+Each track carries its source stream's language, title and disposition flags over, as ffmpeg copies them with the stream. A track may set `language`, `title`, `default` or `forced` instead; only those edits become `-metadata:s:<n>` and `-disposition:<n>` options (an empty language or title removes the tag). A source can be shifted in time (`offset_seconds`, applied with `-itsoffset`), which stays lossless. `CombineService/PreviewCombine` runs the same resolution without queueing anything: every source with its streams, every output track with its origin (`B:#1`) and the metadata it will carry, the issues, the command, and a warning when two sources with video or audio differ in duration by more than a second (a subtitle file's duration is only its last cue, so subtitle-only sources are not compared).
+
+```sh
+curl -X POST -H 'content-type: application/json' \
+  -d '{"operation":{"sources":[{"input":"/media/Movie.BDRip.mkv"},{"input":"/media/Movie.BluRay.m2ts","offsetSeconds":0.5},{"input":"/media/Movie.eng.srt"}],"tracks":[{"source":0,"streamIndex":0},{"source":1,"streamIndex":1,"title":"Atmos","default":true},{"source":2,"streamIndex":0,"language":"eng","forced":true}],"output":"/media/out/Movie.mkv"}}' \
+  http://127.0.0.1:8080/rpc/muxmultitool.combine.v1.CombineService/PreviewCombine
+# {"container":"MKV","outputName":"Movie.mkv","sources":[{"label":"A","name":"Movie.BDRip.mkv","durationMs":"7293000","used":true,"streams":[…]},…],"tracks":[{"origin":"A:#0","stream":{…}},{"position":1,"source":1,"origin":"B:#1","language":"eng","title":"Atmos","default":true,"edited":true},…],"warnings":["durations differ: A (Movie.BDRip.mkv) 2:01:33.000, B (Movie.BluRay.m2ts) 2:01:35.000 (+2.0 s)"],"canRun":true,"command":"… -i /media/Movie.BDRip.mkv -itsoffset 0.5 -i /media/Movie.BluRay.m2ts -i /media/Movie.eng.srt -map 0:0 -map 1:1 -map 2:0 -c copy -metadata:s:1 title=Atmos -disposition:1 default -metadata:s:2 language=eng -disposition:2 forced /media/out/Movie.mkv"}
+```
+
 ### Preview (HLS)
 
 The player never gets a source file: `MediaService/StartPreview` starts a preview session for a file and returns the playlist path, `/media/{id}/hls/index.m3u8`, which hls.js plays. Segments (`/media/{id}/hls/{n}.ts`) are H.264 + AAC in MPEG-TS, produced on demand by ffmpeg from wherever the player seeks: copied when the source already is H.264 (8-bit 4:2:0) and AAC, transcoded with x264 otherwise (hardware encoders come after the MVP). Exports always read the original file.

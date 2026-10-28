@@ -1,0 +1,5 @@
+---
+source: crates/core/src/combine/command.rs
+expression: "command(&[movie(), other_release()],\n&[Track::new(0, 0), Track::new(0, 1), Track::new(1, 2)],\n\"/media/out/Movie (2024).subs.mkv\")"
+---
+ffmpeg -i '/media/in/Movie (2024).mkv' -i '/media/in/Movie (2024) [other].mkv' -map 0:0 -map 0:1 -map 1:2 -c copy '/media/out/Movie (2024).subs.mkv'

@@ -1,0 +1,5 @@
+---
+source: crates/core/src/combine/command.rs
+expression: "command(&[movie(), bluray().with_offset(2.0), srt()],\n&[Track::new(0, 0), Track::new(1, 1).title(\"Atmos\"),\nTrack::new(1, 2).title(\"Compatibility\").as_default(false),\nTrack::new(2, 0).language(\"eng\").title(\"English\").as_default(true),\nTrack::new(1, 6),], \"/media/out/Movie (2024).mkv\")"
+---
+ffmpeg -i '/media/in/Movie (2024).mkv' -itsoffset 2 -i /media/in/Movie.2024.BluRay.m2ts -i /media/in/Movie.2024.eng.srt -map 0:0 -map 1:1 -map 1:2 -map 2:0 -map 1:6 -c copy -metadata:s:1 title=Atmos -metadata:s:2 title=Compatibility -metadata:s:3 language=eng -metadata:s:3 title=English -disposition:3 default '/media/out/Movie (2024).mkv'

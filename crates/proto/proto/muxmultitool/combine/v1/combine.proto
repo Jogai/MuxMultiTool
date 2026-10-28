@@ -1,0 +1,156 @@
+syntax = "proto3";
+
+package muxmultitool.combine.v1;
+
+import "muxmultitool/files/v1/files.proto";
+
+// CombineService previews a multi-source mux before it runs: streams from
+// two or more files copied into one output, each output track with the
+// language, title and default/forced flags it will carry, the tracks the
+// target container cannot hold, a warning when the sources' durations
+// differ, and the exact ffmpeg command. The mux itself runs as a job:
+// JobsService.SubmitJob takes the same CombineOperation and refuses it
+// while the preview has a blocking issue. Streams are never re-encoded
+// (-map + -c copy); a source can be shifted in time (-itsoffset), which
+// only moves timestamps. See gui/03-combine.
+service CombineService {
+  // PreviewCombine resolves the tracks against the sources' streams. It
+  // probes every source and queues nothing; the output may not exist yet
+  // but need not be checked here.
+  rpc PreviewCombine(PreviewCombineRequest) returns (PreviewCombineResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+// CombineOperation copies the chosen streams of several sources into one
+// new container without re-encoding.
+message CombineOperation {
+  // Sources are the input files, labelled A, B, C, … in this order. A
+  // source no track uses is left out of the command.
+  repeated CombineSource sources = 1;
+  // Tracks are the output's streams, in output order; at least one.
+  repeated CombineTrack tracks = 2;
+  // Output is the file to write: an absolute path inside a media root, or a
+  // bare file name, which puts the output next to the first source. The
+  // extension picks the container: .mkv/.mka/.mks (Matroska), .mp4/.m4v/.m4a
+  // (MP4), .mov (QuickTime) or .webm (WebM). The file must not exist yet.
+  string output = 3;
+}
+
+// CombineSource is one input file.
+message CombineSource {
+  // Input is a file id from FilesService, or the absolute path of a file
+  // inside a configured media root.
+  string input = 1;
+  // OffsetSeconds shifts every stream taken from this source in time;
+  // positive delays it. Applied with -itsoffset, to the millisecond, so the
+  // copy stays lossless. 0 for none.
+  double offset_seconds = 2;
+}
+
+// CombineTrack is one stream of the output. A field left unset keeps what
+// the source stream has; ffmpeg copies a stream's tags and flags with it.
+message CombineTrack {
+  // Source is the position of the stream's file in CombineOperation.sources.
+  uint32 source = 1;
+  // StreamIndex is the stream in that file, as StreamSummary.index numbers
+  // it.
+  uint32 stream_index = 2;
+  // Language is the language tag to set, e.g. "eng". An empty string
+  // removes the tag.
+  optional string language = 3;
+  // Title is the track title to set. An empty string removes it.
+  optional string title = 4;
+  // Default sets or clears the default flag.
+  optional bool default = 5;
+  // Forced sets or clears the forced flag (subtitles that are always shown).
+  optional bool forced = 6;
+}
+
+message PreviewCombineRequest {
+  CombineOperation operation = 1;
+}
+
+message PreviewCombineResponse {
+  // Container is the target container's name, e.g. "MKV".
+  string container = 1;
+  // OutputName is the file name the output would get, without its folder.
+  string output_name = 2;
+  // Sources are the operation's sources in order, probed.
+  repeated SourceInfo sources = 3;
+  // Tracks are the output's streams in order, each with where it comes
+  // from and the metadata it will carry.
+  repeated OutputTrack tracks = 4;
+  // Issues are the tracks the container cannot hold, and warnings about
+  // ones it may not hold. Empty when the copy is expected to work.
+  repeated TrackIssue issues = 5;
+  // Warnings are things to check before running that do not block the job,
+  // e.g. "durations differ: A (Movie.mkv) 2:01:33.000, B (Movie.m2ts)
+  // 2:01:35.000 (+2.0 s)". Sources that contribute only subtitles are not
+  // compared: a subtitle file's duration is only its last cue.
+  repeated string warnings = 6;
+  // CanRun is false while a blocking issue is listed: a submit of the same
+  // operation would be refused (FAILED_PRECONDITION).
+  bool can_run = 7;
+  // Command is the ffmpeg command line the job would run, quoted for a
+  // shell.
+  string command = 8;
+  // Argv is the same command as the program followed by its arguments.
+  repeated string argv = 9;
+}
+
+// SourceInfo is one source as the preview saw it.
+message SourceInfo {
+  // Label is how the tracks and messages refer to the source: "A", "B", …
+  string label = 1;
+  string path = 2;
+  // Name is the file name.
+  string name = 3;
+  // DurationMs is the container's duration; 0 when unknown.
+  int64 duration_ms = 4;
+  // OffsetSeconds is the shift the operation asked for.
+  double offset_seconds = 5;
+  // Used is true when at least one track comes from this source; an unused
+  // source is not an input of the command.
+  bool used = 6;
+  // Streams are the source's streams, as the report describes them, so the
+  // frontend can list what is left to add.
+  repeated muxmultitool.files.v1.StreamSummary streams = 7;
+}
+
+// OutputTrack is one stream of the output.
+message OutputTrack {
+  // Position is the track's place in the output, from 0.
+  uint32 position = 1;
+  // Source is the position of the stream's file in the operation's sources.
+  uint32 source = 2;
+  // Origin names where the track comes from, e.g. "B:#1": the source's
+  // label and the stream's index.
+  string origin = 3;
+  // Stream is the source stream as the report describes it.
+  muxmultitool.files.v1.StreamSummary stream = 4;
+  // Language is the language tag the output will carry; empty for none.
+  string language = 5;
+  // Title is the title the output will carry; empty for none.
+  string title = 6;
+  // Default is whether the output track is the default of its kind.
+  bool default = 7;
+  // Forced is whether the output track is forced.
+  bool forced = 8;
+  // Edited is true when the command sets metadata or flags on this track
+  // instead of copying the source's.
+  bool edited = 9;
+}
+
+// TrackIssue is a track the target container cannot hold, or may not hold.
+message TrackIssue {
+  // Track is the position of the track in question, from 0.
+  uint32 track = 1;
+  // Blocking is true when ffmpeg is known to refuse the combination: the
+  // job would fail at once. False for a warning about a codec the server
+  // does not know the container's rules for.
+  bool blocking = 2;
+  // Message explains the problem and what to do, e.g. "MP4 cannot hold
+  // subrip subtitles (track 3, B:#2); remove the track or choose MKV".
+  string message = 3;
+}

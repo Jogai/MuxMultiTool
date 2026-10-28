@@ -1,0 +1,5 @@
+---
+source: crates/core/src/combine/command.rs
+expression: "command(&[movie(), bluray().with_offset(-0.5), srt()],\n&[Track::new(2, 0), Track::new(0, 0)], \"/media/out/Movie (2024).mkv\")"
+---
+ffmpeg -i '/media/in/Movie (2024).mkv' -i /media/in/Movie.2024.eng.srt -map 1:0 -map 0:0 -c copy '/media/out/Movie (2024).mkv'

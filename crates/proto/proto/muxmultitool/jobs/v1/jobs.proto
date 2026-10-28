@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package muxmultitool.jobs.v1;
 
+import "muxmultitool/combine/v1/combine.proto";
 import "muxmultitool/crop/v1/crop.proto";
 import "muxmultitool/cut/v1/cut.proto";
 import "muxmultitool/gif/v1/gif.proto";
@@ -72,6 +73,11 @@ message SubmitJobRequest {
     // rewritten on a stream copy; refused for other codecs
     // (FAILED_PRECONDITION, see CropService.PlanCrop).
     muxmultitool.crop.v1.CropOperation crop = 8;
+    // Streams from several sources copied into one container without
+    // re-encoding, with per-track metadata; refused while
+    // CombineService.PreviewCombine reports a blocking issue
+    // (FAILED_PRECONDITION).
+    muxmultitool.combine.v1.CombineOperation combine = 9;
   }
 }
 

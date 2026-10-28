@@ -38,6 +38,7 @@ use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
 use tracing::{info, warn};
 
+mod combine;
 mod config;
 mod crop;
 mod cut;
@@ -134,7 +135,8 @@ fn app_with_state(state: Arc<AppState>) -> Router {
 		.add_service(Arc::new(streams::Streams::new(Arc::clone(&state))))
 		.add_service(Arc::new(cut::Cut::new(Arc::clone(&state))))
 		.add_service(Arc::new(merge::Merge::new(Arc::clone(&state))))
-		.add_service(Arc::new(crop::Crop::new(Arc::clone(&state))));
+		.add_service(Arc::new(crop::Crop::new(Arc::clone(&state))))
+		.add_service(Arc::new(combine::Combine::new(Arc::clone(&state))));
 
 	let index = state.frontend_dir.join("index.html");
 	let frontend = ServeDir::new(&state.frontend_dir).fallback(ServeFile::new(index));
