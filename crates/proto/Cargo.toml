@@ -11,9 +11,17 @@ publish.workspace = true
 [dependencies]
 buffa = { version = "0.9", features = ["json"] }
 buffa-types = { version = "0.9", features = ["json"] }
-connectrpc = { version = "0.9", default-features = false, features = ["client", "gzip", "json"] }
+connectrpc = { version = "0.9", default-features = false, features = [
+	"client",
+	"gzip",
+	"json",
+] }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+
+# cargo-shear skips git-ignored files, so it can't see that the generated code
+# uses these.
+[package.metadata.cargo-shear]
+ignored = ["connectrpc", "serde"]
 
 [lints]
 workspace = true
