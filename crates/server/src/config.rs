@@ -31,6 +31,10 @@ pub struct Config {
 	pub tools: Tools,
 	/// Folder with the built frontend (`index.html` and `assets/`).
 	pub frontend_dir: PathBuf,
+	/// Desktop mode: the server runs on the user's own machine, so absolute
+	/// paths from native file dialogs are trusted (`FilesService/OpenPaths`).
+	/// Off in the container, where paths from a client are never accepted.
+	pub desktop: bool,
 }
 
 impl Default for Config {
@@ -41,6 +45,7 @@ impl Default for Config {
 			media_roots: Vec::new(),
 			tools: Tools::default(),
 			frontend_dir: PathBuf::from(DEFAULT_FRONTEND_DIR),
+			desktop: false,
 		}
 	}
 }
@@ -62,5 +67,10 @@ mod tests {
 		let config = Config::default();
 		assert!(config.socket_addr().ip().is_loopback());
 		assert_eq!(config.socket_addr().port(), DEFAULT_PORT);
+	}
+
+	#[test]
+	fn default_is_the_container_mode() {
+		assert!(!Config::default().desktop);
 	}
 }

@@ -21,7 +21,9 @@ use std::sync::Arc;
 
 use axum::Router;
 use connectrpc::Router as ConnectRouter;
-use muxmultitool_core::ffmpeg::{CapabilityCache, Runner};
+use files::Files;
+use muxmultitool_core::ffmpeg::Runner;
+use muxmultitool_core::files::MediaRoots;
 use system::System;
 use tokio::net::TcpListener;
 use tower_http::services::{ServeDir, ServeFile};
@@ -29,6 +31,7 @@ use tower_http::trace::TraceLayer;
 use tracing::{info, warn};
 
 mod config;
+mod files;
 mod system;
 
 pub use config::{Config, DEFAULT_FRONTEND_DIR, DEFAULT_PORT};
@@ -44,8 +47,9 @@ pub struct AppState {
 	pub runner: Runner,
 	/// See [`Config::media_roots`].
 	pub media_roots: Vec<std::path::PathBuf>,
-	/// What the installed ffmpeg can do; see [`CapabilityCache`].
-	pub capabilities: CapabilityCache,
+	/// Resolves file ids to paths, and only to paths under `media_roots`
+	/// (plus native-dialog paths in desktop mode, see [`Config::desktop`]).
+	pub files: MediaRoots,
 }
 
 /// Builds the full router for `config`.
@@ -60,10 +64,12 @@ fn build(config: &Config) -> (Router, Arc<AppState>) {
 	let state = Arc::new(AppState {
 		runner: Runner::new(config.tools.clone()),
 		media_roots: config.media_roots.clone(),
-		capabilities: CapabilityCache::new(),
+		files: MediaRoots::new(config.media_roots.clone(), config.desktop),
 	});
 
-	let rpc = ConnectRouter::new().add_service(Arc::new(System::new(Arc::clone(&state))));
+	let rpc = ConnectRouter::new()
+		.add_service(Arc::new(System))
+		.add_service(Arc::new(Files::new(Arc::clone(&state))));
 
 	let index = config.frontend_dir.join("index.html");
 	let frontend = ServeDir::new(&config.frontend_dir).fallback(ServeFile::new(index));
