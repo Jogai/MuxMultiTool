@@ -53,6 +53,43 @@ pub fn parse_keyframes(csv: &str) -> Vec<f64> {
 	times
 }
 
+/// Sums the packet sizes of every stream out of a packet listing, one line
+/// at a time, so a listing of millions of packets never has to be held in
+/// memory.
+///
+/// The runner asks ffprobe for `-show_entries packet=stream_index,size` as
+/// CSV, one line per packet of the whole file: `1,2366`. Lines that do not
+/// have that shape are skipped. A stream without packets (an attachment, an
+/// empty subtitle track) has no entry in the result.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PacketSizes {
+	bytes: BTreeMap<u32, u64>,
+}
+
+impl PacketSizes {
+	/// Adds one `stream_index,size` line.
+	pub fn push_line(&mut self, line: &str) {
+		let Some((index, size)) = line.trim().split_once(',') else {
+			return;
+		};
+		let (Ok(index), Ok(size)) = (index.parse::<u32>(), size.trim().parse::<u64>()) else {
+			return;
+		};
+		*self.bytes.entry(index).or_default() += size;
+	}
+
+	/// Adds every line of `csv`.
+	pub fn push_lines(&mut self, csv: &str) {
+		csv.lines().for_each(|line| self.push_line(line));
+	}
+
+	/// Bytes per stream index, for the streams that had packets.
+	#[must_use]
+	pub fn into_bytes(self) -> BTreeMap<u32, u64> {
+		self.bytes
+	}
+}
+
 /// Everything ffprobe reports about one file.
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
 pub struct ProbeResult {
@@ -239,6 +276,10 @@ pub struct Stream {
 	/// Audio channel layout (`stereo`, `5.1`).
 	#[serde(default)]
 	pub channel_layout: Option<String>,
+	/// Size of the codec's out-of-band data in bytes. For an attachment
+	/// stream this is the attached file itself.
+	#[serde(default, deserialize_with = "lenient")]
+	pub extradata_size: Option<u64>,
 	/// Default/forced/... flags.
 	#[serde(default)]
 	pub disposition: Disposition,
@@ -535,6 +576,26 @@ mod tests {
 			N/A,3.520000,K__\n3.520000,3.520000,K__\n7.000000,7.000000,K_D\n\ngarbage\n";
 		assert_eq!(parse_keyframes(csv), vec![0.0, 3.52, 7.0]);
 		assert_eq!(parse_keyframes(""), Vec::<f64>::new());
+	}
+
+	#[test]
+	fn packet_sizes_are_summed_per_stream() {
+		let mut sizes = PacketSizes::default();
+		sizes.push_lines("0,100\n1,20\n0,250\n\n2, 7\nN/A,5\n0\ngarbage,1\n1,x\n");
+		sizes.push_line("1,30");
+		assert_eq!(
+			sizes.into_bytes(),
+			BTreeMap::from([(0, 350), (1, 50), (2, 7)])
+		);
+		assert!(PacketSizes::default().into_bytes().is_empty());
+	}
+
+	#[test]
+	fn extradata_size_is_read() {
+		let probe =
+			parse(r#"{"streams":[{"index":5,"codec_type":"attachment","extradata_size":8}]}"#)
+				.unwrap();
+		assert_eq!(probe.streams[0].extradata_size, Some(8));
 	}
 
 	#[test]

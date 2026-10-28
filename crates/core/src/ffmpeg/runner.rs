@@ -7,6 +7,7 @@
 //! reason, including the caller dropping the future, the process is killed
 //! and reaped before the call returns.
 
+use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::future::Future;
 use std::path::Path;
@@ -207,6 +208,16 @@ impl Runner {
 	/// # Errors
 	/// See [`RunError`]. ffprobe fails for files it cannot open or read.
 	pub async fn probe(&self, path: &Path, limits: &Limits) -> Result<ProbeResult, RunError> {
+		Ok(probe::parse(&self.probe_json(path, limits).await?)?)
+	}
+
+	/// Runs ffprobe on `path` and returns its report as the JSON text ffprobe
+	/// wrote, for callers that need the fields [`ProbeResult`] leaves out.
+	/// [`probe::parse`] turns it into a [`ProbeResult`].
+	///
+	/// # Errors
+	/// See [`RunError`]. ffprobe fails for files it cannot open or read.
+	pub async fn probe_json(&self, path: &Path, limits: &Limits) -> Result<String, RunError> {
 		let argv = ffprobe_argv(path);
 		tracing::info!(target: "ffprobe", command = %ShellLine(&argv), "starting ffprobe");
 		let mut child = self.spawn(Tool::Ffprobe, &argv)?;
@@ -224,7 +235,42 @@ impl Runner {
 				log_tail,
 			});
 		}
-		Ok(probe::parse(&json)?)
+		Ok(json)
+	}
+
+	/// Measures how many bytes each stream of `path` takes, by summing the
+	/// sizes of its packets, keyed by stream index. A stream without packets
+	/// (an attachment, an empty subtitle track) is not in the result.
+	///
+	/// This demuxes the whole file (no decoding), so it costs one read of
+	/// the file: fast from an SSD, long from a network share. The listing is
+	/// summed as it arrives and never held in memory.
+	///
+	/// # Errors
+	/// See [`RunError`].
+	pub async fn packet_sizes(
+		&self,
+		path: &Path,
+		limits: &Limits,
+	) -> Result<BTreeMap<u32, u64>, RunError> {
+		let argv = ffprobe_packet_sizes_argv(path);
+		tracing::info!(target: "ffprobe", command = %ShellLine(&argv), "starting ffprobe");
+		let mut child = self.spawn(Tool::Ffprobe, &argv)?;
+		let stdout = child.stdout.take();
+		let stderr = child.stderr.take();
+		let pipes = async { tokio::join!(sum_packets(stdout), collect_log(stderr, None)) };
+		let span = tracing::info_span!("ffprobe", pid = child.id());
+		let (status, sizes, log_tail) = supervise(&mut child, Tool::Ffprobe, limits, pipes)
+			.instrument(span)
+			.await?;
+		if !status.success() {
+			return Err(RunError::Failed {
+				tool: Tool::Ffprobe,
+				status,
+				log_tail,
+			});
+		}
+		Ok(sizes.into_bytes())
 	}
 
 	/// Runs `tool` with plain `args` (no runner flags) and returns its stdout.
@@ -379,6 +425,26 @@ pub(crate) fn ffprobe_keyframes_argv(path: &Path, stream_index: u32) -> Vec<std:
 	argv
 }
 
+/// The ffprobe argument list for the packets of every stream of `path`, as
+/// CSV lines of `stream_index,size`; see [`probe::PacketSizes`].
+pub(crate) fn ffprobe_packet_sizes_argv(path: &Path) -> Vec<OsString> {
+	let mut argv: Vec<OsString> = [
+		"-hide_banner",
+		"-v",
+		"error",
+		"-show_entries",
+		"packet=stream_index,size",
+		"-of",
+		"csv=p=0",
+		"-i",
+	]
+	.iter()
+	.map(Into::into)
+	.collect();
+	argv.push(path.into());
+	argv
+}
+
 /// Waits for `child` while `pipes` drains its output, enforcing `limits`.
 ///
 /// `pipes` yields what it read from stdout and the stderr log tail. Returns
@@ -486,6 +552,26 @@ async fn collect_log(
 	tail.into_iter().collect::<Vec<_>>().join("\n")
 }
 
+/// Sums a packet listing line by line; see [`probe::PacketSizes`].
+async fn sum_packets(stdout: Option<impl AsyncRead + Unpin>) -> probe::PacketSizes {
+	let mut sizes = probe::PacketSizes::default();
+	let Some(stdout) = stdout else {
+		return sizes;
+	};
+	let mut lines = BufReader::new(stdout).lines();
+	loop {
+		match lines.next_line().await {
+			Ok(Some(line)) => sizes.push_line(&line),
+			Ok(None) => break,
+			Err(e) => {
+				tracing::debug!(target: "ffprobe", error = %e, "packet pipe closed");
+				break;
+			}
+		}
+	}
+	sizes
+}
+
 /// Reads a pipe to the end as text.
 async fn read_all(pipe: Option<impl AsyncRead + Unpin>) -> String {
 	let Some(mut pipe) = pipe else {
@@ -512,6 +598,13 @@ mod tests {
 	#[test]
 	fn ffprobe_argv_asks_for_a_full_json_report() {
 		insta::assert_snapshot!(ShellLine(&ffprobe_argv(Path::new("/media/in/movie.mkv"))));
+	}
+
+	#[test]
+	fn ffprobe_packet_sizes_argv_lists_every_packet_as_csv() {
+		insta::assert_snapshot!(ShellLine(&ffprobe_packet_sizes_argv(Path::new(
+			"/media/in/movie.mkv"
+		))));
 	}
 
 	#[test]

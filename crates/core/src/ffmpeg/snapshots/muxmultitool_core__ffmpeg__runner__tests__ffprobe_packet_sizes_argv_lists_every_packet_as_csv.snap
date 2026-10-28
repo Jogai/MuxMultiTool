@@ -1,0 +1,5 @@
+---
+source: crates/core/src/ffmpeg/runner.rs
+expression: "ShellLine(&ffprobe_packet_sizes_argv(Path::new(\"/media/in/movie.mkv\")))"
+---
+-hide_banner -v error -show_entries packet=stream_index,size -of csv=p=0 -i /media/in/movie.mkv

@@ -8,3 +8,4 @@ pub mod files;
 pub mod fs;
 pub mod jobs;
 pub mod preview;
+pub mod report;
