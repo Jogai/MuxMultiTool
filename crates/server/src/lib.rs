@@ -21,7 +21,7 @@ use std::sync::Arc;
 
 use axum::Router;
 use connectrpc::Router as ConnectRouter;
-use muxmultitool_core::ffmpeg::Runner;
+use muxmultitool_core::ffmpeg::{CapabilityCache, Runner};
 use system::System;
 use tokio::net::TcpListener;
 use tower_http::services::{ServeDir, ServeFile};
@@ -44,27 +44,36 @@ pub struct AppState {
 	pub runner: Runner,
 	/// See [`Config::media_roots`].
 	pub media_roots: Vec<std::path::PathBuf>,
+	/// What the installed ffmpeg can do; see [`CapabilityCache`].
+	pub capabilities: CapabilityCache,
 }
 
 /// Builds the full router for `config`.
 ///
 /// This is also what the integration tests drive directly, without a socket.
 pub fn app(config: &Config) -> Router {
+	build(config).0
+}
+
+/// The router together with its state, for callers that also use the state.
+fn build(config: &Config) -> (Router, Arc<AppState>) {
 	let state = Arc::new(AppState {
 		runner: Runner::new(config.tools.clone()),
 		media_roots: config.media_roots.clone(),
+		capabilities: CapabilityCache::new(),
 	});
 
-	let rpc = ConnectRouter::new().add_service(Arc::new(System));
+	let rpc = ConnectRouter::new().add_service(Arc::new(System::new(Arc::clone(&state))));
 
 	let index = config.frontend_dir.join("index.html");
 	let frontend = ServeDir::new(&config.frontend_dir).fallback(ServeFile::new(index));
 
-	Router::new()
+	let router = Router::new()
 		.nest_service(RPC_PREFIX, rpc.into_axum_service())
 		.fallback_service(frontend)
 		.layer(TraceLayer::new_for_http())
-		.with_state(state)
+		.with_state(Arc::clone(&state));
+	(router, state)
 }
 
 /// A bound listener and the router that serves it.
@@ -85,10 +94,9 @@ impl Server {
 	pub async fn bind(config: &Config) -> io::Result<Self> {
 		warn_about_missing_folders(config);
 		let listener = TcpListener::bind(config.socket_addr()).await?;
-		Ok(Self {
-			listener,
-			app: app(config),
-		})
+		let (app, state) = build(config);
+		tokio::spawn(detect_at_startup(state));
+		Ok(Self { listener, app })
 	}
 
 	/// The bound address, with the real port when the config asked for `0`.
@@ -113,6 +121,21 @@ impl Server {
 			.await?;
 		info!("stopped");
 		Ok(())
+	}
+}
+
+/// Detects the ffmpeg capabilities once at startup, so the first request is
+/// answered from the cache and a broken ffmpeg shows in the log right away.
+async fn detect_at_startup(state: Arc<AppState>) {
+	match state.capabilities.get(&state.runner).await {
+		Ok(found) => info!(
+			version = %found.version,
+			encoders = found.encoders.len(),
+			filters = found.filters.len(),
+			hwaccels = ?found.hwaccels,
+			"ffmpeg detected"
+		),
+		Err(error) => warn!(%error, "ffmpeg is missing or broken; jobs will fail until it works"),
 	}
 }
 

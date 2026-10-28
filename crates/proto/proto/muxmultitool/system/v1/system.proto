@@ -13,6 +13,12 @@ service SystemService {
   rpc GetVersion(GetVersionRequest) returns (GetVersionResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+  // GetCapabilities returns what the installed ffmpeg build can do, so the
+  // frontend can disable options the build lacks.
+  rpc GetCapabilities(GetCapabilitiesRequest) returns (GetCapabilitiesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
 }
 
 message GetHealthRequest {}
@@ -33,4 +39,71 @@ message GetVersionRequest {}
 message GetVersionResponse {
   // Version is the app version, a semantic version such as "0.1.0".
   string version = 1;
+}
+
+message GetCapabilitiesRequest {}
+
+message GetCapabilitiesResponse {
+  // Status tells whether ffmpeg works. A missing or broken ffmpeg is a state
+  // to show, not an RPC error.
+  CapabilitiesStatus status = 1;
+  // Error is a plain-language reason, set when status is UNAVAILABLE.
+  string error = 2;
+  // Capabilities is set when status is AVAILABLE.
+  Capabilities capabilities = 3;
+}
+
+// CapabilitiesStatus tells whether ffmpeg could be queried.
+enum CapabilitiesStatus {
+  CAPABILITIES_STATUS_UNSPECIFIED = 0;
+  CAPABILITIES_STATUS_AVAILABLE = 1;
+  CAPABILITIES_STATUS_UNAVAILABLE = 2;
+}
+
+// Capabilities is what the ffmpeg build reports about itself.
+message Capabilities {
+  // Version is the ffmpeg version string, e.g. "7.1.1".
+  string version = 1;
+  repeated Codec encoders = 2;
+  repeated Codec decoders = 3;
+  // Formats are the container formats, without devices.
+  repeated Format formats = 4;
+  repeated Filter filters = 5;
+  // Hwaccels are the hardware acceleration methods, e.g. "vaapi".
+  repeated string hwaccels = 6;
+}
+
+// Codec is an encoder or a decoder.
+message Codec {
+  // Name is what goes after -c:v, e.g. "libx264".
+  string name = 1;
+  CodecKind kind = 2;
+  string description = 3;
+}
+
+enum CodecKind {
+  CODEC_KIND_UNSPECIFIED = 0;
+  CODEC_KIND_VIDEO = 1;
+  CODEC_KIND_AUDIO = 2;
+  CODEC_KIND_SUBTITLE = 3;
+  CODEC_KIND_OTHER = 4;
+}
+
+// Format is a container format.
+message Format {
+  // Name is what goes after -f, e.g. "matroska".
+  string name = 1;
+  string description = 2;
+  // Demux is true when ffmpeg can read the format.
+  bool demux = 3;
+  // Mux is true when ffmpeg can write the format.
+  bool mux = 4;
+}
+
+// Filter is a filter for -vf, -af and -filter_complex.
+message Filter {
+  string name = 1;
+  string description = 2;
+  // Timeline is true when the filter supports the enable option.
+  bool timeline = 3;
 }

@@ -185,3 +185,49 @@ async fn generated_client_reaches_the_server_over_a_socket() {
 	stop.send(()).unwrap();
 	running.await.unwrap().unwrap();
 }
+
+const CAPABILITIES: &str = "/rpc/muxmultitool.system.v1.SystemService/GetCapabilities";
+
+async fn capabilities_json(config: Config) -> Result<serde_json::Value> {
+	let request = Request::post(CAPABILITIES)
+		.header(header::CONTENT_TYPE, "application/json")
+		.body(Body::from("{}"))?;
+	let response = app(&config).oneshot(request).await?;
+	assert_eq!(response.status(), StatusCode::OK);
+	let body = response.into_body().collect().await?.to_bytes();
+	Ok(serde_json::from_slice(&body)?)
+}
+
+#[tokio::test]
+async fn capabilities_describe_the_installed_ffmpeg() {
+	let dir = frontend_dir().unwrap();
+	let json = capabilities_json(config(dir.path())).await.unwrap();
+
+	assert_eq!(json["status"], "CAPABILITIES_STATUS_AVAILABLE");
+	let caps = &json["capabilities"];
+	assert_ne!(caps["version"].as_str().unwrap(), "");
+	assert!(
+		caps["filters"]
+			.as_array()
+			.unwrap()
+			.iter()
+			.any(|f| f["name"] == "scale")
+	);
+}
+
+#[tokio::test]
+async fn capabilities_report_a_missing_ffmpeg_as_a_state() {
+	let dir = frontend_dir().unwrap();
+	let mut config = config(dir.path());
+	config.tools.ffmpeg = "/nonexistent/ffmpeg".into();
+	let json = capabilities_json(config).await.unwrap();
+
+	assert_eq!(json["status"], "CAPABILITIES_STATUS_UNAVAILABLE");
+	assert!(
+		json["error"]
+			.as_str()
+			.unwrap()
+			.contains("could not start ffmpeg")
+	);
+	assert!(json.get("capabilities").is_none());
+}
