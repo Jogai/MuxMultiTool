@@ -82,6 +82,14 @@ curl -X POST -H 'content-type: application/json' -d '{}' \
 
 The frontend sends JSON in development (readable in devtools) and binary protobuf in release builds; the server answers in whichever encoding a request uses.
 
+### Media folders and file ids
+
+The file browser (`FilesService` in `crates/proto/proto/muxmultitool/files/v1/files.proto`) only shows what is under the media folders: subfolders and files with a media extension, with hidden entries left out. `ListFolder` lists a folder (the media folders themselves when no id is given), `FindFiles` matches wildcards such as `*.mp4` against the file names in a folder, optionally in its subfolders too, and `GetEntries` looks ids up again.
+
+Folders and files are named by opaque ids, which the client stores and passes back. The server resolves an id by canonicalizing the path (so symlinks are followed) and checking that the result is still under the media folder it belongs to; `..`, absolute paths and symlinks that lead outside are refused, and listings leave such entries out. The logic is `muxmultitool_core::files`. Ids stay valid across restarts as long as the media folders are configured in the same order.
+
+Paths from the client are never accepted in the container. The desktop app runs the server with `Config::desktop` set, which turns on `OpenPaths`: it takes the absolute paths from native file dialogs and returns entries for them, so any file or folder the user picked can be browsed and used like one under a media folder.
+
 ### Editor setup and git hooks
 
 `.editorconfig` sets tabs as the baseline (YAML and `.proto` use two spaces). `.vscode/` makes the oxc extension the formatter for `.ts` and `.vue`, turns off Vue (Official)'s formatter and sets tab indentation; accept the recommended extensions when VS Code asks.
