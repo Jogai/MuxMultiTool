@@ -92,7 +92,27 @@ Pre-commit hooks run the fast format and lint checks through [lefthook](https://
 cd web && npm ci && npx lefthook install
 ```
 
-The hooks also need `typos` (`cargo install typos-cli --locked`) and, for Rust files, the toolchain from `rust-toolchain.toml`. Run `typos` by hand to check spelling across the repo.
+The hooks also need `typos` (`cargo install typos-cli --locked`), `committed` (`cargo install committed --locked`) and, for Rust files, the toolchain from `rust-toolchain.toml`. Run `typos` by hand to check spelling across the repo.
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org) (`feat(core): add the job queue`), because the release version is worked out from them. The rules are in `committed.toml`; the commit-msg hook and CI check them.
+
+### CI
+
+GitHub Actions runs the checks above on every pull request and on `master` (`.github/workflows/ci.yml`). The `changes` job looks at the changed paths and skips what they don't touch:
+
+| Changed | Runs |
+|---|---|
+| `crates/core/**`, `crates/proto/**`, `Cargo.lock`, `Cargo.toml`, `rust-toolchain.toml`, `.github/**` | Everything |
+| `crates/server/**`, `crates/desktop/**`, `Dockerfile`, `tauri.conf.json`, the root `*.toml` configs | Backend checks |
+| `web/**` | Frontend checks |
+| `crates/proto/**` | RPC contract checks (lint, format, breaking changes) |
+| anything else (readme, docs) | Nothing |
+
+The jobs: `codegen` runs `buf generate` once and hands the result to the others; `backend-lint`, `backend-test` (nextest with coverage, needs ffmpeg) and `backend-musl` (`cargo zigbuild` of the server for `x86_64-unknown-linux-musl`, so a C dependency can't slip in); `frontend` runs the `npm run ci` steps one by one, then the unit tests; `contract` runs the buf checks; `commits` runs `committed` over the new commits. `CI` is the one status check to require in branch protection: it is green when every job passed or was skipped. Cargo builds are cached with `Swatinem/rust-cache`, npm with `actions/setup-node`.
+
+A daily workflow (`.github/workflows/security.yml`) runs `cargo deny check advisories` and `npm audit`.
+
+Without a GitHub remote, check the workflows with [actionlint](https://github.com/rhysd/actionlint) and run the steps' commands locally.
 
 ### Frontend
 

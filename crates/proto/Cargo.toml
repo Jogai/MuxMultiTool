@@ -10,7 +10,6 @@ publish.workspace = true
 
 [dependencies]
 buffa = { version = "0.9", features = ["json"] }
-buffa-types = { version = "0.9", features = ["json"] }
 connectrpc = { version = "0.9", default-features = false, features = [
 	"client",
 	"gzip",
