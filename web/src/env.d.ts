@@ -9,5 +9,11 @@ declare module "*.vue" {
 	export default component;
 }
 
+// hls.js ships one declaration file for both builds but only maps it to the default entry
+declare module "hls.js/light" {
+	export * from "hls.js";
+	export { default } from "hls.js";
+}
+
 /** The version from package.json, defined in vite.config.ts and vitest.config.ts. */
 declare const __APP_VERSION__: string;

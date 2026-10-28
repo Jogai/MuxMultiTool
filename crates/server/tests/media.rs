@@ -2,7 +2,7 @@
 //! Runs the real ffmpeg and ffprobe from `PATH`.
 
 use std::net::{IpAddr, Ipv4Addr};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use axum::Router;
@@ -10,6 +10,7 @@ use axum::body::Body;
 use http::{Request, StatusCode, header};
 use http_body_util::BodyExt;
 use muxmultitool_core::ffmpeg::{FfmpegCommand, Limits, Runner};
+use muxmultitool_core::files::Location;
 use muxmultitool_server::{Config, app};
 use tower::ServiceExt;
 
@@ -200,4 +201,41 @@ async fn text_files_are_not_media() {
 		.unwrap();
 	assert_eq!(status, StatusCode::BAD_REQUEST, "{json}");
 	assert_eq!(json["code"], "failed_precondition");
+}
+
+#[tokio::test]
+async fn start_preview_takes_an_opaque_file_id_too() {
+	let dir = tempfile::tempdir().unwrap();
+	let clip = make_clip(dir.path()).await.unwrap();
+	let router = router(dir.path());
+
+	// The id FilesService would issue for the clip: in root 0, relative path "clip.mkv".
+	let id = Location::InRoot {
+		root: 0,
+		relative: PathBuf::from("clip.mkv"),
+	}
+	.id();
+	let (status, json) = rpc(&router, START, serde_json::json!({ "fileId": id.as_str() }))
+		.await
+		.unwrap();
+	assert_eq!(status, StatusCode::OK, "{json}");
+
+	// The same session as the absolute-path form resolves to.
+	let (status, by_path) = rpc(&router, START, serde_json::json!({ "fileId": clip }))
+		.await
+		.unwrap();
+	assert_eq!(status, StatusCode::OK, "{by_path}");
+	assert_eq!(json["mediaId"], by_path["mediaId"]);
+
+	// An id that points outside the roots is refused like a path would be.
+	let outside = Location::Absolute(clip.clone()).id();
+	let (status, json) = rpc(
+		&router,
+		START,
+		serde_json::json!({ "fileId": outside.as_str() }),
+	)
+	.await
+	.unwrap();
+	assert_eq!(status, StatusCode::FORBIDDEN, "{json}");
+	assert_eq!(json["code"], "permission_denied");
 }

@@ -57,7 +57,8 @@ impl MediaService for Media {
 		_ctx: RequestContext,
 		request: ServiceRequest<'_, StartPreviewRequest>,
 	) -> ServiceResult<StartPreviewResponse> {
-		let source = resolve_file(&self.state.media_roots, request.file_id).await?;
+		// An opaque id from FilesService, or the absolute-path form (see resolve_file)
+		let source = timeline::resolve(&self.state, request.file_id).await?;
 		let info = self
 			.state
 			.previews

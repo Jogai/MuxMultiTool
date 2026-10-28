@@ -170,8 +170,8 @@ fn cues_message(update: CueUpdate) -> GetSubtitleCuesResponse {
 }
 
 /// Turns a file id into a path: an opaque id through the media roots, or
-/// the absolute-path form `StartPreview` takes.
-async fn resolve(state: &Arc<AppState>, file_id: &str) -> Result<PathBuf, ConnectError> {
+/// the absolute-path form `StartPreview` also takes.
+pub(crate) async fn resolve(state: &Arc<AppState>, file_id: &str) -> Result<PathBuf, ConnectError> {
 	let id = FileId::new(file_id);
 	if id.decode().is_err() {
 		return resolve_file(&state.media_roots, file_id).await;

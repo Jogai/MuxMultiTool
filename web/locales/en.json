@@ -190,7 +190,9 @@
 		},
 		"cut": {
 			"description": "Player, timeline with thumbnails and waveform, segments, keyframe, normal and smart cut.",
-			"task": "TASK-32"
+			"task": "TASK-32",
+			"open": "Open file…",
+			"empty": "Open a file to play its preview; the timeline and the segment list come with the editor."
 		},
 		"merge": {
 			"description": "Join files with identical codecs after a compatibility check.",
@@ -337,6 +339,74 @@
 			"merge": "Merge…",
 			"batch": "Batch…",
 			"clear": "Clear selection"
+		}
+	},
+	"player": {
+		"starting": "Starting the preview…",
+		"mode": {
+			"unspecified": "Preview",
+			"remux": "Preview · streams copied",
+			"transcodeAudio": "Preview · audio converted",
+			"transcode": "Preview · H.264 proxy"
+		},
+		"engine": {
+			"label": "{engine}",
+			"none": "This browser cannot decode H.264/AAC through MediaSource and has no HLS player of its own, so the preview cannot play. On Linux Firefox, install the system ffmpeg libraries (libavcodec); otherwise use another browser."
+		},
+		"fatal": "Playback failed: {detail}. Reopen the file to start the preview again.",
+		"mute": "Mute",
+		"unmute": "Unmute",
+		"transport": {
+			"group": "Transport",
+			"play": "Play",
+			"pause": "Pause",
+			"previousFrame": "Previous frame",
+			"nextFrame": "Next frame",
+			"previousKeyframe": "Previous keyframe",
+			"nextKeyframe": "Next keyframe",
+			"noKeyframes": "Keyframe positions are not known for this file yet",
+			"seekBar": "Position",
+			"timecode": "Current timecode; type a time such as 1:02:03.456 and press Enter to seek",
+			"frame": "frame {n}",
+			"fps": "{fps} fps"
+		},
+		"range": {
+			"setStart": "Start",
+			"setEnd": "End",
+			"label": "{start} – {end}",
+			"none": "No range",
+			"clear": "Clear the range",
+			"playRange": "Play segment",
+			"loop": "Loop"
+		},
+		"subtitles": {
+			"label": "Subtitles",
+			"off": "Subtitles off",
+			"track": "#{index} {language} · {codec}",
+			"image": "image subtitles, not shown",
+			"loading": "Loading cues…"
+		},
+		"shortcuts": {
+			"title": "Keyboard shortcuts",
+			"open": "Keyboard shortcuts",
+			"body": "Fixed shortcuts; they work while no text field has the focus.",
+			"actions": {
+				"togglePlay": "Play / pause",
+				"frameBack": "Previous frame",
+				"frameForward": "Next frame",
+				"keyframeBack": "Previous keyframe",
+				"keyframeForward": "Next keyframe",
+				"seekBack": "Seek {seconds} s back",
+				"seekForward": "Seek {seconds} s forward",
+				"seekStart": "Go to the start",
+				"seekEnd": "Go to the end",
+				"setRangeStart": "Set the range start",
+				"setRangeEnd": "Set the range end",
+				"playRange": "Play the range",
+				"toggleLoop": "Loop the range on / off",
+				"toggleMute": "Mute / unmute",
+				"showShortcuts": "Show this list"
+			}
 		}
 	}
 }

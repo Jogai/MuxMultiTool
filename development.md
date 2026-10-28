@@ -200,7 +200,7 @@ The player never gets a source file: `MediaService/StartPreview` starts a previe
 - Transcoded segments are 2 s on a fixed grid; copied segments start at the source's keyframes (at least 2 s, at most 30 s apart, else the video is transcoded). The playlist is fixed when the session starts.
 - Seek target: playback resumes within about 3 s after a seek on a typical machine (a 1080p source; 4K sources are scaled to 1080p). Measured here with a 720p HEVC/DTS MKV in headless Chromium: first frame after 1.0 s, a seek into unencoded video resumed after 0.55 s.
 - ffmpeg stops after 30 s without segment requests and restarts where the player continues; a session and its segments are removed after 30 min without requests, on `StopPreview`, or when the server stops. Segments live under the system temporary folder (`TMPDIR`), in a `muxmultitool-preview-*` folder with a random name, made with the first session.
-- Until `FilesService` issues file ids, `file_id` is the absolute path of a file inside a media root (`--media-root`).
+- `file_id` is an id from `FilesService`, or the absolute path of a file inside a media root (`--media-root`), the form the example below uses.
 
 ```sh
 curl -X POST -H 'content-type: application/json' -d '{"fileId":"/media/movie.mkv"}' \
@@ -257,6 +257,8 @@ Without a GitHub remote, check the workflows with [actionlint](https://github.co
 ### Frontend
 
 The Vue app lives in `web/`. From there: `npm ci`, `npm run dev`, and `npm run ci` for the format, lint, type-check and build steps.
+
+The preview player is `web/src/features/player/` (`<PlayerView file-id=…>`): hls.js on MediaSource wherever MSE decodes H.264/AAC, the browser's own HLS player only where MSE is absent, and a plain message where neither works (the engine rule from the TASK-4 spike, `lib/engine.ts`). It plays the file's preview session, steps frame by frame (frame rate from the stream report) and keyframe by keyframe (keyframe times are a prop; the cut service supplies them), plays or loops a range, shows the cues of a text subtitle track over the picture, and has fixed keyboard shortcuts (`lib/shortcuts.ts`, listed in the UI under the keyboard button or `?`). The Cut screen shows it for `/cut?file=<id>` until the timeline editor lands.
 
 Themes are palette files in `web/src/core/themes/families/`, one per family, registered in `web/src/core/themes/index.ts`. A palette gives each variant its official colours; the semantic `--mmt-*` tokens that every component uses through Tailwind are derived from them at runtime, nudged just far enough for WCAG AA contrast. `npx vitest run src/core/themes` checks every variant.
 
