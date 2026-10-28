@@ -1,0 +1,39 @@
+name: Report findings
+description: Opens an issue for a failed scheduled check, or comments on the one that is still open.
+inputs:
+  title:
+    description: Issue title; an open issue with this exact title is reused.
+    required: true
+  label:
+    description: Label put on the issue (created when missing).
+    required: true
+  body:
+    description: Text that explains the findings (the run link is added).
+    required: true
+  token:
+    description: Token with issues write access.
+    required: false
+    default: ${{ github.token }}
+runs:
+  using: composite
+  steps:
+    - name: Open or update the issue
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        TITLE: ${{ inputs.title }}
+        LABEL: ${{ inputs.label }}
+        BODY: ${{ inputs.body }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      run: |
+        gh label create "$LABEL" --repo "$GITHUB_REPOSITORY" --color B60205 \
+          --description "Opened by a scheduled check" 2>/dev/null || true
+        text=$(printf '%s\n\nRun: %s' "$BODY" "$RUN_URL")
+        existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --label "$LABEL" --state open \
+          --search "\"$TITLE\" in:title" --json number,title \
+          --jq "map(select(.title == \"$TITLE\")) | .[0].number // empty")
+        if [[ -n "$existing" ]]; then
+          gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body "$text"
+        else
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --label "$LABEL" --body "$text"
+        fi

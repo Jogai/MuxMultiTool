@@ -1,0 +1,68 @@
+# Scheduled vulnerability scan of the published container images (docs/quality.md,
+# "Rebuilds triggered without a code change"). Rust crates are visible to the
+# scanner because the server is built with cargo-auditable. A finding opens an
+# issue (or comments on the open one) and fails the run.
+name: Scan images
+
+on:
+  schedule:
+    - cron: "43 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  scan:
+    name: Scan ${{ matrix.tag }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      issues: write
+    strategy:
+      fail-fast: false
+      matrix:
+        tag: [edge, latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # Nothing to scan before the first publish (`latest` appears with the first tag).
+      - name: Check that the image exists
+        id: exists
+        run: |
+          if docker manifest inspect "$IMAGE:${{ matrix.tag }}" > /dev/null 2>&1; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::$IMAGE:${{ matrix.tag }} is not published yet; nothing to scan"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+      - id: trivy
+        if: steps.exists.outputs.found == 'true'
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE }}:${{ matrix.tag }}
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+        continue-on-error: true
+      - name: Open an issue on findings
+        if: steps.trivy.outcome == 'failure'
+        uses: ./.github/actions/report-findings
+        with:
+          title: Vulnerabilities in the published image (${{ matrix.tag }})
+          label: image-vulnerability
+          body: |
+            Trivy found fixable CRITICAL or HIGH vulnerabilities in `${{ env.IMAGE }}:${{ matrix.tag }}` (see the run log for the list).
+            A new ffmpeg or base image arrives through Renovate; run the Image workflow to rebuild right away.
+      - name: Fail the run
+        if: steps.trivy.outcome == 'failure'
+        run: exit 1

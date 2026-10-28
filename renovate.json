@@ -1,0 +1,122 @@
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"description": "Dependency updates (docs/quality.md, 'Rebuilds triggered without a code change'). Nothing is merged automatically.",
+	"extends": ["config:recommended", ":semanticCommits", ":semanticCommitTypeAll(chore)", ":maintainLockFilesWeekly"],
+	"timezone": "Europe/Amsterdam",
+	"schedule": ["before 6am on monday"],
+	"labels": ["dependencies"],
+	"automerge": false,
+	"prConcurrentLimit": 10,
+	"enabledManagers": [
+		"cargo",
+		"npm",
+		"github-actions",
+		"dockerfile",
+		"docker-compose",
+		"rust-toolchain",
+		"custom.regex"
+	],
+	"dockerfile": { "pinDigests": true },
+	"docker-compose": { "pinDigests": true },
+	"packageRules": [
+		{
+			"description": "Crates and npm packages of Tauri update together: their versions must match. Alpha updates carry their own label and are reviewed by hand.",
+			"groupName": "tauri",
+			"groupSlug": "tauri",
+			"matchManagers": ["cargo", "npm"],
+			"matchPackageNames": ["/^tauri(-|$)/", "@tauri-apps/**"],
+			"labels": ["dependencies", "tauri"],
+			"ignoreUnstable": false,
+			"respectLatest": false,
+			"automerge": false,
+			"separateMajorMinor": false,
+			"schedule": ["at any time"]
+		},
+		{
+			"description": "Tauri alpha releases: own label, never merged automatically.",
+			"matchPackageNames": ["/^tauri(-|$)/", "@tauri-apps/**"],
+			"matchNewValue": "/-alpha\\./",
+			"addLabels": ["tauri-alpha"],
+			"automerge": false,
+			"platformAutomerge": false
+		},
+		{
+			"description": "CEF (the Linux desktop runtime): own label, never merged automatically.",
+			"groupName": "cef",
+			"groupSlug": "cef",
+			"matchPackageNames": ["/^cef(-|$)/", "/(^|/)cef$/", "chromiumembedded/cef"],
+			"addLabels": ["cef"],
+			"ignoreUnstable": false,
+			"respectLatest": false,
+			"automerge": false,
+			"platformAutomerge": false
+		},
+		{
+			"description": "TypeScript and Vue type tooling move together.",
+			"groupName": "typescript and vue-tsc",
+			"groupSlug": "typescript",
+			"matchManagers": ["npm"],
+			"matchPackageNames": ["typescript", "vue-tsc", "@vue/tsconfig", "@vue/language-*", "@typescript/**"]
+		},
+		{
+			"description": "A new Rust stable updates rust-toolchain.toml.",
+			"matchManagers": ["rust-toolchain", "custom.regex"],
+			"matchDepNames": ["rust", "rust-lang/rust"],
+			"addLabels": ["rust-toolchain"],
+			"commitMessageTopic": "Rust toolchain"
+		},
+		{
+			"description": "Base and ffmpeg images: a digest or version change produces a new container image.",
+			"matchManagers": ["dockerfile", "docker-compose", "custom.regex"],
+			"matchDatasources": ["docker"],
+			"addLabels": ["image"]
+		},
+		{
+			"description": "The ffmpeg version is tracked on its own so the PR says what changed.",
+			"matchDepNames": ["docker.io/mwader/static-ffmpeg", "mwader/static-ffmpeg"],
+			"addLabels": ["ffmpeg"],
+			"groupName": "ffmpeg",
+			"groupSlug": "ffmpeg"
+		}
+	],
+	"customManagers": [
+		{
+			"description": "ffmpeg: the image the Dockerfile copies the static build from, with its tag and digest (an ARG, which the Dockerfile manager does not follow).",
+			"customType": "regex",
+			"managerFilePatterns": ["/(^|/)Dockerfile$/"],
+			"matchStrings": [
+				"ARG FFMPEG_IMAGE=(?<depName>[^:@\\s]+):(?<currentValue>[^@\\s]+)(?:@(?<currentDigest>sha256:[a-f0-9]+))?"
+			],
+			"datasourceTemplate": "docker",
+			"versioningTemplate": "docker"
+		},
+		{
+			"description": "The layout image (busybox) of the Dockerfile, pinned by digest.",
+			"customType": "regex",
+			"managerFilePatterns": ["/(^|/)Dockerfile$/"],
+			"matchStrings": [
+				"ARG LAYOUT_IMAGE=(?<depName>[^:@\\s]+):(?<currentValue>[^@\\s]+)(?:@(?<currentDigest>sha256:[a-f0-9]+))?"
+			],
+			"datasourceTemplate": "docker",
+			"versioningTemplate": "docker"
+		},
+		{
+			"description": "CEF: the `cef` crate (cef-rs) when it is listed as a dependency.",
+			"customType": "regex",
+			"managerFilePatterns": ["/(^|/)Cargo\\.toml$/"],
+			"matchStrings": [
+				"(?m)^\\s*cef\\s*=\\s*(?:\\{\\s*version\\s*=\\s*)?\"=?(?<currentValue>[^\"]+)\""
+			],
+			"depNameTemplate": "cef",
+			"datasourceTemplate": "crate"
+		},
+		{
+			"description": "CEF and any other version pinned next to a '# renovate: datasource=... depName=...' comment, e.g. CEF_VERSION in a workflow or tauri.conf.json.",
+			"customType": "regex",
+			"managerFilePatterns": ["/^\\.github/(workflows|actions)/.+\\.ya?ml$/", "/(^|/)tauri\\.conf\\.json$/", "/(^|/)Dockerfile$/"],
+			"matchStrings": [
+				"#\\s*renovate:\\s*datasource=(?<datasource>[a-z-]+?) depName=(?<depName>\\S+?)(?: versioning=(?<versioning>\\S+))?\\s+(?:ARG |export )?[A-Z_]+_VERSION[:=]\\s*[\"']?(?<currentValue>[^\"'\\s]+)[\"']?"
+			]
+		}
+	]
+}

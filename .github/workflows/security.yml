@@ -1,5 +1,6 @@
 # Daily advisory check (docs/quality.md, "Rebuilds triggered without a code
-# change"). A failed run is the signal; nothing is published or changed.
+# change"). A finding opens an issue (or comments on the open one) and fails
+# the run; nothing is published or changed.
 name: Security
 
 on:
@@ -18,16 +19,35 @@ jobs:
   rust-advisories:
     name: RustSec advisories
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     steps:
       - uses: actions/checkout@v7
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-deny
-      - run: cargo deny check advisories
+      - id: check
+        run: cargo deny check advisories 2>&1 | tee advisories.txt; exit "${PIPESTATUS[0]}"
+        continue-on-error: true
+      - name: Open an issue on findings
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/report-findings
+        with:
+          title: Security advisories in Rust dependencies
+          label: security-advisory
+          body: |
+            `cargo deny check advisories` reported findings (see the run log for the full report).
+      - name: Fail the run
+        if: steps.check.outcome == 'failure'
+        run: exit 1
 
   npm-audit:
     name: npm audit
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     defaults:
       run:
         working-directory: web
@@ -38,4 +58,17 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - run: npm audit --audit-level=high
+      - id: audit
+        run: npm audit --audit-level=high 2>&1 | tee audit.txt; exit "${PIPESTATUS[0]}"
+        continue-on-error: true
+      - name: Open an issue on findings
+        if: steps.audit.outcome == 'failure'
+        uses: ./.github/actions/report-findings
+        with:
+          title: Security advisories in npm dependencies
+          label: security-advisory
+          body: |
+            `npm audit --audit-level=high` reported findings (see the run log for the full report).
+      - name: Fail the run
+        if: steps.audit.outcome == 'failure'
+        run: exit 1

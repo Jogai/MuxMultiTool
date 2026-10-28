@@ -1,0 +1,69 @@
+# Weekly build and test on Rust beta: an early warning for a toolchain change
+# before it reaches stable. Allowed to fail (the job is continue-on-error), so
+# a red run is information, not a blocked pipeline (docs/quality.md, "Rebuilds
+# triggered without a code change").
+name: Rust beta
+
+on:
+  schedule:
+    - cron: "23 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  NODE_VERSION: 26
+  # Overrides rust-toolchain.toml.
+  RUSTUP_TOOLCHAIN: beta
+
+jobs:
+  beta:
+    name: Build and test on beta
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust beta
+        run: |
+          rustup toolchain install beta --profile minimal --component clippy
+          rustc --version
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install the web dependencies (protoc-gen-es)
+        run: npm ci --no-audit --no-fund
+        working-directory: web
+      - uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+      - uses: taiki-e/cache-cargo-install-action@v3
+        with:
+          tool: protoc-gen-buffa@0.9.2
+      - uses: taiki-e/cache-cargo-install-action@v3
+        with:
+          tool: protoc-gen-buffa-packaging@0.9.2
+      - uses: taiki-e/cache-cargo-install-action@v3
+        with:
+          tool: connectrpc-codegen@0.9.0
+      - name: Generate the Rust and TypeScript code
+        run: buf generate
+        working-directory: crates/proto
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: beta
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+      - uses: FedericoCarboni/setup-ffmpeg@v3
+        with:
+          ffmpeg-version: release
+          linking-type: static
+      - name: Lint
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+      - name: Tests
+        run: cargo nextest run --workspace --locked
