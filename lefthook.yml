@@ -21,3 +21,9 @@ pre-commit:
       run: npx oxlint --type-aware {staged_files}
     spelling:
       run: typos {staged_files}
+
+# Conventional Commits (committed.toml). CI checks the whole branch.
+commit-msg:
+  commands:
+    conventional:
+      run: committed --commit-file {1}

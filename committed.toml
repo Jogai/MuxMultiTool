@@ -1,0 +1,20 @@
+# Commit message rules, checked by `committed` in CI and in the commit-msg hook.
+# Conventional Commits, because git-cliff works out the next version from them
+# (docs/quality.md, "Releases with git-cliff").
+style = "conventional"
+# Subjects are lowercase: `feat(core): add the job queue`.
+subject_capitalized = false
+subject_length = 72
+allowed_types = [
+	"feat",
+	"fix",
+	"build",
+	"chore",
+	"ci",
+	"docs",
+	"perf",
+	"refactor",
+	"revert",
+	"style",
+	"test",
+]
