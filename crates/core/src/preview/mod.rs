@@ -318,6 +318,13 @@ impl PreviewManager {
 		self.inner.by_id(id).map(|s| s.info())
 	}
 
+	/// The original file a session plays, for features that must not use
+	/// the preview stream (snapshots).
+	#[must_use]
+	pub fn source(&self, id: &str) -> Option<PathBuf> {
+		self.inner.by_id(id).map(|s| s.source.clone())
+	}
+
 	/// The file of segment `n` of a session, producing it first if needed.
 	///
 	/// # Errors

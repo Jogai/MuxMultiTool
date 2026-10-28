@@ -1,0 +1,5 @@
+---
+source: crates/core/src/snapshot/command.rs
+expression: cmd
+---
+ffmpeg -i /media/in/movie.mkv -map 0 -map -0:5 -c copy -attach /tmp/cover.jpg -metadata:s:t:2 mimetype=image/jpeg -metadata:s:t:2 filename=cover.jpg /media/out/movie.cover.mkv

@@ -53,6 +53,7 @@ mod media;
 mod merge;
 mod project;
 mod report;
+mod snapshot;
 mod split;
 mod streams;
 mod system;
@@ -155,6 +156,7 @@ fn app_with_state(state: Arc<AppState>) -> Router {
 		.nest_service(RPC_PREFIX, rpc.into_axum_service())
 		.merge(media::routes())
 		.merge(timeline::routes())
+		.merge(snapshot::routes())
 		.merge(download::routes())
 		.fallback_service(frontend)
 		.layer(TraceLayer::new_for_http())

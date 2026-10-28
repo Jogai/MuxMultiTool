@@ -1,0 +1,5 @@
+---
+source: crates/core/src/snapshot/command.rs
+expression: cmd
+---
+ffmpeg -i /media/in/movie.mp4 -i /tmp/cover.jpg -map 0 -map -0:2 -map 1:v:0 -c copy -disposition:v:1 attached_pic /media/out/movie.cover.mp4

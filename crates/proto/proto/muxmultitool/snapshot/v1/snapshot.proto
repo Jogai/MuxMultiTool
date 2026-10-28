@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package muxmultitool.snapshot.v1;
+
+// Snapshots and cover art have no service of their own. A frame is shown
+// with a plain HTTP route, because the browser fetches it as an image:
+//
+//   GET /media/{media_id}/frame?t=12.5[&format=jpg|png]
+//
+// media_id is the id StartPreview returned (a file id from FilesService
+// works too). t is the position in seconds. The picture is decoded from the
+// original file at full resolution, not taken from the preview stream, and
+// answers 400 for a bad t, 404 for an unknown id and 422 when there is no
+// frame at that position. Saving a snapshot and setting the cover art are
+// jobs: JobsService.SubmitJob takes the operations below. See
+// gui/08-gif-snapshot-cover.
+
+// SnapshotOperation saves the frame at a position as a picture file.
+message SnapshotOperation {
+  // Input is the source video. Paths must be inside a configured media root.
+  string input = 1;
+  // Output is the picture to write; it must not exist yet. The format
+  // follows its extension: .jpg or .jpeg (JPEG), .png (PNG). Another
+  // extension is INVALID_ARGUMENT.
+  string output = 2;
+  // PositionMs is the position in milliseconds from the start of the
+  // input. A position at or after the end is INVALID_ARGUMENT.
+  int64 position_ms = 3;
+}
+
+// CoverArtOperation copies a file into a new one whose embedded cover art
+// is the frame at a position, replacing the cover it has. Nothing is
+// re-encoded except the picture itself, which is saved as JPEG.
+//
+// Only MKV and MP4 outputs are supported (the extension decides);
+// another container is FAILED_PRECONDITION with the reason, and so is a
+// stream the output container cannot hold on a copy (for example the font
+// attachments of an MKV, in MP4).
+message CoverArtOperation {
+  // Input is the source file. Paths must be inside a configured media root.
+  string input = 1;
+  // Output is the file to write; it must not exist yet.
+  string output = 2;
+  // PositionMs is the position of the frame, in milliseconds from the start
+  // of the input.
+  int64 position_ms = 3;
+}

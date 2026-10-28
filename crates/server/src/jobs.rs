@@ -53,6 +53,7 @@ impl JobsService for Jobs {
 		let Some(operation) = request.operation else {
 			return Err(ConnectError::invalid_argument("an operation is required"));
 		};
+		let mut cover_picture = None;
 		let spec = match operation {
 			Operation::Remux(remux) => self.remux_spec(&request.name, &remux).await?,
 			Operation::VideoToGif(gif) => self.video_to_gif_spec(&request.name, &gif).await?,
@@ -63,12 +64,21 @@ impl JobsService for Jobs {
 			Operation::Crop(crop) => self.crop_spec(&request.name, &crop).await?,
 			Operation::Combine(op) => self.combine_spec(&request.name, &op).await?,
 			Operation::ExtractStreams(op) => self.extract_streams_spec(&request.name, &op).await?,
+			Operation::Snapshot(op) => self.snapshot_spec(&request.name, &op).await?,
+			Operation::CoverArt(op) => {
+				let (spec, picture) = self.cover_art_spec(&request.name, &op).await?;
+				cover_picture = Some(picture);
+				spec
+			}
 		};
 		let job = self
 			.state
 			.queue
 			.submit(spec)
 			.map_err(|error| queue_error(&error))?;
+		if let Some(picture) = cover_picture {
+			crate::snapshot::hold_until_done(&self.state.queue, &job.id, picture);
+		}
 		Ok(Response::new(SubmitJobResponse {
 			job: job_message(&job).into(),
 			..Default::default()

@@ -8,6 +8,7 @@ import "muxmultitool/cut/v1/cut.proto";
 import "muxmultitool/extract/v1/extract.proto";
 import "muxmultitool/gif/v1/gif.proto";
 import "muxmultitool/merge/v1/merge.proto";
+import "muxmultitool/snapshot/v1/snapshot.proto";
 import "muxmultitool/streams/v1/streams.proto";
 
 // JobsService runs ffmpeg operations as jobs: every operation that writes
@@ -83,6 +84,11 @@ message SubmitJobRequest {
     // ticked stream has no file format (FAILED_PRECONDITION, see
     // ExtractService.PreviewExtract).
     muxmultitool.extract.v1.ExtractStreamsOperation extract_streams = 22;
+    // One frame at full resolution, saved as a JPEG or PNG file.
+    muxmultitool.snapshot.v1.SnapshotOperation snapshot = 10;
+    // A frame embedded as the file's cover art on a lossless remux; refused
+    // for containers other than MKV and MP4 (FAILED_PRECONDITION).
+    muxmultitool.snapshot.v1.CoverArtOperation cover_art = 11;
   }
 }
 

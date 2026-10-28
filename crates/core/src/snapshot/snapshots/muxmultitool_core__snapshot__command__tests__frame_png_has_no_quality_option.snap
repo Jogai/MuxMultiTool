@@ -1,0 +1,5 @@
+---
+source: crates/core/src/snapshot/command.rs
+expression: cmd
+---
+ffmpeg -ss 3600.000 -i /media/in/movie.mkv -map 0:v:0 -frames:v 1 -an -sn -dn -vf 'scale=iw*sar:ih,setsar=1' -c:v png -f image2 -update 1 /media/out/movie.png

@@ -12,6 +12,7 @@ publish.workspace = true
 axum = { version = "0.8.9", default-features = false, features = [
 	"http1",
 	"http2",
+	"query",
 	"tokio",
 ] }
 clap = { version = "4.6.7", features = ["derive", "env"] }
@@ -24,6 +25,7 @@ futures-util = { version = "0.3.34", default-features = false }
 muxmultitool-core = { path = "../core", version = "0.1.0" }
 muxmultitool-proto = { path = "../proto", version = "0.1.0" }
 percent-encoding = "2.3.2"
+serde = { version = "1.0.229", features = ["derive"] }
 tokio = { version = "1.54.1", features = [
 	"rt-multi-thread",
 	"macros",

@@ -16,5 +16,6 @@ pub mod merge;
 pub mod preview;
 pub mod report;
 pub mod settings;
+pub mod snapshot;
 pub mod streams;
 pub mod timeline;
