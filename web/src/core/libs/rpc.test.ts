@@ -18,8 +18,8 @@ function recordingFetch() {
 afterEach(() => setRpcTransport(undefined));
 
 describe("SystemService contract", () => {
-	it("defines health and version", () => {
-		expect(SystemService.methods.map((m) => m.name)).toEqual(["GetHealth", "GetVersion"]);
+	it("defines health, version and capabilities", () => {
+		expect(SystemService.methods.map((m) => m.name)).toEqual(["GetHealth", "GetVersion", "GetCapabilities"]);
 	});
 
 	it("marks both methods side-effect free so Connect may use GET", () => {
