@@ -91,6 +91,29 @@ Folders and files are named by opaque ids, which the client stores and passes ba
 
 Paths from the client are never accepted in the container. The desktop app runs the server with `Config::desktop` set, which turns on `OpenPaths`: it takes the absolute paths from native file dialogs and returns entries for them, so any file or folder the user picked can be browsed and used like one under a media folder.
 
+### Stream report
+
+`FilesService/GetStreamReport` is the per-stream report (the old `streaminfo.sh`): for every selected file, each stream's index, type, codec, language, title, flags and size, plus the container's format, duration and size. A call takes file ids and wildcard selections (`folder_id` + `patterns`, as `FindFiles` takes them) together and reports the files in that order, once each. A file ffprobe cannot read gets a plain-language error with ffprobe's output in its own report; the other files are unaffected. Only a bad selection (an unknown folder, an invalid pattern) fails the call. `GetStreamDetails` returns everything ffprobe reports about one stream, as flattened key/value fields in ffprobe's order (`disposition.default`, `tags.language`) and as the raw JSON object. The logic is `muxmultitool_core::report`.
+
+ffprobe does not report stream sizes, so the server works them out and says how in each stream's `size_method`:
+
+| Method | How | Exact? |
+|---|---|---|
+| `PACKETS` | The sizes of every packet of every stream, summed in one demux pass over the file (`ffprobe -show_entries packet=stream_index,size`, summed as it streams). Runs when a stream has no statistics tag, unless the request is `quick`. When it runs, every stream of the file takes its size from it. | Yes; costs one read of the file |
+| `TAGS` | The Matroska statistics tag `NUMBER_OF_BYTES`, which mkvmerge writes and ffmpeg keeps on a stream copy. | As of when the tags were written; a file cut without rewriting them keeps the old numbers |
+| `EXTRADATA` | Attachments (fonts, covers stored as attachments) have no packets; their size is that of the attached data. | Yes |
+| `ESTIMATED` | Bit rate × duration ÷ 8 from ffprobe's per-stream values, for a `quick` report or when the packet pass failed. MP4 derives the bit rate from its sample table, so the estimate is close; Matroska and MPEG-TS often have no per-stream bit rate. | No |
+| unspecified | None of the above applies; the size is 0 and means nothing. | — |
+
+Sizes are returned in bytes and in decimal gigabytes (`size_gb`, 10^9 bytes). A `quick` report skips the packet pass, so it is as fast as reading the headers: use it to show the table at once and refine the sizes afterwards.
+
+```sh
+curl -X POST -H 'content-type: application/json' \
+  -d '{"fileIds":["<id>"],"selections":[{"folderId":"<folder id>","patterns":["*.mkv"],"recursive":true}]}' \
+  http://127.0.0.1:8080/rpc/muxmultitool.files.v1.FilesService/GetStreamReport
+# {"files":[{"fileId":"…","entry":{…},"container":{"format":"matroska,webm",…},"streams":[{"type":"STREAM_TYPE_VIDEO","codec":"hevc","language":"und","sizeBytes":"21950000000","sizeGb":21.95,"sizeMethod":"SIZE_METHOD_PACKETS",…},…]}]}
+```
+
 ### Jobs
 
 Every operation that writes output runs as a job of the `JobsService` (`crates/proto/proto/muxmultitool/jobs/v1/jobs.proto`; the queue itself is `core::jobs`). Jobs live in the server process, so they keep running when the browser tab closes. `--jobs` sets how many run at once; the rest wait in submission order. The queue is in memory only: **queued and running jobs do not survive a server restart.** A stop (Ctrl-C, `docker stop`) cancels every job, kills its ffmpeg process and waits for it before the server exits, so no ffmpeg outlives the server.

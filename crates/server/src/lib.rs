@@ -37,6 +37,7 @@ mod config;
 mod files;
 mod jobs;
 mod media;
+mod report;
 mod system;
 
 pub use config::{Config, DEFAULT_FRONTEND_DIR, DEFAULT_JOB_CONCURRENCY, DEFAULT_PORT};

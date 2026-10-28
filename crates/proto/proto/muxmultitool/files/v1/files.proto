@@ -33,6 +33,20 @@ service FilesService {
   rpc OpenPaths(OpenPathsRequest) returns (OpenPathsResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+  // GetStreamReport probes the selected files and returns every stream's id,
+  // type, codec, language and size for each of them: the stream report.
+  // Files are reported one by one; a file ffprobe cannot read gets an error
+  // in its own report and does not fail the call.
+  rpc GetStreamReport(GetStreamReportRequest) returns (GetStreamReportResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // GetStreamDetails returns everything ffprobe reports about one stream of
+  // a file, for the details panel of the report.
+  rpc GetStreamDetails(GetStreamDetailsRequest) returns (GetStreamDetailsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
 }
 
 // EntryKind tells a folder from a file.
@@ -115,4 +129,180 @@ message OpenPathsResponse {
   // Entries for the paths, in the same order. A folder path gives a folder
   // entry, which ListFolder and FindFiles then accept.
   repeated Entry entries = 1;
+}
+
+message GetStreamReportRequest {
+  // File ids to report on, in the order the reports are returned.
+  repeated string file_ids = 1;
+  // Wildcard selections, reported after the ids: the matching files of a
+  // folder, exactly as FindFiles would return them. A bad selection (an
+  // unknown folder, an invalid pattern) fails the call. A file that is
+  // selected twice is reported once.
+  repeated FindFilesRequest selections = 2;
+  // Quick skips the packet pass that measures stream sizes (see
+  // SizeMethod), so the report takes only as long as reading the file
+  // headers. Sizes then come from the container's tags or are estimated.
+  bool quick = 3;
+}
+
+message GetStreamReportResponse {
+  // Files are the reports, one per selected file, in the order described in
+  // the request.
+  repeated FileReport files = 1;
+}
+
+// FileReport is the report for one file: its streams, or why there are none.
+message FileReport {
+  // FileId is the id as it was selected.
+  string file_id = 1;
+  // Entry is the file as the browser shows it. Unset when the id no longer
+  // resolves to a file; error says so.
+  Entry entry = 2;
+  // Container describes the file as a whole. Unset when error is set.
+  ContainerInfo container = 3;
+  // Streams are every stream of the file in container order. Empty when
+  // error is set.
+  repeated StreamSummary streams = 4;
+  // Error is set when the file could not be probed. The other files of the
+  // call are unaffected.
+  ReportError error = 5;
+}
+
+// ContainerInfo is what the report shows about the file as a whole.
+message ContainerInfo {
+  // Format is ffprobe's short demuxer name, e.g. "matroska,webm".
+  string format = 1;
+  // FormatLongName is the human-readable name, e.g. "Matroska / WebM".
+  string format_long_name = 2;
+  // DurationSeconds is the container duration, falling back to the longest
+  // stream. 0 when unknown.
+  double duration_seconds = 3;
+  // SizeBytes is the file size.
+  uint64 size_bytes = 4;
+  // SizeGb is size_bytes in decimal gigabytes (10^9 bytes), as the report
+  // shows sizes.
+  double size_gb = 5;
+  // BitRate is the overall bit rate in bit/s. 0 when unknown.
+  uint64 bit_rate = 6;
+  // Title is the container's title tag, or empty.
+  string title = 7;
+  // ChapterCount is the number of chapters.
+  uint32 chapter_count = 8;
+}
+
+// StreamType is what a stream carries.
+enum StreamType {
+  // A type this server does not know.
+  STREAM_TYPE_UNSPECIFIED = 0;
+  STREAM_TYPE_VIDEO = 1;
+  STREAM_TYPE_AUDIO = 2;
+  STREAM_TYPE_SUBTITLE = 3;
+  // Timed data such as timecodes or MPEG-TS tables.
+  STREAM_TYPE_DATA = 4;
+  // An embedded file, usually a font for ASS subtitles.
+  STREAM_TYPE_ATTACHMENT = 5;
+}
+
+// SizeMethod says where a stream's size came from. ffprobe does not report
+// stream sizes, so the server works them out, in this order of preference:
+// the packet pass, the container's statistics tags, the attachment data, an
+// estimate from the bit rate.
+enum SizeMethod {
+  // No source for the size: size_bytes is 0 and means nothing.
+  SIZE_METHOD_UNSPECIFIED = 0;
+  // Exact: the sizes of every packet of the stream, summed in one demux pass
+  // over the whole file. Runs when a stream has no statistics tag, unless
+  // the request is quick; when it runs, every stream of the file uses it.
+  SIZE_METHOD_PACKETS = 1;
+  // Exact when written: the Matroska statistics tag NUMBER_OF_BYTES, which
+  // mkvmerge writes and ffmpeg keeps on a stream copy. A file cut without
+  // rewriting the tags keeps the old numbers.
+  SIZE_METHOD_TAGS = 2;
+  // Exact: an attachment has no packets; its size is that of its data.
+  SIZE_METHOD_EXTRADATA = 3;
+  // An estimate: bit rate × duration ÷ 8, from ffprobe's per-stream values.
+  // Close for MP4, which derives the bit rate from its sample table.
+  SIZE_METHOD_ESTIMATED = 4;
+}
+
+// StreamSummary is one row of the report.
+message StreamSummary {
+  // Index is the stream's position in the container, what "-map 0:<index>"
+  // refers to.
+  uint32 index = 1;
+  // Type is what the stream carries.
+  StreamType type = 2;
+  // Codec is ffprobe's short codec name, e.g. "h264", or "unknown".
+  string codec = 3;
+  // CodecLongName is the human-readable codec name, or empty.
+  string codec_long_name = 4;
+  // Profile is the codec profile, e.g. "High", or empty.
+  string profile = 5;
+  // Language is the language tag as stored, e.g. "eng" or "und"; empty when
+  // the stream has none.
+  string language = 6;
+  // Title is the track title, or empty.
+  string title = 7;
+  // SizeBytes is the stream's size by size_method; 0 and meaningless when
+  // size_method is unspecified.
+  uint64 size_bytes = 8;
+  // SizeGb is size_bytes in decimal gigabytes (10^9 bytes).
+  double size_gb = 9;
+  // SizeMethod says where size_bytes came from and how exact it is.
+  SizeMethod size_method = 10;
+  // DurationSeconds is the stream duration, falling back to the container's.
+  // 0 when unknown.
+  double duration_seconds = 11;
+  // BitRate in bit/s, 0 when unknown.
+  uint64 bit_rate = 12;
+  // Width in pixels (video), 0 otherwise.
+  uint32 width = 13;
+  // Height in pixels (video), 0 otherwise.
+  uint32 height = 14;
+  // FrameRate in frames per second (video), 0 otherwise.
+  double frame_rate = 15;
+  // PixFmt is the pixel format (video), e.g. "yuv420p", or empty.
+  string pix_fmt = 16;
+  // Channels is the number of audio channels, 0 otherwise.
+  uint32 channels = 17;
+  // ChannelLayout is the audio channel layout, e.g. "5.1", or empty.
+  string channel_layout = 18;
+  // SampleRate in Hz (audio), 0 otherwise.
+  uint32 sample_rate = 19;
+  // Flags are the disposition flags that are set: "default", "forced",
+  // "comment", "hearing_impaired", "attached_pic", ...
+  repeated string flags = 20;
+}
+
+// ReportError says why a file has no report.
+message ReportError {
+  // Message is the plain-language explanation, e.g. "the input is not a
+  // media file ffmpeg can read" or "not found" for an id that is gone.
+  string message = 1;
+  // FfprobeOutput is the tail of what ffprobe wrote to stderr, with the
+  // file name in place of the server path. Empty when ffprobe did not run.
+  string ffprobe_output = 2;
+}
+
+message GetStreamDetailsRequest {
+  // FileId is the file to probe.
+  string file_id = 1;
+  // StreamIndex is the index of the stream, as in StreamSummary.
+  uint32 stream_index = 2;
+}
+
+message GetStreamDetailsResponse {
+  // Fields are every field ffprobe reports about the stream, in the order
+  // ffprobe prints them. Nested objects are flattened with dots
+  // ("disposition.default", "tags.language"), arrays with indices
+  // ("side_data_list[0].side_data_type"). Values are ffprobe's text.
+  repeated DetailField fields = 1;
+  // Json is the stream's object from ffprobe's JSON output, pretty-printed.
+  string json = 2;
+}
+
+// DetailField is one ffprobe field of a stream.
+message DetailField {
+  string key = 1;
+  string value = 2;
 }

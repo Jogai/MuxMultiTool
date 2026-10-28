@@ -6,3 +6,5 @@ extend-exclude = ["package-lock.json", "Cargo.lock", "web/src/*.d.ts"]
 seeked = "seeked"
 # The flate2 crate (deflate)
 flate = "flate"
+# ISO 639-2/B language code for French, as ffmpeg tags streams
+fre = "fre"

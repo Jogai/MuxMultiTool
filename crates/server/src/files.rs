@@ -12,7 +12,9 @@ use muxmultitool_core::files::{self, Entry, FileId, Kind, MediaRoots};
 use muxmultitool_proto::connect::muxmultitool::files::v1::FilesService;
 use muxmultitool_proto::proto::muxmultitool::files::v1::{
 	self as pb, FindFilesRequest, FindFilesResponse, GetEntriesRequest, GetEntriesResponse,
-	ListFolderRequest, ListFolderResponse, OpenPathsRequest, OpenPathsResponse,
+	GetStreamDetailsRequest, GetStreamDetailsResponse, GetStreamReportRequest,
+	GetStreamReportResponse, ListFolderRequest, ListFolderResponse, OpenPathsRequest,
+	OpenPathsResponse,
 };
 use tracing::warn;
 
@@ -126,9 +128,25 @@ impl FilesService for Files {
 		})
 		.await
 	}
+
+	async fn get_stream_report(
+		&self,
+		_ctx: RequestContext,
+		request: ServiceRequest<'_, GetStreamReportRequest>,
+	) -> ServiceResult<GetStreamReportResponse> {
+		crate::report::stream_report(&self.state, request.to_owned_message()).await
+	}
+
+	async fn get_stream_details(
+		&self,
+		_ctx: RequestContext,
+		request: ServiceRequest<'_, GetStreamDetailsRequest>,
+	) -> ServiceResult<GetStreamDetailsResponse> {
+		crate::report::stream_details(&self.state, request.to_owned_message()).await
+	}
 }
 
-fn entry(entry: Entry) -> pb::Entry {
+pub(crate) fn entry(entry: Entry) -> pb::Entry {
 	pb::Entry {
 		id: entry.id.as_str().to_owned(),
 		name: entry.name,
@@ -145,7 +163,7 @@ fn entry(entry: Entry) -> pb::Entry {
 
 /// The Connect code for each files error. The message is the error's own
 /// text: it names what was wrong, never a server path.
-fn connect_error(error: files::Error) -> ConnectError {
+pub(crate) fn connect_error(error: files::Error) -> ConnectError {
 	let message = error.to_string();
 	match error {
 		files::Error::InvalidId(_)
