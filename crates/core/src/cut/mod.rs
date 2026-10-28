@@ -16,9 +16,11 @@
 //!   keyframe, so players show no picture for up to one GOP. Nothing before
 //!   the start is included. The output is as long as the range.
 //!
-//! Smart cut, which re-encodes the few frames up to the next keyframe so a
-//! normal cut has a picture from its first frame, is a later feature: it
-//! builds on the same [`Plan`].
+//! - **Smart cut:** the range starts and ends on the chosen frames. The
+//!   frames between a cut point and the nearest keyframe are re-encoded,
+//!   the rest is copied; see [`smart`]. The [`Plan`] of a smart cut is
+//!   that of a normal cut into separate files (no snapping, the outputs
+//!   named), and [`smart::plan`] works out the pieces on top of it.
 //!
 //! # How ffmpeg is driven
 //!
@@ -60,6 +62,7 @@ use crate::ffmpeg::probe::{CodecType, Keyframe, ProbeResult};
 pub mod command;
 pub mod project;
 pub mod segments;
+pub mod smart;
 pub mod split;
 pub mod timecode;
 
@@ -86,6 +89,9 @@ pub enum CutMode {
 	Keyframe,
 	/// The start itself; the video joins at its next keyframe.
 	Normal,
+	/// The start itself, with the frames up to the next keyframe
+	/// re-encoded, and the end itself likewise; see [`smart`].
+	Smart,
 }
 
 /// The shape of the output.
@@ -291,7 +297,8 @@ pub enum PlanError {
 /// Each interval reaches `window` seconds around the range's start, so a
 /// GOP longer than that may leave a range without a keyframe
 /// ([`PlanError::NoKeyframeBefore`], [`PlanError::NoKeyframeInside`]);
-/// retry with the whole file then.
+/// retry with the whole file then. A smart cut reads packets instead, see
+/// [`smart::windows`].
 #[must_use]
 pub fn keyframe_windows(request: &Request, source: &Source, window: f64) -> Vec<(f64, f64)> {
 	if source.video_stream.is_none() {
@@ -301,7 +308,7 @@ pub fn keyframe_windows(request: &Request, source: &Source, window: f64) -> Vec<
 	let snap = match (request.cut_mode, request.export) {
 		(CutMode::Keyframe, _) => Snap::Back,
 		(CutMode::Normal, Export::Merged) => Snap::Forward,
-		(CutMode::Normal, Export::SeparateFiles) => return Vec::new(),
+		(CutMode::Normal, Export::SeparateFiles) | (CutMode::Smart, _) => return Vec::new(),
 	};
 	let end = source.start_time + source.duration;
 	kept.iter()
@@ -346,13 +353,16 @@ enum Snap {
 pub fn plan(request: &Request, source: &Source, keyframes: &[Keyframe]) -> Result<Plan, PlanError> {
 	let mut kept = kept_segments(&request.segments, request.segment_mode, source.duration);
 	if request.export == Export::Merged {
-		if !source.seeks_by_index() {
-			return Err(PlanError::MergedNeedsIndex {
-				format: source.format_name.clone(),
-			});
-		}
-		if source.video_stream.is_none() {
-			return Err(PlanError::MergedNeedsVideo);
+		// A smart cut joins its own pieces, so its source need not seek.
+		if request.cut_mode != CutMode::Smart {
+			if !source.seeks_by_index() {
+				return Err(PlanError::MergedNeedsIndex {
+					format: source.format_name.clone(),
+				});
+			}
+			if source.video_stream.is_none() {
+				return Err(PlanError::MergedNeedsVideo);
+			}
 		}
 		kept = coalesce_touching(&kept, SNAP_TOLERANCE);
 	}
@@ -360,7 +370,7 @@ pub fn plan(request: &Request, source: &Source, keyframes: &[Keyframe]) -> Resul
 		return Err(PlanError::NoSegments);
 	}
 	let snap = match (source.video_stream, request.cut_mode, request.export) {
-		(None, _, _) | (_, CutMode::Normal, Export::SeparateFiles) => None,
+		(None, _, _) | (_, CutMode::Normal, Export::SeparateFiles) | (_, CutMode::Smart, _) => None,
 		(_, CutMode::Keyframe, _) => Some(Snap::Back),
 		(_, CutMode::Normal, Export::Merged) => Some(Snap::Forward),
 	};
@@ -473,7 +483,9 @@ impl Plan {
 		Duration::try_from_secs_f64(secs).ok()
 	}
 
-	/// The ffmpeg command that cuts `input` as planned.
+	/// The ffmpeg command that cuts `input` as planned, for a keyframe or
+	/// normal cut. A smart cut runs the commands of its [`smart::Plan`]
+	/// instead.
 	#[must_use]
 	pub fn command(&self, input: &Path) -> crate::ffmpeg::FfmpegCommand {
 		match self.export {

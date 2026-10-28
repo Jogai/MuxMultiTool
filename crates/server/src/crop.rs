@@ -170,6 +170,8 @@ impl Jobs {
 			name: job_name(name, &output),
 			command: command::crop(&input, &output, &plan, &coded),
 			expected_duration: source.duration,
+			preparation: Vec::new(),
+			scratch_dir: None,
 		})
 	}
 

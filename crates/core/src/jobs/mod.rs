@@ -18,6 +18,7 @@
 //! lost its stream resumes from the last id it saw (see [`events`]).
 
 use std::fmt;
+use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 
 use super::ffmpeg::{FfmpegCommand, Progress};
@@ -110,6 +111,18 @@ pub struct JobSpec {
 	/// The expected duration of the output, when the operation knows it.
 	/// It turns ffmpeg's position reports into a percentage and an ETA.
 	pub expected_duration: Option<Duration>,
+	/// Commands to run before `command`, in order, each to completion: for
+	/// an operation that needs more than one ffmpeg run, such as a smart
+	/// cut, which writes its pieces first and joins them after. The job
+	/// fails at the first command that fails. The percentage counts every
+	/// command as an equal share, each measured against
+	/// `expected_duration`; the shown command line is all of them joined
+	/// with `&&`.
+	pub preparation: Vec<FfmpegCommand>,
+	/// A folder of the job's own for intermediate files, which must exist
+	/// when the job starts. It is removed with everything in it when the
+	/// job ends, however it ends.
+	pub scratch_dir: Option<PathBuf>,
 }
 
 /// Why a job failed, told twice: in plain language for the user and as

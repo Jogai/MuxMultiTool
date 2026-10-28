@@ -1,0 +1,7 @@
+---
+source: crates/core/src/cut/smart.rs
+expression: "lists[1].2.as_deref().unwrap_or_default()"
+---
+file 'file:/media/out/.scratch/range-2-streams.mkv'
+inpoint 0
+duration 5.2

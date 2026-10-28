@@ -73,25 +73,53 @@ pub struct Keyframe {
 /// presentation time. The result is ascending by pts without duplicates.
 #[must_use]
 pub fn parse_keyframe_packets(csv: &str) -> Vec<Keyframe> {
-	let mut keyframes: Vec<Keyframe> = csv
-		.lines()
-		.filter_map(|line| {
-			let mut fields = line.trim().split(',');
-			let pts = fields.next()?.parse::<f64>().ok();
-			let dts = fields.next()?.parse::<f64>().ok();
-			let flags = fields.next()?;
-			if !flags.contains('K') {
-				return None;
-			}
-			Some(Keyframe {
-				pts: pts.or(dts)?,
-				dts,
-			})
+	let mut keyframes: Vec<Keyframe> = parse_packets(csv)
+		.into_iter()
+		.filter(|p| p.key)
+		.map(|p| Keyframe {
+			pts: p.pts,
+			dts: p.dts,
 		})
 		.collect();
 	keyframes.sort_by(|a, b| a.pts.total_cmp(&b.pts));
 	keyframes.dedup_by(|a, b| a.pts.total_cmp(&b.pts).is_eq());
 	keyframes
+}
+
+/// One packet of a packet listing: a frame of a video stream, with where
+/// it is presented, where it sits in decode order, and whether it is a
+/// keyframe. See [`parse_packets`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Packet {
+	/// Presentation time in seconds.
+	pub pts: f64,
+	/// Decode time in seconds, when the container has one.
+	pub dts: Option<f64>,
+	/// Whether the packet is a keyframe.
+	pub key: bool,
+}
+
+/// Parses every packet out of a packet listing, in the order listed,
+/// which is the file's (decode) order.
+///
+/// Same input as [`parse_keyframes`]: `pts_time,dts_time,flags` lines of
+/// one stream. A packet whose pts is `N/A` takes its dts as the
+/// presentation time; one without either is skipped.
+#[must_use]
+pub fn parse_packets(csv: &str) -> Vec<Packet> {
+	csv.lines()
+		.filter_map(|line| {
+			let mut fields = line.trim().split(',');
+			let pts = fields.next()?.parse::<f64>().ok();
+			let dts = fields.next()?.parse::<f64>().ok();
+			let flags = fields.next()?;
+			Some(Packet {
+				pts: pts.or(dts)?,
+				dts,
+				key: flags.contains('K'),
+			})
+		})
+		.collect()
 }
 
 /// Sums the packet sizes of every stream out of a packet listing, one line
@@ -646,6 +674,32 @@ mod tests {
 				Keyframe {
 					pts: 6.0,
 					dts: Some(5.92)
+				},
+			]
+		);
+	}
+
+	#[test]
+	fn packets_keep_the_decode_order() {
+		let csv =
+			"6.000000,5.920000,K__\n6.160000,5.960000,___\nN/A,6.0,__D\n\ngarbage\nN/A,N/A,K\n";
+		assert_eq!(
+			parse_packets(csv),
+			vec![
+				Packet {
+					pts: 6.0,
+					dts: Some(5.92),
+					key: true
+				},
+				Packet {
+					pts: 6.16,
+					dts: Some(5.96),
+					key: false
+				},
+				Packet {
+					pts: 6.0,
+					dts: Some(6.0),
+					key: false
 				},
 			]
 		);

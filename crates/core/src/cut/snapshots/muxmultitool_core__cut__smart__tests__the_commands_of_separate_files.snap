@@ -1,0 +1,5 @@
+---
+source: crates/core/src/cut/smart.rs
+expression: "plan.prepare(Path::new(\"/media/in/it's a movie.mp4\"))"
+---
+ffmpeg -i '/media/in/it'\''s a movie.mp4' -i '/media/in/it'\''s a movie.mp4' -i '/media/in/it'\''s a movie.mp4' -ss 2.32 -i '/media/in/it'\''s a movie.mp4' -ss 3 -i '/media/in/it'\''s a movie.mp4' -ss 7 -i '/media/in/it'\''s a movie.mp4' -ss 2.32 -i '/media/in/it'\''s a movie.mp4' -copyts -map 0:0 -ss -0.081 -t 1 -c:v copy -f mpegts /media/out/.scratch/range-1-0-copy.ts -map 1:0 -ss 0.999 -t 0.52 -c:v libx264 -preset medium -crf 18 -profile:v high -level 31 -f mpegts /media/out/.scratch/range-1-1-encode.ts -map 2:1 -map 2:2 -ss 0 -t 1.52 -c copy -f matroska /media/out/.scratch/range-1-streams.mkv -map 3:0 -ss 3.319 -t 0.68 -c:v libx264 -preset medium -crf 18 -profile:v high -level 31 -f mpegts /media/out/.scratch/range-2-0-encode.ts -map 4:0 -ss 3.919 -t 4 -c:v copy -f mpegts /media/out/.scratch/range-2-1-copy.ts -map 5:0 -ss 7.999 -t 0.52 -c:v libx264 -preset medium -crf 18 -profile:v high -level 31 -f mpegts /media/out/.scratch/range-2-2-encode.ts -map 6:1 -map 6:2 -ss 3.32 -t 5.2 -c copy -f matroska /media/out/.scratch/range-2-streams.mkv

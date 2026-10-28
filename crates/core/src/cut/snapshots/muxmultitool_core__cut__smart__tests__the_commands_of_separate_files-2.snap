@@ -1,0 +1,21 @@
+---
+source: crates/core/src/cut/smart.rs
+expression: plan.assemble()
+---
+ffmpeg -f concat -safe 0 -protocol_whitelist data,file -i 'data:text/plain,file '\''file:/media/out/.scratch/range-1-0-copy.ts'\''
+duration 1
+file '\''file:/media/out/.scratch/range-1-1-encode.ts'\''
+duration 0.52
+' -f concat -safe 0 -protocol_whitelist data,file -i 'data:text/plain,file '\''file:/media/out/.scratch/range-1-streams.mkv'\''
+inpoint 0
+duration 1.52
+' -f concat -safe 0 -protocol_whitelist data,file -i 'data:text/plain,file '\''file:/media/out/.scratch/range-2-0-encode.ts'\''
+duration 0.68
+file '\''file:/media/out/.scratch/range-2-1-copy.ts'\''
+duration 4
+file '\''file:/media/out/.scratch/range-2-2-encode.ts'\''
+duration 0.52
+' -f concat -safe 0 -protocol_whitelist data,file -i 'data:text/plain,file '\''file:/media/out/.scratch/range-2-streams.mkv'\''
+inpoint 0
+duration 5.2
+' -copyts -map 0 -map 1 -c copy -map_metadata 1 -map_chapters -1 -avoid_negative_ts make_zero /media/out/cut-1.mp4 -map 2 -map 3 -c copy -map_metadata 3 -map_chapters -1 -avoid_negative_ts make_zero /media/out/cut-2.mp4

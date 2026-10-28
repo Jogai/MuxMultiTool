@@ -376,6 +376,40 @@ impl Runner {
 		Ok(probe::parse_keyframe_packets(&csv))
 	}
 
+	/// Lists every packet of stream `stream_index` of `path` within
+	/// `intervals`, as [`Runner::keyframes_in`] lists the keyframes: in the
+	/// order read, which is decode order, with the same seeking and the
+	/// same cost. Where the intervals overlap, packets are listed twice.
+	///
+	/// # Errors
+	/// See [`RunError`].
+	pub async fn packets_in(
+		&self,
+		path: &Path,
+		stream_index: u32,
+		intervals: &[(f64, f64)],
+		limits: &Limits,
+	) -> Result<Vec<probe::Packet>, RunError> {
+		let argv = ffprobe_keyframes_in_argv(path, stream_index, intervals);
+		tracing::info!(target: "ffprobe", command = %ShellLine(&argv), "starting ffprobe");
+		let mut child = self.spawn(Tool::Ffprobe, &argv)?;
+		let stdout = child.stdout.take();
+		let stderr = child.stderr.take();
+		let pipes = async { tokio::join!(read_all(stdout), collect_log(stderr, None)) };
+		let span = tracing::info_span!("ffprobe", pid = child.id());
+		let (status, csv, log_tail) = supervise(&mut child, Tool::Ffprobe, limits, pipes)
+			.instrument(span)
+			.await?;
+		if !status.success() {
+			return Err(RunError::Failed {
+				tool: Tool::Ffprobe,
+				status,
+				log_tail,
+			});
+		}
+		Ok(probe::parse_packets(&csv))
+	}
+
 	/// Starts `tool` with `argv`, piping stdout and stderr and closing stdin.
 	// Allowed here and nowhere else; see `clippy.toml`.
 	#[expect(

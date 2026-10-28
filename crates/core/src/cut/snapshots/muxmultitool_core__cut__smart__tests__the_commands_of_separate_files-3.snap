@@ -1,0 +1,10 @@
+---
+source: crates/core/src/cut/smart.rs
+expression: "lists[1].1"
+---
+file 'file:/media/out/.scratch/range-2-0-encode.ts'
+duration 0.68
+file 'file:/media/out/.scratch/range-2-1-copy.ts'
+duration 4
+file 'file:/media/out/.scratch/range-2-2-encode.ts'
+duration 0.52

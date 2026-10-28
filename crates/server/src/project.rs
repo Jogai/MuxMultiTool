@@ -154,6 +154,7 @@ fn state_from_message(state: Option<&proto::ProjectState>) -> Result<ProjectStat
 	let cut_mode = match state.cut_mode.as_known() {
 		Some(proto::CutMode::Unspecified | proto::CutMode::Keyframe) => CutMode::Keyframe,
 		Some(proto::CutMode::Normal) => CutMode::Normal,
+		Some(proto::CutMode::Smart) => CutMode::Smart,
 		None => {
 			return Err(ConnectError::invalid_argument(format!(
 				"unknown cut mode {}",
@@ -208,6 +209,7 @@ fn state_message(state: &ProjectState) -> proto::ProjectState {
 		cut_mode: match state.cut_mode {
 			CutMode::Keyframe => proto::CutMode::Keyframe,
 			CutMode::Normal => proto::CutMode::Normal,
+			CutMode::Smart => proto::CutMode::Smart,
 		}
 		.into(),
 		export: match state.export {

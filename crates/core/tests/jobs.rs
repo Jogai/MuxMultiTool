@@ -19,6 +19,8 @@ fn quick(name: &str) -> JobSpec {
 			.option("-f", "null")
 			.output("-"),
 		expected_duration: Some(Duration::from_secs(1)),
+		preparation: Vec::new(),
+		scratch_dir: None,
 	}
 }
 
@@ -35,6 +37,8 @@ fn endless(marker: &str) -> JobSpec {
 			.option("-f", "null")
 			.output("-"),
 		expected_duration: Some(Duration::from_secs(600)),
+		preparation: Vec::new(),
+		scratch_dir: None,
 	}
 }
 
@@ -188,6 +192,71 @@ async fn a_job_runs_through_its_states_and_shows_its_command() {
 }
 
 #[tokio::test]
+async fn a_job_of_several_commands_runs_them_in_order_and_cleans_up() {
+	let dir = tempfile::tempdir().unwrap();
+	let scratch = dir.path().join("scratch");
+	std::fs::create_dir_all(&scratch).unwrap();
+	let piece = scratch.join("piece.mkv");
+	let output = dir.path().join("out.mkv");
+	let queue = Queue::new(Runner::default(), QueueConfig::default());
+	// The first command writes the piece, the second reads it.
+	let write = FfmpegCommand::new()
+		.option("-f", "lavfi")
+		.input("testsrc2=duration=1:size=64x64:rate=10")
+		.output(&piece);
+	let read = FfmpegCommand::new()
+		.input(&piece)
+		.option("-c", "copy")
+		.output(&output);
+	let job = queue
+		.submit(JobSpec {
+			name: "two steps".into(),
+			command: read.clone(),
+			expected_duration: Some(Duration::from_secs(1)),
+			preparation: vec![write.clone()],
+			scratch_dir: Some(scratch.clone()),
+		})
+		.unwrap();
+	assert!(
+		job.command_line.contains(" && ffmpeg "),
+		"{}",
+		job.command_line
+	);
+	assert_eq!(job.argv.iter().filter(|a| *a == "&&").count(), 1);
+	let done = wait_for_end(&queue, &job.id).await.unwrap();
+	assert_eq!(done.state, JobState::Succeeded, "{done:?}");
+	assert!(output.is_file());
+	assert!(!scratch.exists(), "the scratch folder is removed");
+	// The first command's share of the percentage ended at 50.
+	let items = collect(queue.watch_job(&job.id, 0).unwrap()).await.unwrap();
+	let _ = items;
+
+	// A failing first command ends the job there: the second never runs.
+	std::fs::create_dir_all(&scratch).unwrap();
+	let output2 = dir.path().join("out2.mkv");
+	let job = queue
+		.submit(JobSpec {
+			name: "broken first".into(),
+			command: FfmpegCommand::new()
+				.input(&piece)
+				.option("-c", "copy")
+				.output(&output2),
+			expected_duration: None,
+			preparation: vec![
+				FfmpegCommand::new()
+					.input(dir.path().join("missing.mkv"))
+					.output(&piece),
+			],
+			scratch_dir: Some(scratch.clone()),
+		})
+		.unwrap();
+	let done = wait_for_end(&queue, &job.id).await.unwrap();
+	assert_eq!(done.state, JobState::Failed, "{done:?}");
+	assert!(!output2.exists());
+	assert!(!scratch.exists());
+}
+
+#[tokio::test]
 async fn a_failed_job_explains_itself_and_keeps_the_ffmpeg_output() {
 	let dir = tempfile::tempdir().unwrap();
 	let queue = Queue::new(Runner::default(), QueueConfig::default());
@@ -199,6 +268,8 @@ async fn a_failed_job_explains_itself_and_keeps_the_ffmpeg_output() {
 				&dir.path().join("out.mp4"),
 			),
 			expected_duration: None,
+			preparation: Vec::new(),
+			scratch_dir: None,
 		})
 		.unwrap();
 

@@ -162,6 +162,8 @@ impl Jobs {
 			},
 			command: resolved.plan.command(&output),
 			expected_duration: resolved.plan.expected_duration(),
+			preparation: Vec::new(),
+			scratch_dir: None,
 		})
 	}
 

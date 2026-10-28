@@ -13,6 +13,7 @@
 //! no ffmpeg process outlives the server.
 
 use std::collections::VecDeque;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -102,7 +103,9 @@ struct Inner {
 #[derive(Debug)]
 struct Record {
 	job: Job,
-	command: FfmpegCommand,
+	/// The commands in order: the preparation, then the command.
+	steps: Vec<FfmpegCommand>,
+	scratch_dir: Option<PathBuf>,
 	expected_duration: Option<Duration>,
 	cancel: CancellationToken,
 	buffer: EventBuffer,
@@ -148,12 +151,19 @@ impl Queue {
 	/// # Errors
 	/// [`QueueError::ShuttingDown`] once [`Queue::shutdown`] has begun.
 	pub fn submit(&self, spec: JobSpec) -> Result<Job, QueueError> {
-		let argv = self.shared.runner.ffmpeg_invocation(&spec.command);
-		let command_line = ShellLine(&argv).to_string();
-		let argv = argv
-			.iter()
-			.map(|arg| arg.to_string_lossy().into_owned())
-			.collect();
+		let mut steps = spec.preparation;
+		steps.push(spec.command);
+		let mut command_line = String::new();
+		let mut argv: Vec<String> = Vec::new();
+		for (i, step) in steps.iter().enumerate() {
+			let step = self.shared.runner.ffmpeg_invocation(step);
+			if i > 0 {
+				command_line.push_str(" && ");
+				argv.push("&&".to_owned());
+			}
+			command_line.push_str(&ShellLine(&step).to_string());
+			argv.extend(step.iter().map(|arg| arg.to_string_lossy().into_owned()));
+		}
 		let mut inner = self.shared.lock();
 		if !inner.accepting {
 			return Err(QueueError::ShuttingDown);
@@ -175,7 +185,8 @@ impl Queue {
 		};
 		inner.jobs.push(Record {
 			job: job.clone(),
-			command: spec.command,
+			steps,
+			scratch_dir: spec.scratch_dir,
 			expected_duration: spec.expected_duration,
 			cancel: CancellationToken::new(),
 			buffer: EventBuffer::new(EVENT_BUFFER),
@@ -315,7 +326,8 @@ impl Shared {
 			record.job.state = JobState::Running;
 			record.job.started = Some(now);
 			let id = record.job.id.clone();
-			let command = record.command.clone();
+			let steps = record.steps.clone();
+			let scratch_dir = record.scratch_dir.clone();
 			let cancel = record.cancel.clone();
 			inner.running += 1;
 			inner.emit(
@@ -328,36 +340,39 @@ impl Shared {
 			);
 			tracing::info!(job = %id, "job started");
 			self.tasks
-				.spawn(Arc::clone(self).run_job(id, command, cancel));
+				.spawn(Arc::clone(self).run_job(id, steps, scratch_dir, cancel));
 		}
 	}
 
-	/// Runs one job to its end and reports it.
+	/// Runs one job to its end and reports it: every step in order until
+	/// one fails, then the scratch folder is removed.
 	async fn run_job(
 		self: Arc<Self>,
 		id: JobId,
-		command: FfmpegCommand,
+		steps: Vec<FfmpegCommand>,
+		scratch_dir: Option<PathBuf>,
 		cancel: CancellationToken,
 	) {
-		let (progress_tx, mut progress_rx) = mpsc::channel::<Progress>(32);
-		let (log_tx, mut log_rx) = mpsc::channel::<String>(256);
 		let limits = Limits::cancellable(cancel);
-		let run = self
-			.runner
-			.run_with_log(&command, &limits, Some(progress_tx), Some(log_tx));
-		let forward_progress = async {
-			while let Some(report) = progress_rx.recv().await {
-				self.progress(&id, report);
+		let count = steps.len();
+		let mut result = Ok(());
+		for (step, command) in steps.into_iter().enumerate() {
+			if count > 1 {
+				tracing::info!(job = %id, step = step + 1, count, "job step started");
 			}
-		};
-		let forward_log = async {
-			while let Some(line) = log_rx.recv().await {
-				self.log(&id, line);
+			result = self.run_step(&id, &command, &limits, (step, count)).await;
+			if result.is_err() {
+				break;
 			}
-		};
-		let (result, (), ()) = tokio::join!(run, forward_progress, forward_log);
+		}
+		if let Some(dir) = scratch_dir
+			&& let Err(error) = tokio::fs::remove_dir_all(&dir).await
+			&& error.kind() != std::io::ErrorKind::NotFound
+		{
+			tracing::warn!(job = %id, dir = %dir.display(), %error, "scratch folder not removed");
+		}
 		let (state, error) = match result {
-			Ok(_) => (JobState::Succeeded, None),
+			Ok(()) => (JobState::Succeeded, None),
 			Err(RunError::Cancelled { .. }) => (JobState::Cancelled, None),
 			Err(RunError::Failed {
 				status, log_tail, ..
@@ -387,12 +402,49 @@ impl Shared {
 		self.schedule(&mut inner);
 	}
 
-	fn progress(&self, id: &JobId, report: Progress) {
+	/// Runs one command of a job, forwarding its progress and log lines.
+	/// `step` is the command's position and the count, for the
+	/// percentage.
+	async fn run_step(
+		&self,
+		id: &JobId,
+		command: &FfmpegCommand,
+		limits: &Limits,
+		step: (usize, usize),
+	) -> Result<(), RunError> {
+		let (progress_tx, mut progress_rx) = mpsc::channel::<Progress>(32);
+		let (log_tx, mut log_rx) = mpsc::channel::<String>(256);
+		let run = self
+			.runner
+			.run_with_log(command, limits, Some(progress_tx), Some(log_tx));
+		let forward_progress = async {
+			while let Some(report) = progress_rx.recv().await {
+				self.progress(id, report, step);
+			}
+		};
+		let forward_log = async {
+			while let Some(line) = log_rx.recv().await {
+				self.log(id, line);
+			}
+		};
+		let (result, (), ()) = tokio::join!(run, forward_progress, forward_log);
+		result.map(drop)
+	}
+
+	fn progress(&self, id: &JobId, report: Progress, (step, count): (usize, usize)) {
 		let mut inner = self.lock();
 		let Some(record) = inner.find_mut(id) else {
 			return;
 		};
-		let progress = JobProgress::new(report, record.expected_duration);
+		let mut progress = JobProgress::new(report, record.expected_duration);
+		if count > 1 {
+			// Each step is an equal share of the whole.
+			#[expect(clippy::cast_precision_loss, reason = "a handful of steps")]
+			let (step, count) = (step as f64, count as f64);
+			progress.percent = progress
+				.percent
+				.map(|percent| (step * 100.0 + percent) / count);
+		}
 		record.job.progress = Some(progress.clone());
 		inner.emit(id, EventKind::Progress(progress));
 	}

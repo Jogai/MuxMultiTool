@@ -36,6 +36,21 @@ package muxmultitool.cut.v1;
 // streams the pieces would not join cleanly, so they are refused
 // (FAILED_PRECONDITION) and the segments go to separate files. Segments
 // end where they are asked to, within a frame or two, in every mode.
+//
+//   SMART: the segment starts and ends on the chosen frames. The frames
+//   from the start up to the first keyframe and from the last keyframe's
+//   GOP boundary to the end are decoded and encoded again with the
+//   source's codec (x264 or x265, matching its profile); everything in
+//   between, and every other stream, is copied. A cut between two frames
+//   lands on the next frame; a segment ends before the frame at its end
+//   time, so [2, 3) at 25 fps is 25 frames. The job runs two ffmpeg
+//   commands (the pieces, then the join) and keeps the pieces in a folder
+//   next to the output while it runs. Not every file can be smart cut:
+//   CheckSmartCut tells whether this one can and why not, and PlanCut and
+//   SubmitJob refuse such a file with FAILED_PRECONDITION and the same
+//   reason, so the user can fall back to a keyframe or normal cut. A
+//   merged smart export joins its own pieces, so it works for every
+//   container and needs no keyframe index.
 service CutService {
   // GetKeyframes lists the keyframe times of the file's first video stream
   // between from_seconds and to_seconds, so the timeline can draw them and
@@ -97,6 +112,34 @@ service CutService {
   // RedoProject reapplies the last undone change (FAILED_PRECONDITION when
   // there is none) and saves the result.
   rpc RedoProject(RedoProjectRequest) returns (RedoProjectResponse);
+
+  // CheckSmartCut tells whether the file can be cut in CUT_MODE_SMART:
+  // its video must be H.264 or H.265, progressive, and the ffmpeg build
+  // must have the encoder. A file without video, or with other video,
+  // is not supported; the reason says why. Open GOPs are only found when
+  // planning, so PlanCut can still refuse a supported file.
+  rpc CheckSmartCut(CheckSmartCutRequest) returns (CheckSmartCutResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+message CheckSmartCutRequest {
+  // file_id is an id from FilesService, or the absolute path of a file
+  // inside a configured media root.
+  string file_id = 1;
+}
+
+message CheckSmartCutResponse {
+  // supported is whether a smart cut of the file can be planned.
+  bool supported = 1;
+  // reason says why not, in plain language; empty when supported.
+  string reason = 2;
+  // video_codec is the video's codec name as ffprobe reports it (h264,
+  // hevc, vp9, ...); empty without video.
+  string video_codec = 3;
+  // encoder is the ffmpeg encoder the re-encoded parts would use (libx264,
+  // libx265); empty when not supported.
+  string encoder = 4;
 }
 
 message GetKeyframesRequest {
@@ -156,6 +199,9 @@ enum CutMode {
   CUT_MODE_KEYFRAME = 1;
   // Start exactly at the start time; the video joins at its next keyframe.
   CUT_MODE_NORMAL = 2;
+  // Start and end exactly on the chosen frames, re-encoding the frames
+  // between each cut and the nearest keyframe; see the service comment.
+  CUT_MODE_SMART = 3;
 }
 
 // CutExport is the shape of the output.
@@ -206,6 +252,10 @@ message PlanCutResponse {
   // concat_list is the list a merged export feeds to ffmpeg's concat
   // demuxer; empty for separate files.
   string concat_list = 5;
+  // commands are the command lines of a job that runs more than one
+  // (a smart cut: the pieces, then the join), in order; command then
+  // holds them joined with "&&". Empty for a job with one command.
+  repeated string commands = 6;
 }
 
 // PlannedSegment is one kept range as it will be cut.
@@ -217,12 +267,17 @@ message PlannedSegment {
   double end_seconds = 3;
   // cut_start_seconds is where the cut really begins: the keyframe at or
   // before start_seconds in KEYFRAME mode, start_seconds itself in NORMAL
-  // mode (the keyframe at or after it for a merged export). The output
-  // runs from here to end_seconds.
+  // mode (the keyframe at or after it for a merged export), the first
+  // frame at or after it in SMART mode. The output runs from here to
+  // end_seconds (before the first frame at or after it in SMART mode).
   double cut_start_seconds = 4;
   // output is the file this range goes to; the merged file for a merged
   // export.
   string output = 5;
+  // reencoded_seconds is how much video of this range a smart cut encodes
+  // again (the parts around its cuts); 0 in the other modes, where
+  // nothing is.
+  double reencoded_seconds = 6;
 }
 
 // ProjectState is what the cut editor keeps for a source file: its

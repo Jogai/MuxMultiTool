@@ -20,6 +20,7 @@ const GET: &str = "/rpc/muxmultitool.jobs.v1.JobsService/GetJob";
 const KEYFRAMES: &str = "/rpc/muxmultitool.cut.v1.CutService/GetKeyframes";
 const PARSE_TIME: &str = "/rpc/muxmultitool.cut.v1.CutService/ParseTime";
 const PLAN: &str = "/rpc/muxmultitool.cut.v1.CutService/PlanCut";
+const CHECK_SMART: &str = "/rpc/muxmultitool.cut.v1.CutService/CheckSmartCut";
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -297,6 +298,118 @@ async fn a_cut_is_planned_and_exported() {
 	.unwrap();
 	assert_eq!(status, StatusCode::CONFLICT, "{json}");
 	assert_eq!(json["code"], "already_exists", "{json}");
+}
+
+#[tokio::test]
+async fn a_smart_cut_is_checked_planned_and_exported() {
+	let root = MediaRoot::new().await.unwrap();
+	let router = app(&root.config());
+
+	let (status, json) = post_json(
+		&router,
+		CHECK_SMART,
+		serde_json::json!({ "fileId": root.clip }),
+	)
+	.await
+	.unwrap();
+	assert_eq!(status, StatusCode::OK, "{json}");
+	assert_eq!(json["supported"], true, "{json}");
+	assert_eq!(json["videoCodec"], "h264", "{json}");
+	assert_eq!(json["encoder"], "libx264", "{json}");
+
+	let mut smart = root.operation("smart.mkv");
+	smart["cutMode"] = "CUT_MODE_SMART".into();
+	smart["segments"] = serde_json::json!([{ "startSeconds": 1.3, "endSeconds": 2.5 }]);
+	let (status, json) = post_json(
+		&router,
+		PLAN,
+		serde_json::json!({ "operation": smart.clone() }),
+	)
+	.await
+	.unwrap();
+	assert_eq!(status, StatusCode::OK, "{json}");
+	let segment = &json["segments"][0];
+	// 1.3 is between frames at 25 fps: the cut lands on 1.32.
+	assert!(
+		(segment["cutStartSeconds"].as_f64().unwrap() - 1.32).abs() < 0.001,
+		"{json}"
+	);
+	assert!(
+		(segment["reencodedSeconds"].as_f64().unwrap() - (0.68 + 0.52)).abs() < 0.001,
+		"{json}"
+	);
+	let commands = json["commands"].as_array().unwrap();
+	assert_eq!(commands.len(), 2, "{json}");
+	assert!(commands[0].as_str().unwrap().contains("libx264"), "{json}");
+	assert!(
+		commands[1].as_str().unwrap().contains("-f concat"),
+		"{json}"
+	);
+	assert_eq!(
+		json["command"],
+		format!(
+			"{} && {}",
+			commands[0].as_str().unwrap(),
+			commands[1].as_str().unwrap()
+		)
+	);
+
+	let job = run_cut(&router, smart).await.unwrap();
+	assert_eq!(job["state"], "JOB_STATE_SUCCEEDED", "{job}");
+	assert_eq!(job["progress"]["percent"], 100.0, "{job}");
+	let length = video_length(&root.path().join("smart-1.mkv"))
+		.await
+		.unwrap();
+	// 1.2 s of video, after the reorder delay the file starts with and
+	// before the last audio packet, which runs past the end.
+	assert!((length - 1.2).abs() < 0.15, "{length}");
+	// The scratch folder is gone.
+	let leftovers: Vec<_> = std::fs::read_dir(root.path())
+		.unwrap()
+		.filter_map(std::result::Result::ok)
+		.filter(|e| e.file_name().to_string_lossy().starts_with(".muxmultitool"))
+		.collect();
+	assert!(leftovers.is_empty(), "{leftovers:?}");
+
+	// A file without video cannot be smart cut, and says so.
+	let tone = root.path().join("tone.m4a");
+	let cmd = FfmpegCommand::new()
+		.option("-f", "lavfi")
+		.input("sine=frequency=440:duration=2")
+		.option("-c:a", "aac")
+		.output(&tone);
+	Runner::default()
+		.run(&cmd, &Limits::timeout(Duration::from_secs(60)), None)
+		.await
+		.unwrap();
+	let (status, json) = post_json(&router, CHECK_SMART, serde_json::json!({ "fileId": tone }))
+		.await
+		.unwrap();
+	assert_eq!(status, StatusCode::OK, "{json}");
+	assert!(!json["supported"].as_bool().unwrap_or(false), "{json}");
+	assert!(
+		json["reason"].as_str().unwrap().contains("no video stream"),
+		"{json}"
+	);
+	let mut unsupported = root.operation("tone-cut");
+	unsupported["input"] = serde_json::json!(tone);
+	unsupported["cutMode"] = "CUT_MODE_SMART".into();
+	let (status, json) = post_json(
+		&router,
+		PLAN,
+		serde_json::json!({ "operation": unsupported }),
+	)
+	.await
+	.unwrap();
+	assert_eq!(status, StatusCode::BAD_REQUEST, "{json}");
+	assert_eq!(json["code"], "failed_precondition", "{json}");
+	assert!(
+		json["message"]
+			.as_str()
+			.unwrap()
+			.contains("no video stream"),
+		"{json}"
+	);
 }
 
 #[tokio::test]

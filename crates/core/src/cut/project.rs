@@ -557,6 +557,7 @@ enum StoredSegmentMode {
 enum StoredCutMode {
 	Keyframe,
 	Normal,
+	Smart,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -584,6 +585,7 @@ impl From<ProjectState> for StoredState {
 			cut_mode: match state.cut_mode {
 				CutMode::Keyframe => StoredCutMode::Keyframe,
 				CutMode::Normal => StoredCutMode::Normal,
+				CutMode::Smart => StoredCutMode::Smart,
 			},
 			export: match state.export {
 				Export::SeparateFiles => StoredExport::SeparateFiles,
@@ -608,6 +610,7 @@ impl From<StoredState> for ProjectState {
 			cut_mode: match stored.cut_mode {
 				StoredCutMode::Keyframe => CutMode::Keyframe,
 				StoredCutMode::Normal => CutMode::Normal,
+				StoredCutMode::Smart => CutMode::Smart,
 			},
 			export: match stored.export {
 				StoredExport::SeparateFiles => Export::SeparateFiles,

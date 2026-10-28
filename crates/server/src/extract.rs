@@ -130,6 +130,8 @@ impl Jobs {
 			},
 			command: resolved.plan.command(&resolved.input, &resolved.folder),
 			expected_duration: resolved.duration,
+			preparation: Vec::new(),
+			scratch_dir: None,
 		})
 	}
 

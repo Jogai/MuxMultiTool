@@ -171,10 +171,12 @@ message Job {
   string name = 2;
   JobState state = 3;
   // Command is the exact command line the job runs, quoted for a shell.
-  // It is known from submission on and never changes.
+  // It is known from submission on and never changes. A job that runs
+  // more than one command (a smart cut) shows them joined with "&&".
   string command = 4;
   // Argv is the same command as the program followed by its arguments, one
-  // element each, for clients that want to show them without parsing.
+  // element each, for clients that want to show them without parsing; the
+  // commands of a job that runs several are separated by an "&&" element.
   repeated string argv = 5;
   // Progress is the latest report, absent until ffmpeg sent the first one.
   Progress progress = 6;

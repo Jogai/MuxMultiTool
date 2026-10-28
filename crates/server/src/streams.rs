@@ -156,6 +156,8 @@ impl Jobs {
 				.probe
 				.duration_secs()
 				.and_then(|secs| Duration::try_from_secs_f64(secs).ok()),
+			preparation: Vec::new(),
+			scratch_dir: None,
 		})
 	}
 

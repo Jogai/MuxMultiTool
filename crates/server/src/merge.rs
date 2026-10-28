@@ -112,6 +112,8 @@ impl Jobs {
 			name: job_name(name, &output),
 			command,
 			expected_duration: checked.check.total_duration,
+			preparation: Vec::new(),
+			scratch_dir: None,
 		})
 	}
 
