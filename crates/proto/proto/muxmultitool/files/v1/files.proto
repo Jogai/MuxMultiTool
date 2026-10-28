@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+package muxmultitool.files.v1;
+
+// FilesService browses the media folders and turns files into opaque ids.
+//
+// Every folder and file is named by an opaque id. The server resolves an id
+// to a path, and it only does so for paths under the configured media roots:
+// a crafted id cannot reach anything else. Paths themselves only cross the
+// wire in desktop mode (OpenPaths), where they come from native dialogs.
+service FilesService {
+  // ListFolder returns the subfolders and media files of one folder, or the
+  // media roots when the folder id is empty.
+  rpc ListFolder(ListFolderRequest) returns (ListFolderResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // FindFiles returns the media files in a folder whose names match any of
+  // the wildcard patterns, such as "*.mp4", optionally in subfolders too.
+  rpc FindFiles(FindFilesRequest) returns (FindFilesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // GetEntries looks up the entries behind ids a client has stored, so it can
+  // show their names again or notice that they are gone.
+  rpc GetEntries(GetEntriesRequest) returns (GetEntriesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // OpenPaths turns absolute paths from native file dialogs into entries.
+  // Only the desktop app may call it; the container answers
+  // PERMISSION_DENIED, because it never trusts paths from a client.
+  rpc OpenPaths(OpenPathsRequest) returns (OpenPathsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+// EntryKind tells a folder from a file.
+enum EntryKind {
+  ENTRY_KIND_UNSPECIFIED = 0;
+  ENTRY_KIND_FOLDER = 1;
+  ENTRY_KIND_FILE = 2;
+}
+
+// Entry is one folder or media file. Clients keep the id and show the name.
+message Entry {
+  // Id is the opaque id to pass back to the server. It stays the same across
+  // restarts as long as the media roots are configured in the same order.
+  string id = 1;
+  // Name is the file or folder name without its path. For a media root, the
+  // name of the mounted folder.
+  string name = 2;
+  // Kind tells a folder from a file.
+  EntryKind kind = 3;
+  // Size in bytes. 0 for folders.
+  uint64 size_bytes = 4;
+  // Path for display only: relative to the entry's media root, with "/"
+  // separators and empty for the root itself; the absolute path for an
+  // entry from OpenPaths. The server never accepts it as input.
+  string path = 5;
+}
+
+message ListFolderRequest {
+  // Folder id to list, or empty for the media roots.
+  string folder_id = 1;
+}
+
+message ListFolderResponse {
+  // Folder is the listed folder. Unset for the roots listing.
+  Entry folder = 1;
+  // Ancestors of the folder, root first and the parent last. Empty for a
+  // root and for the roots listing. Together with the folder they form the
+  // breadcrumbs.
+  repeated Entry ancestors = 2;
+  // Entries are the subfolders first, then the media files, both sorted by
+  // name. Hidden entries and files that are not media are left out.
+  repeated Entry entries = 3;
+}
+
+message FindFilesRequest {
+  // Folder id to search in. Required.
+  string folder_id = 1;
+  // Patterns matched against file names, case-insensitively: "*" matches any
+  // run of characters, "?" one character, "[abc]" and "[a-z]" one of a set,
+  // "[!a-z]" one outside it. A file is returned when any pattern matches.
+  // At least one pattern is required.
+  repeated string patterns = 2;
+  // Recursive also searches the subfolders.
+  bool recursive = 3;
+}
+
+message FindFilesResponse {
+  // Files are the matches, sorted by path. Only media files are returned.
+  repeated Entry files = 1;
+}
+
+message GetEntriesRequest {
+  // Ids to look up.
+  repeated string ids = 1;
+}
+
+message GetEntriesResponse {
+  // Entries are the results, one per requested id and in the same order. An
+  // id that no longer resolves to anything gets an entry with only the id
+  // set and the kind ENTRY_KIND_UNSPECIFIED.
+  repeated Entry entries = 1;
+}
+
+message OpenPathsRequest {
+  // Absolute paths from the native dialog.
+  repeated string paths = 1;
+}
+
+message OpenPathsResponse {
+  // Entries for the paths, in the same order. A folder path gives a folder
+  // entry, which ListFolder and FindFiles then accept.
+  repeated Entry entries = 1;
+}
