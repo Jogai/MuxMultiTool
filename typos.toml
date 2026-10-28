@@ -1,0 +1,6 @@
+[files]
+extend-exclude = ["package-lock.json", "Cargo.lock", "web/src/*.d.ts"]
+
+[default.extend-words]
+# HTMLMediaElement event name
+seeked = "seeked"

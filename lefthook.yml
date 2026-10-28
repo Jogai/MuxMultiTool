@@ -1,0 +1,23 @@
+# Fast format and lint checks. CI is the real gate.
+pre-commit:
+  parallel: true
+  commands:
+    rust-fmt:
+      glob: "*.rs"
+      run: cargo fmt --all --check
+    rust-clippy:
+      glob: "*.{rs,toml}"
+      run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+    toml-fmt:
+      glob: "*.toml"
+      run: npx --yes @taplo/cli fmt --check {staged_files}
+    web-fmt:
+      root: web/
+      glob: "*.{ts,vue}"
+      run: npx oxfmt --check {staged_files}
+    web-lint:
+      root: web/
+      glob: "*.{ts,vue}"
+      run: npx oxlint --type-aware {staged_files}
+    spelling:
+      run: typos {staged_files}
