@@ -301,7 +301,7 @@ impl Jobs {
 	}
 
 	/// The keyframes of `stream` of `input` within `windows`.
-	async fn keyframes(
+	pub(crate) async fn keyframes(
 		&self,
 		input: &Path,
 		stream: u32,

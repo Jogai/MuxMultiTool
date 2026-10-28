@@ -53,6 +53,7 @@ mod media;
 mod merge;
 mod project;
 mod report;
+mod split;
 mod streams;
 mod system;
 mod timeline;
@@ -141,6 +142,7 @@ fn app_with_state(state: Arc<AppState>) -> Router {
 		.add_service(Arc::new(gif::Gif::new(Arc::clone(&state))))
 		.add_service(Arc::new(streams::Streams::new(Arc::clone(&state))))
 		.add_service(Arc::new(cut::Cut::new(Arc::clone(&state))))
+		.add_service(Arc::new(split::Split::new(Arc::clone(&state))))
 		.add_service(Arc::new(merge::Merge::new(Arc::clone(&state))))
 		.add_service(Arc::new(crop::Crop::new(Arc::clone(&state))))
 		.add_service(Arc::new(combine::Combine::new(Arc::clone(&state))))

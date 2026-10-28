@@ -60,6 +60,7 @@ use crate::ffmpeg::probe::{CodecType, Keyframe, ProbeResult};
 pub mod command;
 pub mod project;
 pub mod segments;
+pub mod split;
 pub mod timecode;
 
 pub use segments::{Segment, SegmentMode, coalesce_touching, invert, kept_segments, normalize};

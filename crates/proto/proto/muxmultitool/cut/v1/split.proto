@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package muxmultitool.cut.v1;
+
+import "muxmultitool/cut/v1/cut.proto";
+
+// SplitService works out how to split a file into parts: by maximum
+// duration, by maximum file size, or into a number of parts. It only
+// calculates. The result is a list of segments the user can review and edit
+// (and a ready CutOperation), and the export runs as the usual cut job:
+// JobsService.SubmitJob takes that CutOperation.
+//
+// Every boundary is a keyframe, so the parts are lossless and do not
+// overlap: part n ends exactly where part n+1 begins. The parts are
+// therefore a little shorter than the limit, never longer, unless a GOP
+// (the distance between keyframes) is longer than the limit; that is
+// reported as a warning.
+//
+// Size limits are applied through the file's average bitrate (file size
+// over duration, container overhead included) with a safety margin of 5 %:
+// parts are planned to fill at most 95 % of the limit. The sizes shown are
+// estimates; a stretch of the video that is much heavier than the average
+// can still exceed the limit.
+service SplitService {
+  // PlanSplit calculates the parts of a file. It reads the keyframes of the
+  // whole file, which takes a moment for a long one.
+  rpc PlanSplit(PlanSplitRequest) returns (PlanSplitResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+message PlanSplitRequest {
+  // file_id is an id from FilesService, or the absolute path of a file
+  // inside a configured media root.
+  string file_id = 1;
+  // mode is how to split; exactly one is required.
+  oneof mode {
+    // max_duration_seconds is the longest a part may be.
+    double max_duration_seconds = 2;
+    // max_size_bytes is the most a part may weigh.
+    uint64 max_size_bytes = 3;
+    // parts is the number of parts of equal length; at most 1000.
+    uint32 parts = 4;
+  }
+  // output is the template of the part files, as in CutOperation.output.
+  // It is only used to fill the returned operation; may be empty here.
+  string output = 5;
+}
+
+message PlanSplitResponse {
+  // parts are the ranges, in order, touching end to end and covering the
+  // file.
+  repeated SplitPart parts = 1;
+  // warnings are things worth showing before exporting, in words.
+  repeated string warnings = 2;
+  // operation is the CutOperation that exports the parts as separate
+  // files in keyframe mode, with output copied from the request. Edit its
+  // segments to adjust the split, then submit it as a job; PlanCut shows
+  // the exact outputs and command first.
+  CutOperation operation = 3;
+  // duration_seconds is the length of the file.
+  double duration_seconds = 4;
+  // size_bytes is the size of the file; 0 when unknown.
+  uint64 size_bytes = 5;
+}
+
+// SplitPart is one part of the split.
+message SplitPart {
+  // number is the part's position, from 1.
+  uint32 number = 1;
+  double start_seconds = 2;
+  double end_seconds = 3;
+  // estimated_bytes is the part's size estimated from the file's average
+  // bitrate; 0 when the file size is unknown.
+  uint64 estimated_bytes = 4;
+}
