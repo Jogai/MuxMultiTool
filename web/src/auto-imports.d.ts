@@ -267,6 +267,7 @@ declare global {
   const useStyleTag: typeof import('@vueuse/core').useStyleTag
   const useSupported: typeof import('@vueuse/core').useSupported
   const useSwipe: typeof import('@vueuse/core').useSwipe
+  const useSystemStatus: typeof import('./core/composables/useSystemStatus').useSystemStatus
   const useTemplateRef: typeof import('vue').useTemplateRef
   const useTemplateRefsList: typeof import('@vueuse/core').useTemplateRefsList
   const useTemporalNow: typeof import('@vueuse/core').useTemporalNow
@@ -324,6 +325,9 @@ declare global {
   // @ts-ignore
   export type { Component, Slot, Slots, ComponentPublicInstance, ComputedRef, DirectiveBinding, ExtractDefaultPropTypes, ExtractPropTypes, ExtractPublicPropTypes, InjectionKey, PropType, Ref, ShallowRef, MaybeRef, MaybeRefOrGetter, VNode, WritableComputedRef } from 'vue'
   import('vue')
+  // @ts-ignore
+  export type { BackendState } from './core/composables/useSystemStatus'
+  import('./core/composables/useSystemStatus')
 }
 
 // for vue template auto import
@@ -590,6 +594,7 @@ declare module 'vue' {
     readonly useStyleTag: UnwrapRef<typeof import('@vueuse/core')['useStyleTag']>
     readonly useSupported: UnwrapRef<typeof import('@vueuse/core')['useSupported']>
     readonly useSwipe: UnwrapRef<typeof import('@vueuse/core')['useSwipe']>
+    readonly useSystemStatus: UnwrapRef<typeof import('./core/composables/useSystemStatus')['useSystemStatus']>
     readonly useTemplateRef: UnwrapRef<typeof import('vue')['useTemplateRef']>
     readonly useTemplateRefsList: UnwrapRef<typeof import('@vueuse/core')['useTemplateRefsList']>
     readonly useTemporalNow: UnwrapRef<typeof import('@vueuse/core')['useTemporalNow']>

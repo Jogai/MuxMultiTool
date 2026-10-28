@@ -1,5 +1,12 @@
 {
 	"app": {
 		"name": "MuxMultiTool"
+	},
+	"backend": {
+		"title": "Backend",
+		"loading": "Connecting…",
+		"ok": "Connected, version {version}",
+		"error": "Not reachable: {error}",
+		"refresh": "Check again"
 	}
 }
