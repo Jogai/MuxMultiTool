@@ -1,5 +1,7 @@
 msrv = "1.88"
 allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
 # Names that clippy::doc_markdown would otherwise want in backticks. `..` keeps the defaults.
 doc-valid-idents = ["MuxMultiTool", "ConnectRPC", ".."]
 # Every ffmpeg/ffprobe call goes through `core::ffmpeg::Runner`. Only that
