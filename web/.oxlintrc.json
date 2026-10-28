@@ -4,7 +4,24 @@
 	"rules": {
 		"typescript/no-floating-promises": "error",
 		"typescript/no-misused-promises": "error",
-		"typescript/await-thenable": "error"
+		"typescript/await-thenable": "error",
+		"no-restricted-imports": [
+			"error",
+			{
+				"patterns": [
+					{
+						"group": ["@tauri-apps/*"],
+						"message": "Only the file-picker abstraction in src/core/libs/filePicker.ts may use Tauri APIs (architecture.md, Desktop specifics)."
+					}
+				]
+			}
+		]
 	},
+	"overrides": [
+		{
+			"files": ["src/core/libs/filePicker.ts"],
+			"rules": { "no-restricted-imports": "off" }
+		}
+	],
 	"ignorePatterns": ["dist", "src/auto-imports.d.ts", "src/components.d.ts", "src/typed-router.d.ts"]
 }

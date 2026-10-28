@@ -1,12 +1,142 @@
 {
 	"app": {
-		"name": "MuxMultiTool"
+		"name": "MuxMultiTool",
+		"tagline": "A self-hostable ffmpeg GUI for lossless cutting, remuxing and stream selection."
 	},
-	"backend": {
-		"title": "Backend",
-		"loading": "Connecting…",
-		"ok": "Connected, version {version}",
-		"error": "Not reachable: {error}",
-		"refresh": "Check again"
+	"nav": {
+		"label": "Main navigation",
+		"files": "Files",
+		"streams": "Streams",
+		"combine": "Combine",
+		"cut": "Cut",
+		"merge": "Merge",
+		"images": "Images",
+		"batch": "Batch",
+		"presets": "Presets",
+		"jobs": "Jobs",
+		"settings": "Settings"
+	},
+	"topBar": {
+		"breadcrumb": "Current screen",
+		"jobs": {
+			"idle": "No jobs",
+			"active": "{running} running · {queued} queued",
+			"open": "Open the job queue"
+		},
+		"theme": {
+			"toDark": "Switch to the dark theme",
+			"toLight": "Switch to the light theme"
+		},
+		"help": "Help",
+		"menu": "Menu"
+	},
+	"menu": {
+		"help": "Help",
+		"about": "About"
+	},
+	"dialogs": {
+		"close": "Close",
+		"help": {
+			"title": "Help",
+			"body": "Keyboard shortcuts and a short guide per screen appear here once the editors exist. Until then, every screen explains which feature it is waiting for."
+		},
+		"about": {
+			"title": "About MuxMultiTool",
+			"body": "Version, repository, license and the bundled ffmpeg build are listed here by the About screen (TASK-48).",
+			"license": "License: GPL-3.0-or-later"
+		}
+	},
+	"statusBar": {
+		"backend": {
+			"loading": "Connecting to the backend…",
+			"ok": "Backend {version}",
+			"error": "Backend not reachable"
+		},
+		"ffmpeg": "ffmpeg build: not detected yet",
+		"mode": {
+			"container": "Container mode",
+			"desktop": "Desktop mode"
+		}
+	},
+	"errors": {
+		"title": "Something went wrong",
+		"rawOutput": "Raw ffmpeg output",
+		"showRaw": "Show the raw ffmpeg output",
+		"hideRaw": "Hide the raw ffmpeg output",
+		"codes": {
+			"unknown": "Unexpected error",
+			"canceled": "Cancelled",
+			"invalid_argument": "Invalid input",
+			"deadline_exceeded": "The backend took too long",
+			"not_found": "Not found",
+			"already_exists": "Already exists",
+			"permission_denied": "Not allowed",
+			"resource_exhausted": "Out of resources",
+			"failed_precondition": "Not possible in this state",
+			"aborted": "Aborted",
+			"out_of_range": "Out of range",
+			"unimplemented": "Not available in this build",
+			"internal": "The backend hit an internal error",
+			"unavailable": "The backend is not reachable",
+			"data_loss": "Data lost",
+			"unauthenticated": "Not signed in"
+		}
+	},
+	"filePicker": {
+		"title": "Choose files",
+		"titleDirectory": "Choose a folder",
+		"placeholder": "The folder browser over the files service arrives with the Files screen (TASK-18). Nothing can be chosen yet.",
+		"startIn": "Starting in {path}",
+		"cancel": "Cancel"
+	},
+	"pages": {
+		"arrives": "This screen arrives with {task}.",
+		"files": {
+			"description": "Browse the media folders, select files by wildcard and read the per-stream report.",
+			"task": "TASK-18",
+			"open": "Open files…",
+			"picked": "Chosen: {names}",
+			"nothing": "Nothing chosen."
+		},
+		"streams": {
+			"description": "Pick the streams to keep, apply filter rules by language, codec or id, and preview the ffmpeg command.",
+			"task": "TASK-23"
+		},
+		"combine": {
+			"description": "Copy streams between files and build one output from several sources.",
+			"task": "TASK-23"
+		},
+		"cut": {
+			"description": "Player, timeline with thumbnails and waveform, segments, keyframe, normal and smart cut.",
+			"task": "TASK-32"
+		},
+		"merge": {
+			"description": "Join files with identical codecs after a compatibility check.",
+			"task": "TASK-33"
+		},
+		"images": {
+			"description": "GIF, snapshots, cover art and lossless crop.",
+			"task": "TASK-40"
+		},
+		"batch": {
+			"description": "Apply an operation to every matching file in a folder, with a filename template and a preview.",
+			"task": "TASK-41"
+		},
+		"presets": {
+			"description": "Saved operations, reusable from every screen.",
+			"task": "TASK-41"
+		},
+		"jobs": {
+			"description": "Progress, ETA, speed, cancel, and readable errors with the raw ffmpeg output.",
+			"task": "TASK-17"
+		},
+		"settings": {
+			"description": "Appearance, shortcuts, paths and the ffmpeg capability check.",
+			"task": "TASK-42",
+			"backend": "Backend",
+			"backendLoading": "Connecting…",
+			"backendOk": "Connected, version {version}",
+			"refresh": "Check again"
+		}
 	}
 }
