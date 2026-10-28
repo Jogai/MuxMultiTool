@@ -71,6 +71,7 @@ Methods that have no side effects must declare `option idempotency_level = NO_SI
 | Media folders | `--media-root`, repeatable | `MMT_MEDIA_ROOTS`, comma-separated | none |
 | ffmpeg, ffprobe | `--ffmpeg`, `--ffprobe` | `MMT_FFMPEG`, `MMT_FFPROBE` | found on `PATH` |
 | Frontend folder | `--frontend-dir` | `MMT_FRONTEND_DIR` | `web/dist` |
+| Parallel jobs | `--jobs` | `MMT_JOBS` | `1` |
 
 Ctrl-C or `SIGTERM` (what `docker stop` sends) stops it cleanly. The health method is a plain JSON call, which also serves as the container `HEALTHCHECK`:
 
@@ -89,6 +90,19 @@ The file browser (`FilesService` in `crates/proto/proto/muxmultitool/files/v1/fi
 Folders and files are named by opaque ids, which the client stores and passes back. The server resolves an id by canonicalizing the path (so symlinks are followed) and checking that the result is still under the media folder it belongs to; `..`, absolute paths and symlinks that lead outside are refused, and listings leave such entries out. The logic is `muxmultitool_core::files`. Ids stay valid across restarts as long as the media folders are configured in the same order.
 
 Paths from the client are never accepted in the container. The desktop app runs the server with `Config::desktop` set, which turns on `OpenPaths`: it takes the absolute paths from native file dialogs and returns entries for them, so any file or folder the user picked can be browsed and used like one under a media folder.
+
+### Jobs
+
+Every operation that writes output runs as a job of the `JobsService` (`crates/proto/proto/muxmultitool/jobs/v1/jobs.proto`; the queue itself is `core::jobs`). Jobs live in the server process, so they keep running when the browser tab closes. `--jobs` sets how many run at once; the rest wait in submission order. The queue is in memory only: **queued and running jobs do not survive a server restart.** A stop (Ctrl-C, `docker stop`) cancels every job, kills its ffmpeg process and waits for it before the server exits, so no ffmpeg outlives the server.
+
+Each job carries the exact ffmpeg command line it runs, known from submission on, and a failed job carries a plain-language message next to ffmpeg's own output. The frontend follows one job with `WatchJob` and the whole queue with `WatchQueue`: server streams that send a snapshot first and then every progress report, log line and state change. After a disconnect (a proxy timeout, a laptop that slept) the client calls again with the last event id it saw and gets the events it missed from a short per-job buffer, or a fresh snapshot when it fell too far behind.
+
+Jobs only read and write inside the media roots. A stream can be read with curl as well, using the Connect streaming envelope (a 5-byte header per message: flags, then the length):
+
+```sh
+printf '\0\0\0\0\2{}' | curl -sN -X POST -H 'content-type: application/connect+json' --data-binary @- \
+  http://127.0.0.1:8080/rpc/muxmultitool.jobs.v1.JobsService/WatchQueue
+```
 
 ### Editor setup and git hooks
 

@@ -36,6 +36,10 @@ pub struct Config {
 	pub tools: Tools,
 	/// Folder with the built frontend (`index.html` and `assets/`).
 	pub frontend_dir: PathBuf,
+	/// Desktop mode: the server runs on the user's own machine, so absolute
+	/// paths from native file dialogs are trusted (`FilesService/OpenPaths`).
+	/// Off in the container, where paths from a client are never accepted.
+	pub desktop: bool,
 	/// How many jobs run at the same time. The rest wait in the queue.
 	pub job_concurrency: usize,
 }
@@ -48,6 +52,7 @@ impl Default for Config {
 			media_roots: Vec::new(),
 			tools: Tools::default(),
 			frontend_dir: PathBuf::from(DEFAULT_FRONTEND_DIR),
+			desktop: false,
 			job_concurrency: DEFAULT_JOB_CONCURRENCY,
 		}
 	}

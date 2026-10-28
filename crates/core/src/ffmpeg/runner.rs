@@ -241,11 +241,11 @@ impl Runner {
 		limits: &Limits,
 	) -> Result<String, RunError> {
 		let command: Vec<std::ffi::OsString> = args.iter().map(Into::into).collect();
-		tracing::debug!(target: "ffmpeg", command = %Argv(&command), "starting {tool} query");
+		tracing::debug!(target: "ffmpeg", command = %ShellLine(&command), "starting {tool} query");
 		let mut child = self.spawn(tool, &command)?;
 		let stdout = child.stdout.take();
 		let stderr = child.stderr.take();
-		let pipes = async { tokio::join!(read_all(stdout), collect_log(stderr)) };
+		let pipes = async { tokio::join!(read_all(stdout), collect_log(stderr, None)) };
 		let (status, text, log_tail) = supervise(&mut child, tool, limits, pipes).await?;
 		if status.success() {
 			Ok(text)
