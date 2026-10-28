@@ -11,17 +11,24 @@
 //! origin alone: the native file dialogs behind `pickFiles()` (dialog plugin)
 //! and opening external links in the system browser (opener plugin).
 //!
-//! Windows (`WebView2`) and macOS (`WKWebView`) use Tauri's wry runtime (module
-//! `app`). The Linux shell, Tauri's CEF runtime, is a separate task: on Linux
-//! [`run`] only says so, which keeps the workspace checks free of GTK and
-//! `WebKit` dependencies.
+//! Windows (`WebView2`) and macOS (`WKWebView`) use Tauri's wry runtime, Linux
+//! uses Tauri's CEF (Chromium) runtime (module `cef`), all through the same
+//! module `app`. The Linux shell is behind the `cef` cargo feature so that the
+//! workspace checks need neither GTK 4 nor the CEF binary distribution; without
+//! it the Linux binary is a stub that says so.
 
 use std::process::ExitCode;
 
 pub mod backend;
 
-#[cfg(any(windows, target_os = "macos"))]
+#[cfg(any(
+	windows,
+	target_os = "macos",
+	all(target_os = "linux", feature = "cef")
+))]
 mod app;
+#[cfg(all(target_os = "linux", feature = "cef"))]
+mod cef;
 
 /// Logs to stderr, filtered by `RUST_LOG` (default `info`), like the server binary.
 pub fn init_logging() {
@@ -36,19 +43,27 @@ pub fn init_logging() {
 }
 
 /// Runs the desktop app until its window is closed.
-#[cfg(any(windows, target_os = "macos"))]
+#[cfg(any(
+	windows,
+	target_os = "macos",
+	all(target_os = "linux", feature = "cef")
+))]
 #[must_use]
 pub fn run() -> ExitCode {
 	app::run()
 }
 
-/// The Linux desktop shell (Tauri's CEF runtime) is a separate task; this
-/// binary only says so.
-#[cfg(not(any(windows, target_os = "macos")))]
+/// A Linux build without the `cef` feature has no shell; this binary only
+/// says so.
+#[cfg(not(any(
+	windows,
+	target_os = "macos",
+	all(target_os = "linux", feature = "cef")
+)))]
 #[must_use]
 pub fn run() -> ExitCode {
 	tracing::error!(
-		"the desktop app is built for Windows and macOS; the Linux shell (Tauri CEF runtime) is not implemented yet. Run the server (muxmultitool-server) and open it in a browser instead"
+		"this desktop binary was built without a shell: on Linux build it with `--features cef` (Tauri's CEF runtime, see crates/desktop/Cargo.toml), or run the server (muxmultitool-server) and open it in a browser instead"
 	);
 	ExitCode::FAILURE
 }

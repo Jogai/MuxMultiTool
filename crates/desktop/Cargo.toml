@@ -8,6 +8,20 @@ license.workspace = true
 repository.workspace = true
 publish.workspace = true
 
+[features]
+# The Linux shell: Tauri's CEF (Chromium) runtime, see architecture.md
+# "Desktop specifics". Off by default so the workspace checks on Linux need
+# neither the GTK 4 development libraries nor the CEF binary distribution
+# (330 MB, downloaded by the `cef-dll-sys` build script). `tauri.linux.conf.json`
+# turns it on for `tauri build` and `tauri dev`; a plain cargo build needs
+# `--features cef`. On Windows and macOS the feature does nothing.
+cef = [
+	"dep:tauri",
+	"dep:tauri-plugin-dialog",
+	"dep:tauri-plugin-opener",
+	"dep:tauri-runtime-cef",
+]
+
 [dependencies]
 muxmultitool-core = { path = "../core", version = "0.1.0" }
 muxmultitool-server = { path = "../server", version = "0.1.0" }
@@ -20,14 +34,25 @@ tracing-subscriber = { version = "0.3.23", default-features = false, features = 
 
 # The Tauri shell for Windows (WebView2) and macOS (WKWebView). The versions are
 # pinned: Tauri 3 is an alpha and its crates, plugins and the `@tauri-apps/cli`
-# npm package (web/package.json) must match. The Linux shell (Tauri's CEF
-# runtime, architecture.md "Desktop shell") is a separate task; on Linux the
-# binary is a stub, so the workspace checks need no GTK or WebKit libraries.
+# npm package (web/package.json) must match.
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]
 tauri = { version = "=3.0.0-alpha.5" }
 tauri-plugin-dialog = { version = "=3.0.0-alpha.4", default-features = false }
 tauri-plugin-opener = { version = "=3.0.0-alpha.3" }
 tauri-runtime-wry = { version = "=3.0.0-alpha.5", default-features = false }
+
+# The Tauri shell for Linux: the CEF runtime (`tauri-runtime-cef` pins the CEF
+# binary distribution through the `cef` crate) instead of WebKitGTK. Behind the
+# `cef` feature, see above. The dialog plugin uses the XDG desktop portal
+# (`rfd` over D-Bus) rather than its GTK 3 default: GTK 3 and the GTK 4 the CEF
+# runtime links cannot share a process.
+[target.'cfg(target_os = "linux")'.dependencies]
+tauri = { version = "=3.0.0-alpha.5", optional = true }
+tauri-plugin-dialog = { version = "=3.0.0-alpha.4", default-features = false, features = [
+	"xdg-portal",
+], optional = true }
+tauri-plugin-opener = { version = "=3.0.0-alpha.3", optional = true }
+tauri-runtime-cef = { version = "=3.0.0-alpha.6", optional = true }
 
 [build-dependencies]
 tauri-build = { version = "=3.0.0-alpha.4" }

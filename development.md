@@ -11,7 +11,7 @@ The Rust workspace lives in `crates/`. `rust-toolchain.toml` pins the Rust versi
 | Check | Command |
 |---|---|
 | Format | `cargo fmt --all --check` |
-| Lint | `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings` |
+| Lint | `cargo clippy --workspace --all-targets --locked -- -D warnings` (the desktop crate's `cef` feature is linted in the Linux desktop CI job, it needs GTK 4 and the CEF download) |
 | Docs | `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked` |
 | TOML | `taplo fmt --check` (`cargo install taplo-cli`, or `npx @taplo/cli fmt --check`) |
 | Dependencies | `cargo deny check` (`cargo install cargo-deny`): RustSec advisories, licenses, bans and sources, configured in `deny.toml` |
@@ -254,7 +254,7 @@ GitHub Actions runs the checks above on every pull request and on `master` (`.gi
 | `crates/core/**`, `crates/proto/**`, `Cargo.lock`, `Cargo.toml`, `rust-toolchain.toml`, `.github/**` | Everything |
 | `crates/server/**`, `crates/desktop/**`, `Dockerfile`, the root `*.toml` configs | Backend checks |
 | `web/**` | Frontend checks |
-| `crates/server/**`, `crates/desktop/**`, `web/**` | Desktop installers (Windows x64, macOS arm64 and x64) |
+| `crates/server/**`, `crates/desktop/**`, `web/**` | Desktop installers (Windows x64, macOS arm64 and x64, Linux x64) |
 | `crates/proto/**` | RPC contract checks (lint, format, breaking changes) |
 | anything else (readme, docs) | Nothing |
 
@@ -278,23 +278,26 @@ Themes are palette files in `web/src/core/themes/families/`, one per family, reg
 
 ### Desktop app
 
-`crates/desktop` is the Tauri app for Windows (WebView2) and macOS (WKWebView). It runs the same server in its own process on `127.0.0.1` with a random port and opens its window on that URL, so the frontend calls its own origin exactly as in the container; there is no separate backend process, and closing the window stops the server, which kills every running ffmpeg job. The frontend's only Tauri calls are the native file dialogs behind `pickFiles()` and `pickSavePath()` (`web/src/core/libs/filePicker.ts`) and opening external links in the system browser (`externalLink.ts`); `crates/desktop/capabilities/main.json` allows exactly those two plugin commands, for the server's origin only (`http://127.0.0.1:*`). The server runs with `Config::desktop` set, so the absolute paths the dialogs return are accepted, and with the app-data folder as `Config::data_dir` (`%APPDATA%\io.github.jogai.muxmultitool` on Windows, `~/Library/Application Support/io.github.jogai.muxmultitool` on macOS), so the theme persists.
+`crates/desktop` is the Tauri app for Windows (WebView2), macOS (WKWebView) and Linux (Tauri's CEF runtime, a bundled Chromium; see "Linux" below). It runs the same server in its own process on `127.0.0.1` with a random port and opens its window on that URL, so the frontend calls its own origin exactly as in the container; there is no separate backend process, and closing the window stops the server, which kills every running ffmpeg job. The frontend's only Tauri calls are the native file dialogs behind `pickFiles()` and `pickSavePath()` (`web/src/core/libs/filePicker.ts`) and opening external links in the system browser (`externalLink.ts`); `crates/desktop/capabilities/main.json` allows exactly those two plugin commands, for the server's origin only (`http://127.0.0.1:*`). The server runs with `Config::desktop` set, so the absolute paths the dialogs return are accepted, and with the app-data folder as `Config::data_dir` (`%APPDATA%\io.github.jogai.muxmultitool` on Windows, `~/Library/Application Support/io.github.jogai.muxmultitool` on macOS, `~/.local/share/io.github.jogai.muxmultitool` on Linux), so the theme persists.
 
-The Tauri crates are pinned to the 3.0.0 alpha named in the architecture doc (`tauri`, `tauri-build`, `tauri-runtime-wry`, `tauri-plugin-dialog`, `tauri-plugin-opener`) together with `@tauri-apps/cli` in `web/package.json`; bump them together. The Tauri dependencies are Windows/macOS only: on Linux the binary is a stub that says so (the Linux shell, Tauri's CEF runtime, is a separate task), which keeps the workspace checks free of GTK and WebKit libraries. The duplicate crate versions the alpha drags in are listed in `deny.toml` with reasons.
+The Tauri crates are pinned to the 3.0.0 alpha named in the architecture doc (`tauri`, `tauri-build`, `tauri-runtime-wry`, `tauri-runtime-cef`, `tauri-plugin-dialog`, `tauri-plugin-opener`) together with `@tauri-apps/cli` in `web/package.json`; bump them together. The duplicate crate versions the alpha drags in are listed in `deny.toml` with reasons.
 
-Build an installer on Windows or macOS:
+**Linux.** The shell is Tauri's CEF runtime (`tauri-runtime-cef`, which pins the CEF binary distribution through the `cef` crate), chosen over WebKitGTK for its video playback (architecture doc, "Desktop specifics"). It sits behind the crate's `cef` cargo feature: a plain Linux build of the workspace (the backend checks, the container) does not need the GTK 4 development libraries or the 330 MB CEF download that the feature brings in, and the binary is then a stub that says so. `crates/desktop/tauri.linux.conf.json` turns the feature on for `tauri build` and `tauri dev`, which also makes the Tauri CLI ship the CEF files in the bundles; `cargo run -p muxmultitool-desktop --features cef` does the same by hand. Prerequisites on Debian/Ubuntu: `libgtk-4-dev` (GTK 4.14 or newer) for the window, `patchelf strace xvfb dbus-x11 binutils file` for the AppImage bundler. The `cef-dll-sys` build script downloads CEF into `$CEF_PATH` (the Tauri CLI sets it to `~/.cache/tauri-cef`; set it yourself for a plain cargo build, otherwise it lands in the target folder) and copies the runtime files (`libcef.so`, resources, locales) next to the binary; the binary finds them through an `$ORIGIN` rpath. CEF starts the same executable again for its renderer, GPU and utility processes; `main.rs` hands those over to CEF (`#[cef_entry_point]`) before the app starts. The file dialogs use the XDG desktop portal (`rfd` over D-Bus) because GTK 3, the dialog plugin's default, cannot share a process with GTK 4; a desktop needs `xdg-desktop-portal` with a backend (GNOME, KDE, GTK) for them to appear. The deb installs the binary in `/usr/share/MuxMultiTool/` next to `libcef.so` with a symlink in `/usr/bin/`, and the sidecars in `/usr/bin/`; `backend::sidecar_dir` knows that layout.
+
+Build an installer:
 
 1. `cd web && npm ci && npm run build`: the frontend, bundled as the `web/` resource.
-2. `crates/desktop/scripts/fetch-sidecars.sh <target>` downloads the pinned GPL ffmpeg and ffprobe builds for the target triple into `crates/desktop/binaries/` (git-ignored): BtbN `win64-gpl` for Windows, Martin Riedl's static builds for macOS arm64 and x64, each checked against its SHA-256.
-3. `cd web && TAURI_APP_PATH=../crates/desktop npx tauri build --target <target>` writes the NSIS installer or the `.app` and `.dmg` to `target/<target>/release/bundle/`. `tauri.conf.json` has no `version`: it inherits the workspace version from `Cargo.toml`.
+2. `crates/desktop/scripts/fetch-sidecars.sh <target>` downloads the pinned GPL ffmpeg and ffprobe builds for the target triple into `crates/desktop/binaries/` (git-ignored): BtbN `win64-gpl` for Windows, `linux64-gpl` and `linuxarm64-gpl` for Linux, Martin Riedl's static builds for macOS arm64 and x64, each checked against its SHA-256.
+3. `cd web && TAURI_APP_PATH=../crates/desktop npx tauri build --target <target>` writes the NSIS installer, the `.app` and `.dmg`, or the `.deb` and `.AppImage` to `target/<target>/release/bundle/`. `tauri.conf.json` has no `version`: it inherits the workspace version from `Cargo.toml`.
 
-For development, `cargo run -p muxmultitool-desktop` after `npm run build` is enough: without a bundle the app serves `web/dist` (or `MMT_FRONTEND_DIR`), and `MMT_FFMPEG` and `MMT_FFPROBE` point at an installed ffmpeg when the sidecars are not fetched. Logs go to stderr, filtered by `RUST_LOG`.
+For development, `cargo run -p muxmultitool-desktop` (on Linux with `--features cef`) after `npm run build` is enough: without a bundle the app serves `web/dist` (or `MMT_FRONTEND_DIR`), and `MMT_FFMPEG` and `MMT_FFPROBE` point at an installed ffmpeg when the sidecars are not fetched. Logs go to stderr, filtered by `RUST_LOG`.
 
-CI (the `desktop` job) builds the three installers on every change to the desktop crate, the server or the frontend and uploads them as workflow artifacts. **Release blockers:**
+CI (the `desktop` job) builds the installers for the four targets on every change to the desktop crate, the server or the frontend, prints the bundle sizes in the job summary and uploads the bundles as workflow artifacts. **Release blockers:**
 
 - **macOS signing and notarization** run in CI when the repository secrets `APPLE_CERTIFICATE` (base64 `.p12`), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD` (an app-specific password) and `APPLE_TEAM_ID` exist. They do not yet: the `.dmg` is unsigned and Gatekeeper refuses it until they are added.
 - **Windows signing** is not set up: there is no code-signing certificate. Configure `bundle.windows.signCommand` (for example Azure Trusted Signing) or `certificateThumbprint` in `tauri.conf.json` once there is one; until then SmartScreen warns about the installer.
-- **Preview playback in WebView2 and WKWebView** still needs the manual test from the HLS spike on real machines (architecture doc, "HLS playback spike").
+- **Preview playback in WebView2, WKWebView and CEF** still needs the manual test from the HLS spike on real machines (architecture doc, "HLS playback spike"). The Linux app has not been started on a desktop at all yet: the CEF alpha, the portal dialogs and the deb and AppImage layouts are built and documented, not run (architecture doc, "Linux desktop app as built").
+- **Linux bundling fails with this Tauri alpha:** the deb and AppImage bundlers copy ANGLE libraries that the Linux CEF distribution does not contain, so `tauri build` stops after the compile (architecture doc, "Linux desktop app as built", issue 1). Needs a bundler fix upstream and a version bump.
 
 ## Container
 

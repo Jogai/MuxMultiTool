@@ -57,6 +57,12 @@ allow = [
 	"GPL-2.0-or-later",
 	"GPL-3.0-only",
 	"GPL-3.0-or-later",
+	# libbz2-rs-sys (download-cef, the CEF build script): the bzip2 license,
+	# BSD-style, GPL-compatible
+	"bzip2-1.0.6",
+	# webpki-roots (ureq, download-cef): Mozilla's root certificates under a
+	# permissive data license
+	"CDLA-Permissive-2.0",
 ]
 # The list above is policy (what may be used), not an inventory of what is
 # used today, so an entry that no dependency needs yet is not a warning.
@@ -137,6 +143,79 @@ skip = [
 	{ crate = "tower-http@0.6", reason = "upstream: reqwest (tauri)" },
 	{ crate = "windows-sys@0.60", reason = "upstream: rfd (tauri-plugin-dialog)" },
 	{ crate = "winnow@0.5", reason = "upstream: toml_edit 0.19 and 0.20" },
+	# The Linux shell (tauri-runtime-cef, crates/desktop `cef` feature) links the
+	# GTK 4 bindings (glib 0.22, gtk4 0.11) while tauri-runtime-wry's Linux
+	# dependencies (tao, webkit2gtk, muda's gtk3 feature; Windows/macOS-only for
+	# us, but cargo-deny resolves every target) stay on the GTK 3 bindings
+	# (glib 0.18). The 0.18 tree is the duplicate.
+	{ crate = "cairo-rs@0.18", reason = "upstream: GTK 3 bindings (wry/tao)" },
+	{ crate = "cairo-sys-rs@0.18", reason = "upstream: GTK 3 bindings (wry/tao)" },
+	{ crate = "gdk-pixbuf@0.18", reason = "upstream: GTK 3 bindings (wry/tao)" },
+	{ crate = "gdk-pixbuf-sys@0.18", reason = "upstream: GTK 3 bindings (wry/tao)" },
+	{ crate = "gio@0.18", reason = "upstream: GTK 3 bindings (wry/tao)" },
+	{ crate = "gio-sys@0.18", reason = "upstream: GTK 3 bindings (wry/tao)" },
+	{ crate = "glib@0.18", reason = "upstream: GTK 3 bindings (wry/tao)" },
+	{ crate = "glib-macros@0.18", reason = "upstream: GTK 3 bindings (wry/tao)" },
+	{ crate = "glib-sys@0.18", reason = "upstream: GTK 3 bindings (wry/tao)" },
+	{ crate = "gobject-sys@0.18", reason = "upstream: GTK 3 bindings (wry/tao)" },
+	{ crate = "pango@0.18", reason = "upstream: GTK 3 bindings (wry/tao)" },
+	{ crate = "pango-sys@0.18", reason = "upstream: GTK 3 bindings (wry/tao)" },
+	{ crate = "system-deps@6", reason = "upstream: GTK 3 bindings (wry/tao)" },
+	{ crate = "cfg-expr@0.15", reason = "upstream: system-deps 6" },
+	{ crate = "target-lexicon@0.12", reason = "upstream: cfg-expr 0.15" },
+	# tauri-runtime-cef parses HTML with kuchikiki, a fork pinned to html5ever
+	# 0.29 and selectors 0.24, while tauri-utils uses dom_query (html5ever 0.39,
+	# selectors 0.38). The old fork's tree is the duplicate, down to its phf and
+	# rand generations.
+	{ crate = "html5ever@0.29", reason = "upstream: kuchikiki (tauri-runtime-cef)" },
+	{ crate = "markup5ever@0.14", reason = "upstream: html5ever 0.29" },
+	{ crate = "cssparser@0.29", reason = "upstream: kuchikiki, selectors 0.24" },
+	{ crate = "cssparser-macros@0.6", reason = "upstream: cssparser 0.29" },
+	{ crate = "selectors@0.24", reason = "upstream: kuchikiki" },
+	{ crate = "servo_arc@0.2", reason = "upstream: selectors 0.24" },
+	{ crate = "derive_more@0.99", reason = "upstream: selectors 0.24" },
+	{ crate = "tendril@0.4", reason = "upstream: markup5ever 0.14" },
+	{ crate = "string_cache@0.8", reason = "upstream: markup5ever 0.14" },
+	{ crate = "string_cache_codegen@0.5", reason = "upstream: markup5ever 0.14" },
+	{ crate = "phf@0.8", reason = "upstream: selectors 0.24" },
+	{ crate = "phf@0.10", reason = "upstream: cssparser 0.29" },
+	{ crate = "phf@0.11", reason = "upstream: markup5ever 0.14" },
+	{ crate = "phf_codegen@0.8", reason = "upstream: selectors 0.24" },
+	{ crate = "phf_codegen@0.11", reason = "upstream: markup5ever 0.14" },
+	{ crate = "phf_generator@0.8", reason = "upstream: phf_codegen 0.8" },
+	{ crate = "phf_generator@0.10", reason = "upstream: phf_macros 0.10" },
+	{ crate = "phf_generator@0.11", reason = "upstream: phf_codegen 0.11, string_cache_codegen 0.5" },
+	{ crate = "phf_macros@0.10", reason = "upstream: phf 0.10" },
+	{ crate = "phf_shared@0.8", reason = "upstream: phf 0.8" },
+	{ crate = "phf_shared@0.10", reason = "upstream: phf 0.10" },
+	{ crate = "phf_shared@0.11", reason = "upstream: phf 0.11, string_cache 0.8" },
+	{ crate = "siphasher@0.3", reason = "upstream: phf_shared 0.8 and 0.10" },
+	{ crate = "rand@0.7", reason = "upstream: phf_generator 0.8" },
+	{ crate = "rand@0.8", reason = "upstream: phf_generator 0.10 and 0.11" },
+	{ crate = "rand_chacha@0.2", reason = "upstream: rand 0.7" },
+	{ crate = "rand_chacha@0.3", reason = "upstream: rand 0.8" },
+	{ crate = "rand_core@0.5", reason = "upstream: rand 0.7" },
+	{ crate = "rand_core@0.6", reason = "upstream: rand 0.8" },
+	{ crate = "getrandom@0.1", reason = "upstream: rand 0.7" },
+	{ crate = "getrandom@0.2", reason = "upstream: rand_core 0.6, ring" },
+	# The rest of the CEF tree
+	{ crate = "rand@0.9", reason = "upstream: ashpd (rfd xdg-portal, tauri-plugin-dialog on Linux)" },
+	{ crate = "rand_chacha@0.9", reason = "upstream: rand 0.9" },
+	{ crate = "rand_core@0.9", reason = "upstream: rand 0.9" },
+	{ crate = "dirs@6", reason = "upstream: tauri-runtime-cef; tauri is on dirs 7" },
+	{ crate = "cargo_metadata@0.19", reason = "upstream: tauri-utils; the cef crate is on 0.23" },
+	{ crate = "cargo-platform@0.1", reason = "upstream: cargo_metadata 0.19" },
+	{ crate = "libloading@0.8", reason = "upstream: dlib, x11rb (winit); the cef crate is on 0.9" },
+	{ crate = "quick-xml@0.41", reason = "upstream: wayland-scanner; plist is on 0.42" },
+	{ crate = "windows-sys@0.52", reason = "upstream: ring" },
+	{ crate = "windows-targets@0.52", reason = "upstream: windows-sys 0.52" },
+	{ crate = "windows-targets@0.53", reason = "upstream: windows-sys 0.60 (rfd)" },
+	{ crate = "windows_aarch64_msvc@0.52", reason = "upstream: windows-targets 0.52" },
+	{ crate = "windows_aarch64_msvc@0.53", reason = "upstream: windows-targets 0.53" },
+	{ crate = "windows_x86_64_gnu@0.52", reason = "upstream: windows-targets 0.52" },
+	{ crate = "windows_x86_64_gnu@0.53", reason = "upstream: windows-targets 0.53" },
+	{ crate = "windows_x86_64_msvc@0.52", reason = "upstream: windows-targets 0.52" },
+	{ crate = "windows_x86_64_msvc@0.53", reason = "upstream: windows-targets 0.53" },
 ]
 skip-tree = []
 

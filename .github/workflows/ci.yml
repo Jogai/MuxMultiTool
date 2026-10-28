@@ -135,8 +135,11 @@ jobs:
           tool: cargo-deny,cargo-shear,cargo-hack,taplo,typos
       - name: Format
         run: cargo fmt --all --check
+      # Without `--all-features`: the desktop crate's `cef` feature (the Linux
+      # shell) needs GTK 4 and the CEF download, and is linted in the Linux
+      # desktop job instead.
       - name: Lint
-        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: Docs
         run: cargo doc --workspace --no-deps --locked
         env:
@@ -150,7 +153,7 @@ jobs:
       - name: Unused dependencies
         run: cargo shear
       - name: Feature combinations
-        run: cargo hack check --each-feature --workspace --locked
+        run: cargo hack check --each-feature --workspace --locked --exclude-features cef
 
   backend-test:
     name: Backend tests
@@ -280,6 +283,17 @@ jobs:
   # Apple Silicon runner also cross-compiles the Intel build. macOS signing and
   # notarization run when the Apple secrets exist; Windows signing is not set up
   # yet. Both are release blockers, documented in development.md.
+  #
+  # Linux builds on the Tauri CEF runtime (architecture.md, "Desktop specifics"):
+  # `tauri.linux.conf.json` turns on the crate's `cef` feature, the `cef-dll-sys`
+  # build script downloads the pinned CEF binary distribution into the cached
+  # `~/.cache/tauri-cef` folder, and the bundler ships it in the deb and AppImage.
+  # The AppImage bundler (quick-sharun) runs the app for a few seconds under
+  # xvfb to find the libraries it loads, hence the X virtual framebuffer.
+  # Known to fail at the bundling step with this alpha (tauri-bundler copies
+  # ANGLE libraries that the Linux CEF distribution does not ship, see
+  # architecture.md "Linux desktop app as built", issue 1); the compile and
+  # link still run, and a bundler fix is a version bump away.
   desktop:
     name: Desktop (${{ matrix.target }})
     needs: [changes, codegen]
@@ -297,6 +311,9 @@ jobs:
           - os: macos-latest
             target: x86_64-apple-darwin
             bundles: dmg
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            bundles: deb,appimage
     runs-on: ${{ matrix.os }}
     env:
       # Only a job-level env can look at the secrets; the step below reads this.
@@ -310,6 +327,25 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
+      # GTK 4 for the CEF runtime's windows and the tools of the Linux bundlers.
+      - name: Install the Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-4-dev patchelf strace xvfb dbus-x11 binutils file
+      - name: Cache the CEF binary distribution
+        if: runner.os == 'Linux'
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/tauri-cef
+          # The `cef` crate version in the lockfile names the CEF build.
+          key: cef-${{ matrix.target }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cef-${{ matrix.target }}-
+      # The `cef` feature is kept out of the backend lint job (no GTK 4 there).
+      - name: Lint the CEF shell
+        if: runner.os == 'Linux'
+        run: CEF_PATH="$HOME/.cache/tauri-cef" cargo clippy -p muxmultitool-desktop --features cef --all-targets --locked -- -D warnings
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -343,12 +379,27 @@ jobs:
         env:
           TAURI_APP_PATH: ../crates/desktop
           TAURI_FRONTEND_PATH: .
+      # The bundle sizes, in the job summary: the architecture doc records them.
+      - name: Bundle sizes
+        shell: bash
+        run: |
+          {
+            echo "### Bundles for ${{ matrix.target }}"
+            echo
+            echo '```'
+            find target/${{ matrix.target }}/release/bundle -maxdepth 2 \
+              \( -name '*.exe' -o -name '*.dmg' -o -name '*.deb' -o -name '*.AppImage' \) \
+              -exec du -h {} +
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         with:
           name: desktop-${{ matrix.target }}
           path: |
             target/${{ matrix.target }}/release/bundle/nsis/*.exe
             target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+            target/${{ matrix.target }}/release/bundle/deb/*.deb
+            target/${{ matrix.target }}/release/bundle/appimage/*.AppImage
           if-no-files-found: error
 
   # Conventional Commits, because git-cliff works out the next version from them.

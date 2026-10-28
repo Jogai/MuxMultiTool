@@ -73,6 +73,26 @@ fn tools(sidecar_dir: &Path, ffmpeg: Option<&Path>, ffprobe: Option<&Path>) -> T
 	tools
 }
 
+/// The folder with the ffmpeg and ffprobe sidecars, given the folder of the
+/// app's own executable: that folder, where Tauri's bundles put
+/// `bundle.externalBin`, except in the Debian package of the Linux (CEF) app.
+/// There the executable is moved to `/usr/share/<product>/`, next to
+/// `libcef.so`, with a symlink in `/usr/bin/`, while the sidecars stay in
+/// `/usr/bin/`: when the executable's folder holds no ffmpeg but
+/// `<exe dir>/../../bin` does, that is the sidecar folder.
+#[must_use]
+pub fn sidecar_dir(exe_dir: &Path) -> PathBuf {
+	let has_ffmpeg = |dir: &Path| Tools::in_dir(dir).ffmpeg.is_file();
+	let deb_bin = exe_dir
+		.parent()
+		.and_then(Path::parent)
+		.map(|usr| usr.join("bin"));
+	match deb_bin {
+		Some(bin) if !has_ffmpeg(exe_dir) && has_ffmpeg(&bin) => bin,
+		_ => exe_dir.to_path_buf(),
+	}
+}
+
 /// The value of a path variable, when set and not empty.
 fn env_path(name: &str) -> Option<PathBuf> {
 	env::var_os(name)
@@ -204,6 +224,29 @@ mod tests {
 		let overridden = tools(dir, Some(Path::new("/usr/bin/ffmpeg")), None);
 		assert_eq!(overridden.ffmpeg, Path::new("/usr/bin/ffmpeg"));
 		assert_eq!(overridden.ffprobe, exe(dir, "ffprobe"));
+	}
+
+	#[test]
+	fn sidecar_dir_is_the_exe_dir_or_the_deb_layout() {
+		let root = tempfile::tempdir().unwrap();
+		let exe_dir = root.path().join("usr/share/MuxMultiTool");
+		let bin = root.path().join("usr/bin");
+		fs::create_dir_all(&exe_dir).unwrap();
+		fs::create_dir_all(&bin).unwrap();
+
+		// Nothing anywhere: the executable's folder.
+		assert_eq!(sidecar_dir(&exe_dir), exe_dir);
+
+		// The Debian layout: sidecars in /usr/bin, the executable in /usr/share.
+		fs::write(exe(&bin, "ffmpeg"), "").unwrap();
+		assert_eq!(sidecar_dir(&exe_dir), bin);
+
+		// Next to the executable wins (AppImage, Windows, macOS, cargo run).
+		fs::write(exe(&exe_dir, "ffmpeg"), "").unwrap();
+		assert_eq!(sidecar_dir(&exe_dir), exe_dir);
+
+		// A folder too shallow for the deb layout.
+		assert_eq!(sidecar_dir(Path::new("/")), Path::new("/"));
 	}
 
 	#[test]

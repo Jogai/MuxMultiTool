@@ -7,7 +7,7 @@ pre-commit:
       run: cargo fmt --all --check
     rust-clippy:
       glob: "*.{rs,toml}"
-      run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+      run: cargo clippy --workspace --all-targets --locked -- -D warnings
     toml-fmt:
       glob: "*.toml"
       run: npx --yes @taplo/cli fmt --check {staged_files}

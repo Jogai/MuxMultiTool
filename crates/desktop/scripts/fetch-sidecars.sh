@@ -8,6 +8,9 @@
 #
 # Sources (architecture.md, "ffmpeg sources"): all GPL builds with x264.
 # - Windows: BtbN FFmpeg-Builds, `win64-gpl` (static, --enable-gpl --enable-version3).
+# - Linux: BtbN FFmpeg-Builds, `linux64-gpl` and `linuxarm64-gpl` from the same
+#   autobuild (glibc, like the desktop binary itself; the container uses a
+#   different, musl build).
 # - macOS: Martin Riedl's static builds (https://ffmpeg.martin-riedl.de), the
 #   `release` channel, for arm64 and amd64 (--enable-gpl --enable-version3
 #   --enable-libx264; OpenSSL 3 is Apache-2.0, which GPL-3.0 allows).
@@ -17,9 +20,9 @@ set -euo pipefail
 
 target="${1:-}"
 case "$target" in
-	x86_64-pc-windows-msvc | aarch64-apple-darwin | x86_64-apple-darwin) ;;
+	x86_64-pc-windows-msvc | x86_64-unknown-linux-gnu | aarch64-unknown-linux-gnu | aarch64-apple-darwin | x86_64-apple-darwin) ;;
 	*)
-		echo "usage: $0 x86_64-pc-windows-msvc | aarch64-apple-darwin | x86_64-apple-darwin" >&2
+		echo "usage: $0 x86_64-pc-windows-msvc | x86_64-unknown-linux-gnu | aarch64-unknown-linux-gnu | aarch64-apple-darwin | x86_64-apple-darwin" >&2
 		exit 64
 		;;
 esac
@@ -31,8 +34,13 @@ trap 'rm -rf "$work"' EXIT
 mkdir -p "$out"
 
 btbn_tag="autobuild-2026-10-27-18-38"
-btbn_win64="ffmpeg-n8.1.3-24-g92611900bb-win64-gpl-8.1"
+btbn_build="ffmpeg-n8.1.3-24-g92611900bb"
+btbn_win64="$btbn_build-win64-gpl-8.1"
 btbn_win64_sha256="79a803e134ffbd69c08b380aac33693dc028135785b23213f292d84c59c1e95e"
+btbn_linux64="$btbn_build-linux64-gpl-8.1"
+btbn_linux64_sha256="292e10a463befababcd31e0c7d0c1e068d46342398d9674534eb07517c1ba38e"
+btbn_linuxarm64="$btbn_build-linuxarm64-gpl-8.1"
+btbn_linuxarm64_sha256="f6cddb0f449e2db8dd89e8c9407d972331793a5f129065c5db7a94dacd4270e7"
 
 riedl="https://ffmpeg.martin-riedl.de/download/macos"
 riedl_arm64="arm64/1789931890_9.0.2"
@@ -74,6 +82,21 @@ case "$target" in
 		unzip_into "$work/win64.zip" "$work/win64"
 		for tool in ffmpeg ffprobe; do
 			cp "$work/win64/$btbn_win64/bin/$tool.exe" "$out/$tool-$target.exe"
+		done
+		;;
+	x86_64-unknown-linux-gnu | aarch64-unknown-linux-gnu)
+		if [ "$target" = x86_64-unknown-linux-gnu ]; then
+			build="$btbn_linux64" sha="$btbn_linux64_sha256"
+		else
+			build="$btbn_linuxarm64" sha="$btbn_linuxarm64_sha256"
+		fi
+		fetch "https://github.com/BtbN/FFmpeg-Builds/releases/download/$btbn_tag/$build.tar.xz" \
+			"$sha" "$work/linux.tar.xz"
+		mkdir -p "$work/linux"
+		tar -xJf "$work/linux.tar.xz" -C "$work/linux"
+		for tool in ffmpeg ffprobe; do
+			cp "$work/linux/$build/bin/$tool" "$out/$tool-$target"
+			chmod +x "$out/$tool-$target"
 		done
 		;;
 	aarch64-apple-darwin | x86_64-apple-darwin)

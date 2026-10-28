@@ -1,5 +1,7 @@
-//! The Tauri app for Windows and macOS: starts the backend, opens the window
-//! on it and stops the backend when the event loop ends.
+//! The Tauri app: starts the backend, opens the window on it and stops the
+//! backend when the event loop ends. The webview runtime is the only
+//! platform-specific part: wry on Windows and macOS, CEF on Linux (module
+//! `cef`); everything else here is shared.
 
 use std::env;
 use std::error::Error;
@@ -32,7 +34,7 @@ struct BackendState(Mutex<Option<Backend>>);
 /// (no window, no port): it is logged and the process exits with a failure.
 pub fn run() -> ExitCode {
 	let app = tauri::Builder::default()
-		.runtime(tauri_runtime_wry::Wry::default())
+		.runtime(runtime())
 		.plugin(tauri_plugin_dialog::init())
 		.plugin(tauri_plugin_opener::init())
 		.setup(setup)
@@ -50,6 +52,18 @@ pub fn run() -> ExitCode {
 		}
 	});
 	ExitCode::SUCCESS
+}
+
+/// Tauri's wry runtime: `WebView2` on Windows, `WKWebView` on macOS.
+#[cfg(any(windows, target_os = "macos"))]
+fn runtime() -> tauri_runtime_wry::Wry {
+	tauri_runtime_wry::Wry::default()
+}
+
+/// Tauri's CEF runtime on Linux, configured in module `cef`.
+#[cfg(target_os = "linux")]
+fn runtime() -> tauri_runtime_cef::Cef {
+	crate::cef::runtime()
 }
 
 /// Starts the backend on Tauri's tokio runtime and opens the window on it.
@@ -76,13 +90,12 @@ fn setup(app: &mut App) -> Result<(), Box<dyn Error>> {
 }
 
 /// The app-data folder (created when missing), the sidecars next to the
-/// executable and the bundled frontend.
+/// executable (or where the Linux packages put them, see
+/// [`backend::sidecar_dir`]) and the bundled frontend.
 fn paths(app: &App) -> Result<Paths, Box<dyn Error>> {
 	let exe = env::current_exe()?;
-	let sidecar_dir = exe
-		.parent()
-		.ok_or("the executable has no parent folder")?
-		.to_path_buf();
+	let exe_dir = exe.parent().ok_or("the executable has no parent folder")?;
+	let sidecar_dir = backend::sidecar_dir(exe_dir);
 	let data_dir = app.path().app_data_dir()?;
 	fs::create_dir_all(&data_dir)?;
 	let bundled = app.path().resource_dir()?.join(FRONTEND_RESOURCE);
