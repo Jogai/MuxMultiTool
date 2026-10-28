@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { useSystemStatus } from "./useSystemStatus";
 import {
+	GetCapabilitiesResponseSchema,
 	GetHealthResponseSchema,
 	GetVersionResponseSchema,
 	HealthStatus,
@@ -14,6 +15,7 @@ function fakeClient(overrides: Partial<Client<typeof SystemService>> = {}): Clie
 	return {
 		getHealth: vi.fn().mockResolvedValue(create(GetHealthResponseSchema, { status: HealthStatus.OK })),
 		getVersion: vi.fn().mockResolvedValue(create(GetVersionResponseSchema, { version: "0.1.0" })),
+		getCapabilities: vi.fn().mockResolvedValue(create(GetCapabilitiesResponseSchema)),
 		...overrides
 	};
 }
