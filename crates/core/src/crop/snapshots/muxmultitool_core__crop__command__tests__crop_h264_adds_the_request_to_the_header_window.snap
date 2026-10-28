@@ -1,0 +1,5 @@
+---
+source: crates/core/src/crop/command.rs
+expression: cmd
+---
+ffmpeg -i /media/in/movie.mkv -map 0 -c copy -bsf:v:0 h264_metadata=crop_left=0:crop_right=0:crop_top=140:crop_bottom=148 /media/out/movie.cropped.mkv

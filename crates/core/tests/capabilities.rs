@@ -12,6 +12,7 @@ async fn detects_the_installed_build() {
 	let found = detect(&Runner::default()).await.unwrap();
 	assert_ne!(found.version, "");
 	assert!(found.has_filter("scale"));
+	assert!(found.has_bitstream_filter("h264_mp4toannexb"));
 	assert!(found.encoders.iter().any(|c| c.name == "aac"));
 	assert!(found.formats.iter().any(|f| f.name == "mp4" && f.mux));
 }

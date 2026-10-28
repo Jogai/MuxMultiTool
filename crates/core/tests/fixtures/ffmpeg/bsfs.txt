@@ -1,0 +1,11 @@
+Bitstream filters:
+aac_adtstoasc
+av1_metadata
+extract_extradata
+h264_metadata
+h264_mp4toannexb
+hevc_metadata
+hevc_mp4toannexb
+null
+setts
+vp9_metadata

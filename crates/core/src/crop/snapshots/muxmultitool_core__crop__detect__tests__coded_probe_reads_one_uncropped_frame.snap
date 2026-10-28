@@ -1,0 +1,5 @@
+---
+source: crates/core/src/crop/detect.rs
+expression: "args.join(\" \")"
+---
+-hide_banner -v error -apply_cropping 0 -select_streams 2 -read_intervals %+#1 -show_entries frame=width,height,crop_top,crop_bottom,crop_left,crop_right -of csv=p=0 -i /media/in/movie.mkv

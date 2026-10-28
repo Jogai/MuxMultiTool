@@ -868,6 +868,7 @@ mod tests {
 				})
 				.collect(),
 			hwaccels: Vec::new(),
+			bitstream_filters: Vec::new(),
 		}
 	}
 

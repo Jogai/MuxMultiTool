@@ -1,0 +1,128 @@
+syntax = "proto3";
+
+package muxmultitool.crop.v1;
+
+// CropService prepares a lossless crop: it says whether a file can be
+// cropped at all, finds black bars, snaps crop values and shows the result
+// size and the command. The crop itself runs as a job:
+// JobsService.SubmitJob takes a CropOperation.
+//
+// A lossless crop rewrites the crop window in the H.264 or H.265 stream
+// header with the h264_metadata or hevc_metadata bitstream filter on a
+// stream copy. Nothing is re-encoded, so the file size does not change and
+// a player that ignores the window shows the full picture. No other codec
+// has such a window, so every other codec is refused. See gui/07-crop.
+service CropService {
+  // PlanCrop resolves a CropOperation against its input: whether the file
+  // can be cropped (and if not, why, so the UI can disable the option),
+  // the crop snapped to the stream's crop unit, the size the picture will
+  // show, the ffmpeg command and the limitations to show. The operation's
+  // output may be empty here; a crop of zero on every side is fine here
+  // and refused on submit. A crop that leaves less than 16 px is
+  // INVALID_ARGUMENT.
+  rpc PlanCrop(PlanCropRequest) returns (PlanCropResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // DetectBlackBars runs ffmpeg's cropdetect over a dozen keyframes from a
+  // position and suggests the crop, snapped. Decoding keyframes only keeps
+  // it to a second or two; the user picks a bright position so the
+  // picture's real edges are seen. A file that cannot be cropped is
+  // FAILED_PRECONDITION; frames that are all black are FAILED_PRECONDITION
+  // too, with advice to pick another position.
+  rpc DetectBlackBars(DetectBlackBarsRequest) returns (DetectBlackBarsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+// CropOperation hides the edges of the first video stream of the input by
+// rewriting its crop window, copying every stream.
+message CropOperation {
+  // Input is the source file. Paths must be inside a configured media root.
+  string input = 1;
+  // Output is the file to write; it must not exist yet. The container
+  // follows its extension, usually the input's.
+  string output = 2;
+  // Crop is how much to hide on each side, in pixels of the picture as it
+  // is shown now. Values are snapped to the stream's crop unit (2 px for
+  // 4:2:0 video). At least one side must be non-zero.
+  CropWindow crop = 3;
+}
+
+// CropWindow is an amount to cut off each edge, in pixels.
+message CropWindow {
+  uint32 top = 1;
+  uint32 bottom = 2;
+  uint32 left = 3;
+  uint32 right = 4;
+}
+
+message PlanCropRequest {
+  CropOperation operation = 1;
+}
+
+message PlanCropResponse {
+  // Support says whether the input can be cropped losslessly. When it
+  // cannot, the other fields are absent.
+  CropSupport support = 1;
+  // Source is the video stream the crop applies to.
+  CropSource source = 2;
+  // Crop is the request snapped to the source's crop unit.
+  CropWindow crop = 3;
+  // Width and height are the size the picture will show after the crop.
+  uint32 width = 4;
+  uint32 height = 5;
+  // Command is the ffmpeg command line the job would run, quoted for a
+  // shell.
+  string command = 6;
+  // Limitations are the notes to show the user, always visible: only the
+  // header changes, the file size stays the same, some players ignore the
+  // crop window.
+  repeated string limitations = 7;
+}
+
+// CropSupport is whether a file can be cropped losslessly.
+message CropSupport {
+  bool supported = 1;
+  // Reason explains a refusal, e.g. "lossless crop needs H.264 or H.265;
+  // this video is vp9" or "this ffmpeg build lacks the hevc_metadata
+  // bitstream filter". Empty when supported.
+  string reason = 2;
+}
+
+// CropSource is the video stream a crop applies to: the first video stream
+// of the file that is not cover art.
+message CropSource {
+  // StreamIndex is the stream's position in the container.
+  uint32 stream_index = 1;
+  // Codec is the codec's name as the user knows it: "H.264" or "H.265".
+  string codec = 2;
+  // Width and height are the picture as it is shown now.
+  uint32 width = 3;
+  uint32 height = 4;
+  // UnitX and UnitY are the crop unit: crop values must be multiples of
+  // them. 2 and 2 for 4:2:0 video; 4 lines for interlaced H.264.
+  uint32 unit_x = 5;
+  uint32 unit_y = 6;
+  // PixFmt is the pixel format the unit comes from, e.g. "yuv420p".
+  string pix_fmt = 7;
+}
+
+message DetectBlackBarsRequest {
+  // Input is the source file. Paths must be inside a configured media root.
+  string input = 1;
+  // PositionMs is where to start looking, in milliseconds from the start
+  // of the input. Detection reads the keyframes from there on.
+  int64 position_ms = 2;
+}
+
+message DetectBlackBarsResponse {
+  // Crop is the bars found, snapped to the crop unit. All zero when the
+  // picture fills the frame.
+  CropWindow crop = 1;
+  // FramesScanned is how many keyframes were looked at.
+  uint32 frames_scanned = 2;
+  // Width and height are the size the picture would show with this crop.
+  uint32 width = 3;
+  uint32 height = 4;
+}

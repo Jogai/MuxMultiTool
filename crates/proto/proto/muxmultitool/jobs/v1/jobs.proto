@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package muxmultitool.jobs.v1;
 
+import "muxmultitool/crop/v1/crop.proto";
 import "muxmultitool/cut/v1/cut.proto";
 import "muxmultitool/gif/v1/gif.proto";
 import "muxmultitool/merge/v1/merge.proto";
@@ -67,6 +68,10 @@ message SubmitJobRequest {
     // Two or more files joined without re-encoding; refused when they are
     // not compatible (FAILED_PRECONDITION, see MergeService.CheckMerge).
     muxmultitool.merge.v1.MergeOperation merge = 7;
+    // A lossless crop: the crop window in an H.264 or H.265 header is
+    // rewritten on a stream copy; refused for other codecs
+    // (FAILED_PRECONDITION, see CropService.PlanCrop).
+    muxmultitool.crop.v1.CropOperation crop = 8;
   }
 }
 

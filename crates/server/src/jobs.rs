@@ -60,6 +60,7 @@ impl JobsService for Jobs {
 			Operation::SelectStreams(op) => self.select_streams_spec(&request.name, &op).await?,
 			Operation::Cut(cut) => self.cut_spec(&request.name, &cut).await?,
 			Operation::Merge(merge) => self.merge_spec(&request.name, &merge).await?,
+			Operation::Crop(crop) => self.crop_spec(&request.name, &crop).await?,
 		};
 		let job = self
 			.state

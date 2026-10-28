@@ -1,0 +1,5 @@
+---
+source: crates/core/src/crop/command.rs
+expression: cmd
+---
+ffmpeg -noaccurate_seek -skip_frame nokey -ss 754.500 -i /media/in/movie.mkv -map 0:1 -frames:v 12 -vf cropdetect=limit=0.1:round=2:reset=0:skip=0 -f null -

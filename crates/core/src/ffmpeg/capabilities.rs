@@ -2,9 +2,10 @@
 //!
 //! Builds differ per platform and licence: one lacks `libx265`, another has
 //! no `NVENC`. [`detect`] asks the build, through `ffmpeg -version`,
-//! `-encoders`, `-decoders`, `-formats`, `-filters` and `-hwaccels`, and the
-//! `parse_*` functions turn that text into [`Capabilities`]. The frontend
-//! uses the result to grey out options instead of letting a job fail.
+//! `-encoders`, `-decoders`, `-formats`, `-filters`, `-hwaccels` and `-bsfs`,
+//! and the `parse_*` functions turn that text into [`Capabilities`]. The
+//! frontend uses the result to grey out options instead of letting a job
+//! fail.
 //!
 //! Detection costs a handful of process starts, so [`CapabilityCache`] keeps
 //! the result and only repeats it when `ffmpeg -version` reports something
@@ -85,6 +86,9 @@ pub struct Capabilities {
 	pub filters: Vec<Filter>,
 	/// Hardware acceleration methods, e.g. `vaapi`.
 	pub hwaccels: Vec<String>,
+	/// Bitstream filters (`-bsf`), e.g. `h264_metadata`, which edit packets
+	/// without decoding them.
+	pub bitstream_filters: Vec<String>,
 }
 
 impl Capabilities {
@@ -98,6 +102,12 @@ impl Capabilities {
 	#[must_use]
 	pub fn has_filter(&self, name: &str) -> bool {
 		self.filters.iter().any(|f| f.name == name)
+	}
+
+	/// Whether a bitstream filter with this exact name exists.
+	#[must_use]
+	pub fn has_bitstream_filter(&self, name: &str) -> bool {
+		self.bitstream_filters.iter().any(|f| f == name)
 	}
 }
 
@@ -223,6 +233,18 @@ pub fn parse_hwaccels(text: &str) -> Vec<String> {
 		.collect()
 }
 
+/// Parses `ffmpeg -bsfs`: a header line, then one bitstream filter per line.
+#[must_use]
+pub fn parse_bitstream_filters(text: &str) -> Vec<String> {
+	text.lines()
+		.skip_while(|l| !l.starts_with("Bitstream filters"))
+		.skip(1)
+		.map(str::trim)
+		.filter(|l| !l.is_empty())
+		.map(str::to_owned)
+		.collect()
+}
+
 /// The lines after the `------` that ends a table's legend. Empty when the
 /// separator is missing, so unexpected output yields nothing instead of junk.
 fn table_rows(text: &str) -> impl Iterator<Item = &str> {
@@ -257,12 +279,13 @@ async fn detect_with_version(
 	runner: &Runner,
 	version: String,
 ) -> Result<Capabilities, CapabilityError> {
-	let (encoders, decoders, formats, filters, hwaccels) = tokio::try_join!(
+	let (encoders, decoders, formats, filters, hwaccels, bsfs) = tokio::try_join!(
 		query(runner, "-encoders"),
 		query(runner, "-decoders"),
 		query(runner, "-formats"),
 		query(runner, "-filters"),
 		query(runner, "-hwaccels"),
+		query(runner, "-bsfs"),
 	)?;
 	Ok(Capabilities {
 		version,
@@ -271,6 +294,7 @@ async fn detect_with_version(
 		formats: parse_formats(&formats),
 		filters: parse_filters(&filters),
 		hwaccels: parse_hwaccels(&hwaccels),
+		bitstream_filters: parse_bitstream_filters(&bsfs),
 	})
 }
 
@@ -347,6 +371,7 @@ mod tests {
 	const FORMATS: &str = include_str!("../../tests/fixtures/ffmpeg/formats.txt");
 	const FILTERS: &str = include_str!("../../tests/fixtures/ffmpeg/filters.txt");
 	const HWACCELS: &str = include_str!("../../tests/fixtures/ffmpeg/hwaccels.txt");
+	const BSFS: &str = include_str!("../../tests/fixtures/ffmpeg/bsfs.txt");
 
 	#[test]
 	fn version_is_the_word_after_version() {
@@ -430,11 +455,22 @@ mod tests {
 	}
 
 	#[test]
+	fn bitstream_filters_are_one_per_line() {
+		let bsfs = parse_bitstream_filters(BSFS);
+		assert_eq!(bsfs.len(), 10);
+		assert_eq!(bsfs[0], "aac_adtstoasc");
+		assert!(bsfs.iter().any(|b| b == "h264_metadata"));
+		assert!(bsfs.iter().any(|b| b == "hevc_metadata"));
+		assert_eq!(parse_bitstream_filters("Bitstream filters:\n").len(), 0);
+	}
+
+	#[test]
 	fn unexpected_output_parses_to_nothing() {
 		let junk = "ffmpeg: error while loading shared libraries\n";
 		assert_eq!(parse_codecs(junk).len(), 0);
 		assert_eq!(parse_formats(junk).len(), 0);
 		assert_eq!(parse_filters(junk).len(), 0);
 		assert_eq!(parse_hwaccels(junk).len(), 0);
+		assert_eq!(parse_bitstream_filters(junk).len(), 0);
 	}
 }
