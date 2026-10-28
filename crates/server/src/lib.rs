@@ -9,8 +9,8 @@
 //!   axum router. Connect decides the encoding per request: the frontend sends
 //!   JSON in development and binary protobuf in release builds, and `curl`
 //!   can always send JSON.
-//! - `/media/…`: the plain HTTP media routes (the HLS preview, module
-//!   `media`); `/files/…` follows with the download feature.
+//! - `/media/…`: the plain HTTP media routes (the HLS preview, see
+//!   [`media`]); `/files/…` follows with the download feature.
 //! - everything else: the built frontend, with `index.html` for unknown paths
 //!   so the router's history mode works on a page reload.
 
@@ -21,11 +21,8 @@ use std::sync::Arc;
 
 use axum::Router;
 use connectrpc::Router as ConnectRouter;
-use files::Files;
-use jobs::Jobs;
-use muxmultitool_core::ffmpeg::{CapabilityCache, Runner};
-use muxmultitool_core::files::MediaRoots;
-use muxmultitool_core::jobs::{Queue, QueueConfig};
+use muxmultitool_core::ffmpeg::Runner;
+use muxmultitool_core::preview::{PreviewConfig, PreviewManager};
 use system::System;
 use tokio::net::TcpListener;
 use tower_http::services::{ServeDir, ServeFile};
@@ -33,8 +30,7 @@ use tower_http::trace::TraceLayer;
 use tracing::{info, warn};
 
 mod config;
-mod files;
-mod jobs;
+mod media;
 mod system;
 
 pub use config::{Config, DEFAULT_FRONTEND_DIR, DEFAULT_JOB_CONCURRENCY, DEFAULT_PORT};
@@ -50,37 +46,9 @@ pub struct AppState {
 	pub runner: Runner,
 	/// See [`Config::media_roots`].
 	pub media_roots: Vec<std::path::PathBuf>,
-	/// What the installed ffmpeg can do; see [`CapabilityCache`].
-	pub capabilities: CapabilityCache,
-	/// Resolves file ids to paths, and only to paths under `media_roots`
-	/// (plus native-dialog paths in desktop mode, see [`Config::desktop`]).
-	pub files: MediaRoots,
-	/// See [`Config::frontend_dir`].
-	pub frontend_dir: std::path::PathBuf,
-	/// The job queue. Jobs outlive the request that submitted them, but
-	/// not the server: see [`Server::run`].
-	pub queue: Queue,
-}
-
-impl AppState {
-	/// The state for `config`.
-	#[must_use]
-	pub fn new(config: &Config) -> Self {
-		let runner = Runner::new(config.tools.clone());
-		Self {
-			queue: Queue::new(
-				runner.clone(),
-				QueueConfig {
-					concurrency: config.job_concurrency,
-				},
-			),
-			runner,
-			media_roots: config.media_roots.clone(),
-			capabilities: CapabilityCache::new(),
-			files: MediaRoots::new(config.media_roots.clone(), config.desktop),
-			frontend_dir: config.frontend_dir.clone(),
-		}
-	}
+	/// The HLS preview sessions, with their segments under the system
+	/// temporary folder (`TMPDIR`).
+	pub previews: PreviewManager,
 }
 
 /// Builds the full router for `config`.
@@ -89,11 +57,6 @@ impl AppState {
 /// The queue in the router's state is never shut down this way; drop the
 /// router to kill its jobs, or use [`Server`] for a clean stop.
 pub fn app(config: &Config) -> Router {
-	build(config).0
-}
-
-/// [`app`] plus the state it was built with, for the server's shutdown.
-fn build(config: &Config) -> (Router, Arc<AppState>) {
 	let runner = Runner::new(config.tools.clone());
 	let state = Arc::new(AppState {
 		previews: PreviewManager::in_temp_dir(runner.clone(), PreviewConfig::default()),
@@ -101,12 +64,9 @@ fn build(config: &Config) -> (Router, Arc<AppState>) {
 		media_roots: config.media_roots.clone(),
 	});
 
-/// Builds the full router around an existing `state`.
-fn app_with_state(state: Arc<AppState>) -> Router {
 	let rpc = ConnectRouter::new()
-		.add_service(Arc::new(System::new(Arc::clone(&state))))
-		.add_service(Arc::new(Files::new(Arc::clone(&state))))
-		.add_service(Arc::new(Jobs {
+		.add_service(Arc::new(System))
+		.add_service(Arc::new(media::Media {
 			state: Arc::clone(&state),
 		}));
 
@@ -115,6 +75,7 @@ fn app_with_state(state: Arc<AppState>) -> Router {
 
 	let router = Router::new()
 		.nest_service(RPC_PREFIX, rpc.into_axum_service())
+		.merge(media::routes())
 		.fallback_service(frontend)
 		.layer(TraceLayer::new_for_http())
 		.with_state(Arc::clone(&state));
