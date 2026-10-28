@@ -1,0 +1,118 @@
+# cargo-deny configuration (`cargo deny check`). See docs/quality.md,
+# "Dependencies and supply chain". Every section is a hard CI check; the daily
+# scheduled job runs `cargo deny check advisories` on its own.
+
+[graph]
+# Only resolve dependencies for the targets we ship (rust-toolchain.toml), so
+# crates pulled in for e.g. wasm or Android never show up in the checks.
+targets = [
+	"x86_64-unknown-linux-musl",
+	"aarch64-unknown-linux-musl",
+	"x86_64-unknown-linux-gnu",
+	"aarch64-unknown-linux-gnu",
+	"x86_64-apple-darwin",
+	"aarch64-apple-darwin",
+	"x86_64-pc-windows-msvc",
+	"aarch64-pc-windows-msvc",
+]
+# Check the graph with every feature on, the same way clippy runs in CI.
+all-features = true
+
+[output]
+feature-depth = 1
+
+# RustSec advisories.
+[advisories]
+yanked = "deny"
+# Unmaintained crates fail the check only when a workspace crate depends on
+# them directly; a transitive one is the upstream crate's problem to fix.
+unmaintained = "workspace"
+# Advisories to ignore, each with a reason:
+# { id = "RUSTSEC-0000-0000", reason = "..." }
+ignore = []
+
+# Licenses must be compatible with the app license, GPL-3.0-or-later, which is
+# also the license of the bundled ffmpeg build (--enable-gpl --enable-version3).
+# Permissive licenses and the GPL family qualify; MPL-2.0 does because of its
+# GPL secondary-license clause. Never add OpenSSL, SSPL, BUSL, CC-BY-NC or any
+# "GPL-2.0-only" dependency: those don't combine with GPL-3.0.
+[licenses]
+allow = [
+	"0BSD",
+	"Apache-2.0",
+	"Apache-2.0 WITH LLVM-exception",
+	"BSD-2-Clause",
+	"BSD-3-Clause",
+	"BSL-1.0",
+	"CC0-1.0",
+	"ISC",
+	"MIT",
+	"MIT-0",
+	"MPL-2.0",
+	"Unicode-3.0",
+	"Unlicense",
+	"Zlib",
+	"LGPL-2.1-or-later",
+	"LGPL-3.0-or-later",
+	"GPL-2.0-or-later",
+	"GPL-3.0-only",
+	"GPL-3.0-or-later",
+]
+# The list above is policy (what may be used), not an inventory of what is
+# used today, so an entry that no dependency needs yet is not a warning.
+unused-allowed-license = "allow"
+confidence-threshold = 0.9
+# Per-crate exceptions, each with a reason:
+# { crate = "name", allow = ["SPDX-id"] }
+exceptions = []
+# Our own crates are GPL-3.0-or-later and never published.
+private = { ignore = true }
+
+[bans]
+# One version of every crate: duplicates bloat the static binary and hide
+# which version an advisory applies to. Add a `skip` entry with a reason when a
+# dependency update leaves a duplicate behind temporarily.
+multiple-versions = "deny"
+wildcards = "deny"
+highlight = "all"
+workspace-default-features = "allow"
+external-default-features = "allow"
+allow = []
+# Crates that link a C library and break the static musl container build.
+# TLS goes through rustls; compression stays with pure-Rust crates (flate2 with
+# its default miniz_oxide backend, ruzstd instead of zstd).
+deny = [
+	{ crate = "openssl-sys", reason = "links libssl/libcrypto; use rustls" },
+	{ crate = "openssl", reason = "links libssl/libcrypto; use rustls" },
+	{ crate = "openssl-src", reason = "builds OpenSSL from source; use rustls" },
+	{ crate = "native-tls", reason = "OpenSSL on Linux; use rustls" },
+	{ crate = "hyper-tls", reason = "native-tls on Linux; use hyper-rustls" },
+	{ crate = "libz-sys", reason = "links zlib; flate2 uses miniz_oxide by default" },
+	{ crate = "libsqlite3-sys", reason = "links sqlite; no C database in the container" },
+	{ crate = "curl-sys", reason = "links libcurl; use reqwest with rustls" },
+	{ crate = "libgit2-sys", reason = "links libgit2" },
+	{ crate = "libssh2-sys", reason = "links libssh2" },
+	{ crate = "zstd-sys", reason = "links libzstd; use ruzstd" },
+	{ crate = "bzip2-sys", reason = "links libbz2" },
+	{ crate = "lzma-sys", reason = "links liblzma" },
+]
+# Feature-level bans, for crates whose default features pull in a banned crate.
+features = [
+	{ crate = "reqwest", deny = [
+		"default-tls",
+		"native-tls",
+		"native-tls-alpn",
+		"native-tls-vendored",
+	] },
+]
+# Duplicate versions tolerated for now, each with a reason:
+# { crate = "name@version", reason = "..." }
+skip = []
+skip-tree = []
+
+# crates.io only. A git dependency must be a deliberate, listed exception.
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
