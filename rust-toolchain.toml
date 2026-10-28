@@ -1,0 +1,20 @@
+# Pinned toolchain for the whole workspace. Renovate bumps the channel when a
+# new Rust stable is released; CI and local builds use exactly this version.
+[toolchain]
+channel = "1.99.1"
+profile = "minimal"
+components = ["clippy", "rustfmt"]
+targets = [
+	# container (static musl server binary)
+	"x86_64-unknown-linux-musl",
+	"aarch64-unknown-linux-musl",
+	# desktop: Linux (glibc, needed by Tauri/CEF/GTK)
+	"x86_64-unknown-linux-gnu",
+	"aarch64-unknown-linux-gnu",
+	# desktop: macOS
+	"x86_64-apple-darwin",
+	"aarch64-apple-darwin",
+	# desktop: Windows
+	"x86_64-pc-windows-msvc",
+	"aarch64-pc-windows-msvc",
+]
