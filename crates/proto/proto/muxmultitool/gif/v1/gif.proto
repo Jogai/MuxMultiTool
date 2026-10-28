@@ -1,0 +1,147 @@
+syntax = "proto3";
+
+package muxmultitool.gif.v1;
+
+// GifService estimates an animated GIF before it is made. The conversions
+// themselves run as jobs: JobsService.SubmitJob takes a VideoToGifOperation
+// or a GifToVideoOperation.
+//
+// GIF output grows quickly, so the user states limits (duration, width,
+// height, file size) and the server picks the scale and palette options,
+// shows the estimate, and refuses to run a job over a limit. See
+// gui/08-gif-snapshot-cover.
+service GifService {
+  // EstimateGif works out what a VideoToGifOperation would produce: the
+  // output size, the frame count, an estimated file size and the ffmpeg
+  // command, plus every limit it would break. The operation's output path
+  // may be empty here. The same check runs again on submit.
+  rpc EstimateGif(EstimateGifRequest) returns (EstimateGifResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+// VideoToGifOperation turns a time range of a video into an animated GIF.
+// The GIF never exceeds the source's width or frame rate, and it is made
+// with a palette computed from the range (palettegen/paletteuse).
+message VideoToGifOperation {
+  // Input is the source video. Paths must be inside a configured media root.
+  string input = 1;
+  // Output is the GIF to write; it must not exist yet.
+  string output = 2;
+  // StartMs and EndMs bound the range, in milliseconds from the start of
+  // the input. EndMs must be after StartMs; it is clipped to the input's
+  // duration.
+  int64 start_ms = 3;
+  int64 end_ms = 4;
+  // Fps is the GIF's frame rate, 1 to 50; 0 means 12.
+  uint32 fps = 5;
+  // Width is the GIF's width in pixels, 0 for 480. The height follows the
+  // source's aspect ratio.
+  uint32 width = 6;
+  GifQuality quality = 7;
+  // PlayOnce makes the GIF stop after one pass; by default it loops forever.
+  bool play_once = 8;
+  // Limits the GIF must stay within. Absent or zero fields take the
+  // defaults in GifLimits.
+  GifLimits limits = 9;
+}
+
+// GifQuality picks the palette options: how many colors and which dither.
+// More colors and finer dither look better and compress worse.
+enum GifQuality {
+  // Same as BALANCED.
+  GIF_QUALITY_UNSPECIFIED = 0;
+  // 64 colors, coarse dither: the smallest file.
+  GIF_QUALITY_SMALL = 1;
+  // 128 colors, fine ordered dither.
+  GIF_QUALITY_BALANCED = 2;
+  // 256 colors, error-diffusion dither: the best picture.
+  GIF_QUALITY_BEST = 3;
+}
+
+// GifLimits are checked against the estimate before a GIF job runs. A zero
+// field means its default.
+message GifLimits {
+  // MaxDurationMs bounds the range; the default is 10 s.
+  int64 max_duration_ms = 1;
+  // MaxWidth bounds the GIF's width; the default is 480 px.
+  uint32 max_width = 2;
+  // MaxHeight bounds the GIF's height; the default is no bound.
+  uint32 max_height = 3;
+  // MaxBytes bounds the estimated file size; the default is 8 MB.
+  uint64 max_bytes = 4;
+}
+
+// GifToVideoOperation turns an animated GIF into an MP4 (H.264) or WebM
+// (VP9, or VP8 when the build lacks VP9) video without audio.
+message GifToVideoOperation {
+  // Input is the GIF. Paths must be inside a configured media root.
+  string input = 1;
+  // Output is the video to write; it must not exist yet.
+  string output = 2;
+  GifVideoFormat format = 3;
+}
+
+// GifVideoFormat is the container and codec of a GifToVideoOperation.
+// Which encoders the build has is in SystemService.GetCapabilities.
+enum GifVideoFormat {
+  // Same as MP4.
+  GIF_VIDEO_FORMAT_UNSPECIFIED = 0;
+  // MP4 with H.264 (libx264).
+  GIF_VIDEO_FORMAT_MP4 = 1;
+  // WebM with VP9 (libvpx-vp9), or VP8 (libvpx) when the build has no VP9
+  // encoder.
+  GIF_VIDEO_FORMAT_WEBM = 2;
+}
+
+message EstimateGifRequest {
+  VideoToGifOperation operation = 1;
+}
+
+message EstimateGifResponse {
+  GifEstimate estimate = 1;
+  // Violations lists every limit the GIF would break, with a suggestion
+  // each. Empty when the GIF is within all limits and can be submitted.
+  repeated GifLimitViolation violations = 2;
+  // Command is the ffmpeg command line the job would run, quoted for a
+  // shell.
+  string command = 3;
+}
+
+// GifEstimate is what the GIF would be. The byte count is an estimate from
+// the frame count, the picture size and the quality: the real file can be
+// smaller or larger, so the frontend shows it as approximate.
+message GifEstimate {
+  uint32 width = 1;
+  uint32 height = 2;
+  // Fps as it will be used, which is the request's unless the source is
+  // slower.
+  uint32 fps = 3;
+  // DurationMs of the GIF, which is the range unless the input ends first.
+  int64 duration_ms = 4;
+  uint32 frames = 5;
+  uint64 estimated_bytes = 6;
+}
+
+// GifLimitViolation is one limit the estimate breaks.
+message GifLimitViolation {
+  GifLimit limit = 1;
+  // Message explains the problem and what to lower, e.g. "the estimated
+  // size of 12.3 MB is over the 8 MB limit; shorten to 6 s or reduce the
+  // width to 360 px".
+  string message = 2;
+  // SuggestedDurationMs is a range length that would fit, when shortening
+  // helps; 0 otherwise.
+  int64 suggested_duration_ms = 3;
+  // SuggestedWidth is a width that would fit, when narrowing helps; 0
+  // otherwise.
+  uint32 suggested_width = 4;
+}
+
+enum GifLimit {
+  GIF_LIMIT_UNSPECIFIED = 0;
+  GIF_LIMIT_DURATION = 1;
+  GIF_LIMIT_WIDTH = 2;
+  GIF_LIMIT_HEIGHT = 3;
+  GIF_LIMIT_SIZE = 4;
+}

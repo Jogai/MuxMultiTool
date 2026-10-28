@@ -1,0 +1,5 @@
+---
+source: crates/core/src/gif/command.rs
+expression: cmd
+---
+ffmpeg -ss 12.000 -i /media/in/trailer.webm -t 8.000 -filter_complex '[0:v:0]fps=12,scale=480:200:flags=lanczos,split[a][b];[a]palettegen=max_colors=64[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle' -an -sn -dn -loop -1 -f gif /media/out/trailer.gif

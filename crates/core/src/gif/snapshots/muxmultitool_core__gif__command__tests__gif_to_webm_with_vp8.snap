@@ -1,0 +1,5 @@
+---
+source: crates/core/src/gif/command.rs
+expression: cmd
+---
+ffmpeg -i /media/in/loop.gif -vf 'scale=trunc(iw/2)*2:trunc(ih/2)*2:flags=lanczos' -c:v libvpx -pix_fmt yuv420p -crf 10 -b:v 2M -an -f webm /media/out/loop.webm

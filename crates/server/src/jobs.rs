@@ -35,7 +35,7 @@ use muxmultitool_proto::proto::muxmultitool::jobs::v1::{
 use crate::AppState;
 
 /// How long a probe of the input may take before a submit is rejected.
-const PROBE_TIMEOUT: Duration = Duration::from_secs(30);
+pub(crate) const PROBE_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Implements the jobs service on top of the queue in [`AppState`].
 #[derive(Debug)]
@@ -55,6 +55,8 @@ impl JobsService for Jobs {
 		};
 		let spec = match operation {
 			Operation::Remux(remux) => self.remux_spec(&request.name, &remux).await?,
+			Operation::VideoToGif(gif) => self.video_to_gif_spec(&request.name, &gif).await?,
+			Operation::GifToVideo(gif) => self.gif_to_video_spec(&request.name, &gif).await?,
 		};
 		let job = self
 			.state
@@ -216,7 +218,7 @@ impl Jobs {
 	}
 
 	/// An existing file inside a media root, as its canonical path.
-	fn checked_input(&self, path: &str) -> Result<PathBuf, ConnectError> {
+	pub(crate) fn checked_input(&self, path: &str) -> Result<PathBuf, ConnectError> {
 		let path = absolute(path, "input")?;
 		let canonical = path.canonicalize().map_err(|_| {
 			ConnectError::not_found(format!("input file not found: {}", path.display()))
@@ -233,7 +235,7 @@ impl Jobs {
 
 	/// A new file in an existing folder inside a media root, as the folder's
 	/// canonical path plus the file name.
-	fn checked_output(&self, path: &str) -> Result<PathBuf, ConnectError> {
+	pub(crate) fn checked_output(&self, path: &str) -> Result<PathBuf, ConnectError> {
 		let path = absolute(path, "output")?;
 		let (Some(parent), Some(file_name)) = (path.parent(), path.file_name()) else {
 			return Err(ConnectError::invalid_argument(format!(

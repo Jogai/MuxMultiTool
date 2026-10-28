@@ -38,6 +38,7 @@ use tracing::{info, warn};
 mod config;
 mod download;
 mod files;
+mod gif;
 mod jobs;
 mod media;
 mod report;
@@ -117,7 +118,8 @@ fn app_with_state(state: Arc<AppState>) -> Router {
 		}))
 		.add_service(Arc::new(Jobs {
 			state: Arc::clone(&state),
-		}));
+		}))
+		.add_service(Arc::new(gif::Gif::new(Arc::clone(&state))));
 
 	let index = state.frontend_dir.join("index.html");
 	let frontend = ServeDir::new(&state.frontend_dir).fallback(ServeFile::new(index));

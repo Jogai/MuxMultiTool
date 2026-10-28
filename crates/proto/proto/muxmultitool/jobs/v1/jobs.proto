@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package muxmultitool.jobs.v1;
 
+import "muxmultitool/gif/v1/gif.proto";
+
 // JobsService runs ffmpeg operations as jobs: every operation that writes
 // output goes through here. Jobs keep running after the browser tab closes
 // (they live in the server, not in the request) but are lost on a server
@@ -46,6 +48,11 @@ message SubmitJobRequest {
   // Operation is what the job does. Later features add their operations here.
   oneof operation {
     RemuxOperation remux = 2;
+    // A time range of a video to an animated GIF; refused when the estimate
+    // is over a limit (FAILED_PRECONDITION, see GifService.EstimateGif).
+    muxmultitool.gif.v1.VideoToGifOperation video_to_gif = 3;
+    // An animated GIF to an MP4 or WebM video.
+    muxmultitool.gif.v1.GifToVideoOperation gif_to_video = 4;
   }
 }
 

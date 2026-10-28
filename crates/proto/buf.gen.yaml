@@ -6,6 +6,9 @@ plugins:
   - local: protoc-gen-buffa
     out: src/generated/buffa
     opt: [views=true, json=true]
+    # One invocation for every file, so a message from another package (jobs
+    # refers to gif) is a known type instead of a dangling-path warning.
+    strategy: all
   - local: protoc-gen-buffa-packaging
     out: src/generated/buffa
     strategy: all

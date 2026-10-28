@@ -126,6 +126,21 @@ Jobs only read and write inside the media roots. A stream can be read with curl 
 printf '\0\0\0\0\2{}' | curl -sN -X POST -H 'content-type: application/connect+json' --data-binary @- \
   http://127.0.0.1:8080/rpc/muxmultitool.jobs.v1.JobsService/WatchQueue
 
+### GIF
+
+A time range of a video becomes an animated GIF, and a GIF becomes an MP4 (H.264) or WebM (VP9, or VP8 when the build has no VP9) video. Both are `JobsService` operations (`video_to_gif`, `gif_to_video`); the logic is `core::gif` and the messages are in `crates/proto/proto/muxmultitool/gif/v1/gif.proto`.
+
+GIF output grows fast, so the user states **limits** rather than encoder settings: the longest range, the widest and tallest picture, and the largest file (10 s, 480 px, no height bound and 8 MB by default). The request's frame rate (1 to 50, 12 by default) and width (480 by default) are never more than the source's, the height follows the aspect ratio, and a quality of `SMALL`, `BALANCED` or `BEST` picks the palette (64, 128 or 256 colors) and the dither. The GIF is made in one pass with `palettegen` and `paletteuse` (`diff_mode=rectangle`, so static parts of the picture are not stored again).
+
+`GifService/EstimateGif` runs the same plan as a submit without queueing anything: it returns the picture size, frame count, an **estimated** file size (frames × pixels × a per-quality byte factor, deliberately on the high side), the ffmpeg command, and every limit the GIF would break with what to lower, e.g. "the estimated size of 12.3 MB is over the 8 MB limit; shorten the range to 6 s or reduce the width to 360 px". A submit over a limit fails with `FAILED_PRECONDITION` and the same messages, so nothing runs. Both operations check the capability cache first and fail with `FAILED_PRECONDITION` when the build lacks the GIF encoder, the palette filters or the video encoder.
+
+```sh
+curl -X POST -H 'content-type: application/json' \
+  -d '{"operation":{"input":"/media/trailer.mkv","startMs":12000,"endMs":20000,"fps":12,"width":480,"limits":{"maxBytes":"4000000"}}}' \
+  http://127.0.0.1:8080/rpc/muxmultitool.gif.v1.GifService/EstimateGif
+# {"estimate":{"width":480,"height":200,"fps":12,"durationMs":"8000","frames":96,"estimatedBytes":"4149728"},"violations":[{"limit":"GIF_LIMIT_SIZE","message":"the estimated size of 4.1 MB is over the 4 MB limit; shorten the range to 7 s or reduce the width to 470 px","suggestedDurationMs":"7000","suggestedWidth":470}],"command":"…"}
+```
+
 ### Preview (HLS)
 
 The player never gets a source file: `MediaService/StartPreview` starts a preview session for a file and returns the playlist path, `/media/{id}/hls/index.m3u8`, which hls.js plays. Segments (`/media/{id}/hls/{n}.ts`) are H.264 + AAC in MPEG-TS, produced on demand by ffmpeg from wherever the player seeks: copied when the source already is H.264 (8-bit 4:2:0) and AAC, transcoded with x264 otherwise (hardware encoders come after the MVP). Exports always read the original file.
