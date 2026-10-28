@@ -30,14 +30,14 @@ describe("useSystemStatus", () => {
 		expect(status.error.value).toBeUndefined();
 	});
 
-	it("reports an error with the Connect message when a call fails", async () => {
+	it("reports a mapped error when a call fails", async () => {
 		const client = fakeClient({
 			getHealth: vi.fn().mockRejectedValue(new ConnectError("backend down", Code.Unavailable))
 		});
 		const status = useSystemStatus(client);
 
 		await vi.waitFor(() => expect(status.state.value).toBe("error"));
-		expect(status.error.value).toBe("[unavailable] backend down");
+		expect(status.error.value).toMatchObject({ code: Code.Unavailable, codeName: "unavailable", message: "backend down" });
 	});
 
 	it("treats an unspecified health status as an error", async () => {
