@@ -1,0 +1,12 @@
+ffmpeg version N-128122-g215351c1c3-20261027 Copyright (c) 2000-2026 the FFmpeg developers
+built with gcc 16.2.0 (crosstool-NG 1.29.0.7_b1a94f6)
+configuration: --enable-gpl --enable-libx264
+libavutil      61. 20.100 / 61. 20.100
+libavcodec     63. 25.101 / 63. 25.101
+libavformat    63. 17.100 / 63. 17.100
+libavdevice    63.  6.100 / 63.  6.100
+libavfilter    12.  9.100 / 12.  9.100
+libswscale     10.  6.100 / 10.  6.100
+libswresample   7.  7.100 /  7.  7.100
+
+Exiting with exit code 0

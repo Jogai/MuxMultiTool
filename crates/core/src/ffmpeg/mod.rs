@@ -10,6 +10,7 @@
 //!                               Runner ──▶ ffprobe ──JSON───────────▶ ProbeResult
 //! ```
 
+pub mod capabilities;
 pub mod command;
 pub mod operations;
 pub mod probe;
@@ -17,6 +18,7 @@ pub mod progress;
 pub mod runner;
 pub mod tools;
 
+pub use capabilities::{Capabilities, CapabilityCache, CapabilityError};
 pub use command::FfmpegCommand;
 pub use probe::ProbeResult;
 pub use progress::Progress;

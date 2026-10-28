@@ -1,0 +1,20 @@
+Filters:
+  T.. = Timeline support
+  .S. = Slice threading
+  A = Audio input/output
+  V = Video input/output
+  N = Dynamic number and/or type of input/output
+  | = Source or sink filter
+  ------
+ TS aap               AA->A      Apply Affine Projection algorithm to first audio stream.
+ .. aresample         A->A       Resample audio data.
+ .. loudnorm          A->A       EBU R128 loudness normalization
+ .. silencedetect     A->A       Detect silence.
+ .. ass               V->V       Render ASS subtitles onto input video using the libass library.
+ .S blackdetect       V->V       Detect video intervals that are (almost) black.
+ .. crop              V->V       Crop the input video.
+ T. cropdetect        V->V       Auto-detect crop size.
+ .. scale             V->V       Scale the input video size and/or convert the image format.
+ .. showinfo          V->V       Show textual information for each video frame.
+ .. subtitles         V->V       Render text subtitles onto input video using the libass library.
+ .S zscale            V->V       Apply resizing, colorspace and bit depth conversion.

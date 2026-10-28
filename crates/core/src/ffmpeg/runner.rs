@@ -201,6 +201,37 @@ impl Runner {
 		Ok(probe::parse(&json)?)
 	}
 
+	/// Runs `tool` with plain `args` (no runner flags) and returns its stdout.
+	///
+	/// For short queries such as `ffmpeg -encoders`. Nothing in the output is
+	/// interpreted here.
+	///
+	/// # Errors
+	/// See [`RunError`]. A non-zero exit is [`RunError::Failed`].
+	pub async fn capture(
+		&self,
+		tool: Tool,
+		args: &[&str],
+		limits: &Limits,
+	) -> Result<String, RunError> {
+		let command: Vec<std::ffi::OsString> = args.iter().map(Into::into).collect();
+		tracing::debug!(target: "ffmpeg", command = %Argv(&command), "starting {tool} query");
+		let mut child = self.spawn(tool, &command)?;
+		let stdout = child.stdout.take();
+		let stderr = child.stderr.take();
+		let pipes = async { tokio::join!(read_all(stdout), collect_log(stderr)) };
+		let (status, text, log_tail) = supervise(&mut child, tool, limits, pipes).await?;
+		if status.success() {
+			Ok(text)
+		} else {
+			Err(RunError::Failed {
+				tool,
+				status,
+				log_tail,
+			})
+		}
+	}
+
 	/// Starts `tool` with `argv`, piping stdout and stderr and closing stdin.
 	// Allowed here and nowhere else; see `clippy.toml`.
 	#[expect(

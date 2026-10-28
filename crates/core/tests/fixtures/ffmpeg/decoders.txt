@@ -1,0 +1,20 @@
+Decoders:
+ V..... = Video
+ A..... = Audio
+ S..... = Subtitle
+ .F.... = Frame-level multithreading
+ ..S... = Slice-level multithreading
+ ...X.. = Codec is experimental
+ ....B. = Supports draw_horiz_band
+ .....D = Supports direct rendering method 1
+ ------
+ VF...D cllc                 Canopus Lossless Codec
+ VFS..D h264                 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10
+ V....D hq_hqa               Canopus HQ/HQA
+ VFS..D hqx                  Canopus HQX
+ A....D aac                  AAC (Advanced Audio Coding)
+ A....D opus                 Opus
+ A....D libopus              libopus Opus (codec opus)
+ S..... ass                  ASS (Advanced SubStation Alpha) subtitle
+ S..... srt                  SubRip subtitle (codec subrip)
+ S..... subrip               SubRip subtitle
