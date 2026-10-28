@@ -126,6 +126,7 @@ Jobs only read and write inside the media roots. A stream can be read with curl 
 ```sh
 printf '\0\0\0\0\2{}' | curl -sN -X POST -H 'content-type: application/connect+json' --data-binary @- \
   http://127.0.0.1:8080/rpc/muxmultitool.jobs.v1.JobsService/WatchQueue
+```
 
 ### GIF
 
@@ -177,6 +178,19 @@ curl -X POST -H 'content-type: application/json' \
   -d '{"operation":{"input":"/media/movie.mkv","segments":[{"startSeconds":648,"endSeconds":716.2},{"startSeconds":732.5,"endSeconds":790}],"cutMode":"CUT_MODE_KEYFRAME","export":"CUT_EXPORT_SEPARATE_FILES","output":"/media/out/movie-{n}.mkv"}}' \
   http://127.0.0.1:8080/rpc/muxmultitool.cut.v1.CutService/PlanCut
 # {"segments":[{"number":1,"startSeconds":648,"endSeconds":716.2,"cutStartSeconds":646.04,"output":"/media/out/movie-1.mkv"},…],"outputs":[…],"command":"… -ss 645.04 -i /media/movie.mkv -ss 729.5 -i /media/movie.mkv -copyts -map 0 -ss 645.959 -t 70.241 -c copy -avoid_negative_ts make_zero /media/out/movie-1.mkv …","totalDurationSeconds":129.66}
+```
+
+### Merge
+
+Two or more files with identical codec parameters are joined into one without re-encoding: a `JobsService` operation (`merge`) whose logic is `core::merge`, with the messages in `crates/proto/proto/muxmultitool/merge/v1/merge.proto`. The job runs ffmpeg's concat demuxer with `-c copy` over a list of the parts; the list and, when asked for, a chapter per part (named after the file) are written under the system temporary folder (`muxmultitool/merge/`) when the job is submitted.
+
+The concat demuxer only works when every file has the same streams in the same order with the same parameters, and ffmpeg does not check that: a mismatch silently produces a broken output. So `MergeService/CheckMerge` runs first, without queueing anything. It compares every stream across the parts against the first file (the codec; for video the resolution, frame rate and pixel format; for audio the sample rate and channel layout; and the stream layout of each part) and returns the table of the GUI sketch (one row per stream, a cell per part such as `h264 1920×1080 23.976`), the problems that block the merge with the parameter and the file named (`channel layout differs (E03.mkv): stereo instead of 5.1`), the summed duration and the command. A stream that differs can be left out (`drop_streams`), which keeps the merge lossless; a submit with a remaining problem fails with `FAILED_PRECONDITION` and the same messages, so nothing runs.
+
+```sh
+curl -X POST -H 'content-type: application/json' \
+  -d '{"operation":{"inputs":["/media/Show S01E01.mkv","/media/Show S01E02.mkv"],"chapters":true}}' \
+  http://127.0.0.1:8080/rpc/muxmultitool.merge.v1.MergeService/CheckMerge
+# {"parts":[{"path":"/media/Show S01E01.mkv","name":"Show S01E01.mkv","durationMs":"2892000","layout":"video, audio, subtitle"},…],"streams":[{"type":"STREAM_TYPE_VIDEO","cells":["h264 1920×1080 23.976","h264 1920×1080 23.976"],"identical":true},…],"canMerge":true,"totalDurationMs":"5992000","command":"…"}
 ```
 
 ### Preview (HLS)

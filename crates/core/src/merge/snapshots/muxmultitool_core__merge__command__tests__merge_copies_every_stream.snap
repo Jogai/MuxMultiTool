@@ -1,0 +1,5 @@
+---
+source: crates/core/src/merge/command.rs
+expression: cmd
+---
+ffmpeg -f concat -safe 0 -i /tmp/mmt/merge/1a2b.txt -map 0 -c copy '/media/Series/Show/Show S01E01-E03.mkv'

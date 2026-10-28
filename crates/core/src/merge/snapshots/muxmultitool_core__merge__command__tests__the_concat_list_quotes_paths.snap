@@ -1,0 +1,7 @@
+---
+source: crates/core/src/merge/command.rs
+expression: concat_list(&parts())
+---
+file '/media/Series/Show/Show S01E01.mkv'
+file '/media/Series/Show/Show S01E02.mkv'
+file '/media/Series/Show/It'\''s S01E03.mkv'

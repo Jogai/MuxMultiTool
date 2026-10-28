@@ -43,6 +43,7 @@ mod files;
 mod gif;
 mod jobs;
 mod media;
+mod merge;
 mod report;
 mod streams;
 mod system;
@@ -127,7 +128,8 @@ fn app_with_state(state: Arc<AppState>) -> Router {
 		}))
 		.add_service(Arc::new(gif::Gif::new(Arc::clone(&state))))
 		.add_service(Arc::new(streams::Streams::new(Arc::clone(&state))))
-		.add_service(Arc::new(cut::Cut::new(Arc::clone(&state))));
+		.add_service(Arc::new(cut::Cut::new(Arc::clone(&state))))
+		.add_service(Arc::new(merge::Merge::new(Arc::clone(&state))));
 
 	let index = state.frontend_dir.join("index.html");
 	let frontend = ServeDir::new(&state.frontend_dir).fallback(ServeFile::new(index));

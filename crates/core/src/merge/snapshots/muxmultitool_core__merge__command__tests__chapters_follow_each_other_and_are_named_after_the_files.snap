@@ -1,0 +1,20 @@
+---
+source: crates/core/src/merge/command.rs
+expression: chapters(&parts()).unwrap()
+---
+;FFMETADATA1
+[CHAPTER]
+TIMEBASE=1/1000
+START=0
+END=1500
+title=Show S01E01
+[CHAPTER]
+TIMEBASE=1/1000
+START=1500
+END=4000
+title=Show S01E02
+[CHAPTER]
+TIMEBASE=1/1000
+START=4000
+END=7500
+title=It's S01E03

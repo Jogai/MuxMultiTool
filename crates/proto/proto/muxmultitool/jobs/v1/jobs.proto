@@ -4,6 +4,7 @@ package muxmultitool.jobs.v1;
 
 import "muxmultitool/cut/v1/cut.proto";
 import "muxmultitool/gif/v1/gif.proto";
+import "muxmultitool/merge/v1/merge.proto";
 import "muxmultitool/streams/v1/streams.proto";
 
 // JobsService runs ffmpeg operations as jobs: every operation that writes
@@ -63,6 +64,9 @@ message SubmitJobRequest {
     // refused with FAILED_PRECONDITION when the plan cannot be made (see
     // CutService.PlanCut).
     muxmultitool.cut.v1.CutOperation cut = 6;
+    // Two or more files joined without re-encoding; refused when they are
+    // not compatible (FAILED_PRECONDITION, see MergeService.CheckMerge).
+    muxmultitool.merge.v1.MergeOperation merge = 7;
   }
 }
 

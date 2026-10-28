@@ -9,6 +9,7 @@ pub mod files;
 pub mod fs;
 pub mod gif;
 pub mod jobs;
+pub mod merge;
 pub mod preview;
 pub mod report;
 pub mod settings;

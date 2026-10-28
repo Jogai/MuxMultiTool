@@ -1,0 +1,134 @@
+syntax = "proto3";
+
+package muxmultitool.merge.v1;
+
+import "muxmultitool/files/v1/files.proto";
+
+// MergeService checks whether files can be joined without re-encoding. The
+// merge itself runs as a job: JobsService.SubmitJob takes a MergeOperation.
+//
+// ffmpeg's concat demuxer joins files packet by packet, which only works when
+// every file has the same streams in the same order with the same codec
+// parameters, and ffmpeg does not check that. So the check runs first and
+// names what differs in which file, per stream, as the compatibility table
+// in gui/06-merge shows it. A stream that differs can be left out, which
+// keeps the merge lossless; every other mismatch blocks it.
+service MergeService {
+  // CheckMerge compares the operation's inputs stream by stream against the
+  // first one and returns the table, the blocking problems and the ffmpeg
+  // command the job would run. The operation's output path may be empty
+  // here. The same check runs again on submit.
+  rpc CheckMerge(CheckMergeRequest) returns (CheckMergeResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+// MergeOperation joins two or more files into one without re-encoding. A
+// submit fails with FAILED_PRECONDITION and the problems' messages when the
+// files are not compatible.
+message MergeOperation {
+  // Inputs are the files in output order, at least two. Paths must be inside
+  // a configured media root.
+  repeated string inputs = 1;
+  // Output is the file to write; it must not exist yet. The container
+  // follows its extension.
+  string output = 2;
+  // DropStreams lists streams to leave out, by their index in the first
+  // file. A stream that differs between the files no longer blocks the merge
+  // once it is dropped.
+  repeated uint32 drop_streams = 3;
+  // Chapters adds one chapter per part, named after the file. Every input
+  // needs a known duration for this.
+  bool chapters = 4;
+}
+
+message CheckMergeRequest {
+  MergeOperation operation = 1;
+}
+
+message CheckMergeResponse {
+  // Parts are the inputs in order.
+  repeated MergePart parts = 1;
+  // Streams is the table: one row per stream of the first file.
+  repeated MergeStream streams = 2;
+  // Problems are the mismatches that block the merge: those of streams that
+  // are not dropped, and any stream layout mismatch. Empty when the merge
+  // can go ahead.
+  repeated MergeMismatch problems = 3;
+  // CanMerge is true when problems is empty.
+  bool can_merge = 4;
+  // TotalDurationMs is the sum of the parts' durations, what the output
+  // should last; 0 when a part's duration is unknown.
+  int64 total_duration_ms = 5;
+  // Command is the ffmpeg command line the job would run, quoted for a
+  // shell.
+  string command = 6;
+}
+
+// MergePart is one input as the check saw it.
+message MergePart {
+  string path = 1;
+  // Name is the file name, as the problems refer to the part.
+  string name = 2;
+  // DurationMs is the container's duration; 0 when unknown.
+  int64 duration_ms = 3;
+  // Layout is the stream kinds in order, e.g. "video, audio, subtitle".
+  string layout = 4;
+}
+
+// MergeStream is one row of the table: a stream of the first file across
+// every part.
+message MergeStream {
+  // Index of the stream in the first file.
+  uint32 index = 1;
+  muxmultitool.files.v1.StreamType type = 2;
+  // Cells describe the stream at this index in each part in a few words,
+  // e.g. "h264 1920×1080 23.976" or "ac3 5.1 48 kHz eng"; empty when the
+  // part has no such stream.
+  repeated string cells = 3;
+  // Identical is true when the stream is the same in every part.
+  bool identical = 4;
+  // Dropped is true when the operation leaves the stream out.
+  bool dropped = 5;
+  // Mismatches lists what differs, in part order.
+  repeated MergeMismatch mismatches = 6;
+}
+
+// MergeMismatch is one parameter that differs between a part and the first
+// file.
+message MergeMismatch {
+  // StreamIndex is the stream's index in the first file. For a stream
+  // layout mismatch it is the first index where the layouts diverge.
+  uint32 stream_index = 1;
+  // Part is the position of the differing file in the inputs; never 0, the
+  // first file is the reference.
+  uint32 part = 2;
+  MergeParameter parameter = 3;
+  // Expected is the first file's value, Actual the differing file's, as the
+  // cells show them.
+  string expected = 4;
+  string actual = 5;
+  // Message is the mismatch in one sentence, e.g. "channel layout differs
+  // (E03.mkv): stereo instead of 5.1".
+  string message = 6;
+}
+
+// MergeParameter is what the check compares.
+enum MergeParameter {
+  MERGE_PARAMETER_UNSPECIFIED = 0;
+  // The codec, every stream kind.
+  MERGE_PARAMETER_CODEC = 1;
+  // Width × height, video.
+  MERGE_PARAMETER_RESOLUTION = 2;
+  // Frames per second, video.
+  MERGE_PARAMETER_FRAME_RATE = 3;
+  // The pixel format, video.
+  MERGE_PARAMETER_PIXEL_FORMAT = 4;
+  // Samples per second, audio.
+  MERGE_PARAMETER_SAMPLE_RATE = 5;
+  // The channel layout, audio.
+  MERGE_PARAMETER_CHANNEL_LAYOUT = 6;
+  // The kinds of streams and their order: the part has other streams than
+  // the first file.
+  MERGE_PARAMETER_STREAM_LAYOUT = 7;
+}
