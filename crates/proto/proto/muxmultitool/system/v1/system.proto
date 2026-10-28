@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package muxmultitool.system.v1;
+
+// SystemService reports on the running server itself.
+service SystemService {
+  // GetHealth tells whether the server is up and able to serve requests.
+  rpc GetHealth(GetHealthRequest) returns (GetHealthResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // GetVersion returns the version of the app.
+  rpc GetVersion(GetVersionRequest) returns (GetVersionResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+message GetHealthRequest {}
+
+message GetHealthResponse {
+  // Status is the overall state of the server.
+  HealthStatus status = 1;
+}
+
+// HealthStatus is the overall state of the server.
+enum HealthStatus {
+  HEALTH_STATUS_UNSPECIFIED = 0;
+  HEALTH_STATUS_OK = 1;
+}
+
+message GetVersionRequest {}
+
+message GetVersionResponse {
+  // Version is the app version, a semantic version such as "0.1.0".
+  string version = 1;
+}

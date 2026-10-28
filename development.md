@@ -34,6 +34,33 @@ Release binaries are built with cargo-auditable (`cargo install cargo-auditable`
 cargo auditable build --release -p muxmultitool-server
 ```
 
+### RPC contract and generated code
+
+All frontend-backend calls are ConnectRPC. The contract lives in `crates/proto/proto/` and `buf` generates the Rust and TypeScript code from it. Generated code is not committed (`crates/proto/src/generated/` and `web/src/generated/` are git-ignored), so generate it before building, linting or testing either side, and again after every change to a `.proto` file.
+
+One-time setup (`buf` must be on the PATH, see https://buf.build/docs/installation):
+
+```sh
+cargo install --locked protoc-gen-buffa protoc-gen-buffa-packaging connectrpc-codegen
+(cd web && npm ci)   # installs protoc-gen-es
+```
+
+Regenerate:
+
+```sh
+cd crates/proto && buf generate
+```
+
+Contract checks (CI runs the same):
+
+| Check | Command |
+|---|---|
+| Lint | `buf lint` in `crates/proto` |
+| Format | `buf format -d --exit-code` in `crates/proto` |
+| Breaking changes | `crates/proto/breaking.sh [base-branch]`, which runs `buf breaking` against `master` (skipped until `master` has the proto module) |
+
+Methods that have no side effects must declare `option idempotency_level = NO_SIDE_EFFECTS;` so Connect may send them as `GET`. The `SystemService` in `crates/proto/proto/muxmultitool/system/v1/system.proto` is the example to copy.
+
 ## License
 
 MuxMultiTool is licensed under the [GNU General Public License v3.0 or later](https://www.gnu.org/licenses/gpl-3.0.html).
