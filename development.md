@@ -60,6 +60,28 @@ Contract checks (CI runs the same):
 | Breaking changes | `crates/proto/breaking.sh [base-branch]`, which runs `buf breaking` against `master` (skipped until `master` has the proto module) |
 
 Methods that have no side effects must declare `option idempotency_level = NO_SIDE_EFFECTS;` so Connect may send them as `GET`. The `SystemService` in `crates/proto/proto/muxmultitool/system/v1/system.proto` is the example to copy.
+### Running the server
+
+`cargo run -p muxmultitool-server` starts the axum server on `127.0.0.1:8080`. It mounts the ConnectRPC services under `/rpc`, serves the built frontend (`web/dist`, from `npm run build`) at `/` and logs to stderr (`RUST_LOG` filters, default `info`). Every setting is a flag with an environment variable behind it, so a compose file needs no command line; `--help` lists them:
+
+| Setting | Flag | Variable | Default |
+|---|---|---|---|
+| Listen address | `--listen` | `MMT_LISTEN` | `127.0.0.1` (use `0.0.0.0` in a container) |
+| Port | `--port` | `MMT_PORT` | `8080` |
+| Media folders | `--media-root`, repeatable | `MMT_MEDIA_ROOTS`, comma-separated | none |
+| ffmpeg, ffprobe | `--ffmpeg`, `--ffprobe` | `MMT_FFMPEG`, `MMT_FFPROBE` | found on `PATH` |
+| Frontend folder | `--frontend-dir` | `MMT_FRONTEND_DIR` | `web/dist` |
+
+Ctrl-C or `SIGTERM` (what `docker stop` sends) stops it cleanly. The health method is a plain JSON call, which also serves as the container `HEALTHCHECK`:
+
+```sh
+curl -X POST -H 'content-type: application/json' -d '{}' \
+  http://127.0.0.1:8080/rpc/muxmultitool.system.v1.SystemService/GetHealth
+# {"status":"HEALTH_STATUS_OK"}
+```
+
+The frontend sends JSON in development (readable in devtools) and binary protobuf in release builds; the server answers in whichever encoding a request uses.
+
 ### Editor setup and git hooks
 
 `.editorconfig` sets tabs as the baseline (YAML and `.proto` use two spaces). `.vscode/` makes the oxc extension the formatter for `.ts` and `.vue`, turns off Vue (Official)'s formatter and sets tab indentation; accept the recommended extensions when VS Code asks.
