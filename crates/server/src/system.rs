@@ -3,13 +3,15 @@
 use std::future::{Future, ready};
 use std::sync::Arc;
 
-use connectrpc::{RequestContext, Response, ServiceRequest, ServiceResult};
+use connectrpc::{ConnectError, RequestContext, Response, ServiceRequest, ServiceResult};
 use muxmultitool_core::ffmpeg::capabilities::{self as caps, CodecKind as CoreKind};
+use muxmultitool_core::settings;
 use muxmultitool_proto::connect::muxmultitool::system::v1::SystemService;
 use muxmultitool_proto::proto::muxmultitool::system::v1::{
 	Capabilities, CapabilitiesStatus, Codec, CodecKind, Filter, Format, GetCapabilitiesRequest,
-	GetCapabilitiesResponse, GetHealthRequest, GetHealthResponse, GetVersionRequest,
-	GetVersionResponse, HealthStatus,
+	GetCapabilitiesResponse, GetHealthRequest, GetHealthResponse, GetSettingsRequest,
+	GetSettingsResponse, GetVersionRequest, GetVersionResponse, HealthStatus, Settings, ThemeMode,
+	ThemeSetting, UpdateSettingsRequest, UpdateSettingsResponse,
 };
 use tracing::warn;
 
@@ -78,6 +80,80 @@ impl SystemService for System {
 			}
 		};
 		Ok(Response::new(response))
+	}
+
+	async fn get_settings(
+		&self,
+		_ctx: RequestContext,
+		_request: ServiceRequest<'_, GetSettingsRequest>,
+	) -> ServiceResult<GetSettingsResponse> {
+		let settings = self.state.settings.get().await;
+		Ok(Response::new(GetSettingsResponse {
+			settings: Some(settings_to_proto(settings)).into(),
+			..Default::default()
+		}))
+	}
+
+	async fn update_settings(
+		&self,
+		_ctx: RequestContext,
+		request: ServiceRequest<'_, UpdateSettingsRequest>,
+	) -> ServiceResult<UpdateSettingsResponse> {
+		let patch = request
+			.to_owned_message()
+			.settings
+			.into_option()
+			.map(settings_from_proto)
+			.unwrap_or_default();
+		let stored = self.state.settings.update(patch).await.map_err(|error| {
+			warn!(%error, "cannot store the settings");
+			ConnectError::internal("the settings could not be saved")
+		})?;
+		Ok(Response::new(UpdateSettingsResponse {
+			settings: Some(settings_to_proto(stored)).into(),
+			..Default::default()
+		}))
+	}
+}
+
+fn settings_to_proto(settings: settings::Settings) -> Settings {
+	Settings {
+		theme: settings
+			.theme
+			.map(|theme| ThemeSetting {
+				family: theme.family,
+				mode: match theme.mode {
+					settings::ThemeMode::Single => ThemeMode::THEME_MODE_SINGLE,
+					settings::ThemeMode::Auto => ThemeMode::THEME_MODE_AUTO,
+				}
+				.into(),
+				variant: theme.variant,
+				light_variant: theme.light_variant,
+				dark_variant: theme.dark_variant,
+				..Default::default()
+			})
+			.into(),
+		..Default::default()
+	}
+}
+
+/// An unknown or unspecified mode counts as `Single`: the frontend only
+/// switches to auto when the request says so.
+fn settings_from_proto(settings: Settings) -> settings::Settings {
+	settings::Settings {
+		theme: settings
+			.theme
+			.into_option()
+			.map(|theme| settings::ThemeSetting {
+				family: theme.family,
+				mode: match theme.mode.as_known() {
+					Some(ThemeMode::THEME_MODE_AUTO) => settings::ThemeMode::Auto,
+					_ => settings::ThemeMode::Single,
+				},
+				variant: theme.variant,
+				light_variant: theme.light_variant,
+				dark_variant: theme.dark_variant,
+			}),
 	}
 }
 

@@ -42,6 +42,9 @@ pub struct Config {
 	pub desktop: bool,
 	/// How many jobs run at the same time. The rest wait in the queue.
 	pub job_concurrency: usize,
+	/// Folder for what the server keeps between runs: the user settings
+	/// (`settings.json`). `None` keeps them in memory for this run only.
+	pub data_dir: Option<PathBuf>,
 }
 
 impl Default for Config {
@@ -54,6 +57,7 @@ impl Default for Config {
 			frontend_dir: PathBuf::from(DEFAULT_FRONTEND_DIR),
 			desktop: false,
 			job_concurrency: DEFAULT_JOB_CONCURRENCY,
+			data_dir: None,
 		}
 	}
 }

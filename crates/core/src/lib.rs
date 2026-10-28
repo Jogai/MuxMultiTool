@@ -9,5 +9,4 @@ pub mod fs;
 pub mod gif;
 pub mod jobs;
 pub mod preview;
-pub mod report;
-pub mod timeline;
+pub mod settings;

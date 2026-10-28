@@ -72,6 +72,7 @@ Methods that have no side effects must declare `option idempotency_level = NO_SI
 | ffmpeg, ffprobe | `--ffmpeg`, `--ffprobe` | `MMT_FFMPEG`, `MMT_FFPROBE` | found on `PATH` |
 | Frontend folder | `--frontend-dir` | `MMT_FRONTEND_DIR` | `web/dist` |
 | Parallel jobs | `--jobs` | `MMT_JOBS` | `1` |
+| Data folder | `--data-dir` | `MMT_DATA_DIR` | none: settings live in memory for this run |
 
 Ctrl-C or `SIGTERM` (what `docker stop` sends) stops it cleanly. The health method is a plain JSON call, which also serves as the container `HEALTHCHECK`:
 
@@ -198,9 +199,15 @@ A daily workflow (`.github/workflows/security.yml`) runs `cargo deny check advis
 
 Without a GitHub remote, check the workflows with [actionlint](https://github.com/rhysd/actionlint) and run the steps' commands locally.
 
+### Settings
+
+`SystemService/GetSettings` and `UpdateSettings` keep the user settings (the colour theme) on the server, so every browser tab and the desktop window see the same choice. The store is `core::settings`: a `Settings` value, written as `settings.json` in `--data-dir` when one is configured (the container mounts a volume there; the desktop app passes its app-data folder), kept in memory only otherwise. The frontend also remembers the theme in the browser, so the choice survives a page reload even without a data folder.
+
 ### Frontend
 
 The Vue app lives in `web/`. From there: `npm ci`, `npm run dev`, and `npm run ci` for the format, lint, type-check and build steps.
+
+Themes are palette files in `web/src/core/themes/families/`, one per family, registered in `web/src/core/themes/index.ts`. A palette gives each variant its official colours; the semantic `--mmt-*` tokens that every component uses through Tailwind are derived from them at runtime, nudged just far enough for WCAG AA contrast. `npx vitest run src/core/themes` checks every variant.
 
 ## License
 

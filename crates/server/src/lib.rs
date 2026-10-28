@@ -28,7 +28,7 @@ use muxmultitool_core::ffmpeg::{CapabilityCache, Runner};
 use muxmultitool_core::files::MediaRoots;
 use muxmultitool_core::jobs::{Queue, QueueConfig};
 use muxmultitool_core::preview::{PreviewConfig, PreviewManager};
-use muxmultitool_core::timeline::{TimelineConfig, TimelineManager};
+use muxmultitool_core::settings::SettingsStore;
 use system::System;
 use tokio::net::TcpListener;
 use tower_http::services::{ServeDir, ServeFile};
@@ -71,9 +71,8 @@ pub struct AppState {
 	/// The HLS preview sessions, with their segments under the system
 	/// temporary folder (`TMPDIR`).
 	pub previews: PreviewManager,
-	/// The timeline analyses (thumbnails, waveform peaks, subtitle cues),
-	/// with their sprites under the system temporary folder.
-	pub timelines: TimelineManager,
+	/// The user settings (the theme), in [`Config::data_dir`] when set.
+	pub settings: SettingsStore,
 }
 
 impl AppState {
@@ -95,6 +94,7 @@ impl AppState {
 			capabilities: CapabilityCache::new(),
 			files: MediaRoots::new(config.media_roots.clone(), config.desktop),
 			frontend_dir: config.frontend_dir.clone(),
+			settings: SettingsStore::from_config(config.data_dir.as_deref()),
 		}
 	}
 }

@@ -19,6 +19,16 @@ service SystemService {
   rpc GetCapabilities(GetCapabilitiesRequest) returns (GetCapabilitiesResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+  // GetSettings returns the user settings the server keeps, so every client
+  // of this server (a browser tab, the desktop window) sees the same ones.
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // UpdateSettings stores the settings that are set in the request and
+  // returns the settings as they are afterwards.
+  rpc UpdateSettings(UpdateSettingsRequest) returns (UpdateSettingsResponse);
 }
 
 message GetHealthRequest {}
@@ -106,4 +116,49 @@ message Filter {
   string description = 2;
   // Timeline is true when the filter supports the enable option.
   bool timeline = 3;
+}
+
+message GetSettingsRequest {}
+
+message GetSettingsResponse {
+  Settings settings = 1;
+}
+
+message UpdateSettingsRequest {
+  // Settings to store. A field that is not set keeps its stored value.
+  Settings settings = 1;
+}
+
+message UpdateSettingsResponse {
+  // Settings as stored after the update.
+  Settings settings = 1;
+}
+
+// Settings are the user settings the server stores for its clients. The
+// server keeps them as they are sent; the frontend validates the values.
+message Settings {
+  // Theme is the colour theme. Unset when the user never chose one.
+  ThemeSetting theme = 1;
+}
+
+// ThemeSetting is the colour theme choice: a family (Catppuccin, Nord, …)
+// and, within it, one variant or a light and a dark one for auto mode.
+message ThemeSetting {
+  // Family is the theme family id, e.g. "catppuccin".
+  string family = 1;
+  ThemeMode mode = 2;
+  // Variant is the variant id used in SINGLE mode, e.g. "mocha".
+  string variant = 3;
+  // Light_variant is the variant used in AUTO mode when the OS is light.
+  string light_variant = 4;
+  // Dark_variant is the variant used in AUTO mode when the OS is dark.
+  string dark_variant = 5;
+}
+
+// ThemeMode tells whether one variant is used, or a light and a dark one
+// following the OS setting.
+enum ThemeMode {
+  THEME_MODE_UNSPECIFIED = 0;
+  THEME_MODE_SINGLE = 1;
+  THEME_MODE_AUTO = 2;
 }
