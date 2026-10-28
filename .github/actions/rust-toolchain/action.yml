@@ -1,0 +1,10 @@
+name: Rust toolchain
+description: Installs the toolchain, components and targets that rust-toolchain.toml pins.
+runs:
+  using: composite
+  steps:
+    - name: Install the pinned Rust toolchain
+      run: |
+        rustup toolchain install
+        rustup show active-toolchain
+      shell: bash

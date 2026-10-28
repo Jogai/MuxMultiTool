@@ -1,0 +1,303 @@
+# The CI gate for pull requests and master. The `changes` job decides which jobs
+# run for the changed paths (docs/quality.md, "Shared: CI triggers"); a docs-only
+# change runs nothing. The `ci` job at the end is the one check to require in
+# branch protection.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+# A new push to the same branch cancels the run that is still going.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  # paths-filter lists the files of a pull request through the API.
+  pull-requests: read
+
+env:
+  CARGO_TERM_COLOR: always
+  # Incremental compilation only costs time in CI, the caches hold whole crates.
+  CARGO_INCREMENTAL: 0
+  NODE_VERSION: 26
+  ZIG_VERSION: 0.17.0
+
+jobs:
+  changes:
+    name: Changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      proto: ${{ steps.filter.outputs.proto }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            # Shared code, the lockfile, the toolchain and the CI itself: everything runs.
+            everything: &everything
+              - crates/core/**
+              - crates/proto/**
+              - Cargo.lock
+              - Cargo.toml
+              - rust-toolchain.toml
+              - .github/**
+            # Backend checks, plus later the container image (server, Dockerfile) and
+            # the desktop build matrix (desktop, tauri.conf.json).
+            backend:
+              - *everything
+              - crates/**
+              - Dockerfile
+              - tauri.conf.json
+              - clippy.toml
+              - deny.toml
+              - rustfmt.toml
+              - taplo.toml
+              - typos.toml
+            # Frontend checks; later also the image and desktop builds, which embed it.
+            frontend:
+              - *everything
+              - web/**
+            # Contract lint, format and breaking-change checks.
+            proto:
+              - crates/proto/**
+              - .github/**
+
+  # `buf generate` once; the backend and frontend jobs download the result. The
+  # generated code is git-ignored, see development.md ("RPC contract and generated code").
+  codegen:
+    name: Generate RPC code
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/rust-toolchain
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install the web dependencies (protoc-gen-es)
+        run: npm ci --no-audit --no-fund
+        working-directory: web
+      - uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+      # The Rust plugins have no binary releases; a cache miss compiles them once.
+      - uses: taiki-e/cache-cargo-install-action@v3
+        with:
+          tool: protoc-gen-buffa@0.9.2
+      - uses: taiki-e/cache-cargo-install-action@v3
+        with:
+          tool: protoc-gen-buffa-packaging@0.9.2
+      - uses: taiki-e/cache-cargo-install-action@v3
+        with:
+          tool: connectrpc-codegen@0.9.0
+      - name: Generate the Rust and TypeScript code
+        run: buf generate
+        working-directory: crates/proto
+      - uses: actions/upload-artifact@v7
+        with:
+          name: generated-rpc-code
+          path: |
+            crates/proto/src/generated
+            web/src/generated
+          retention-days: 1
+          if-no-files-found: error
+
+  backend-lint:
+    name: Backend lint
+    needs: [changes, codegen]
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: generated-rpc-code
+      - uses: ./.github/actions/rust-toolchain
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny,cargo-shear,cargo-hack,taplo,typos
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Lint
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+      - name: Docs
+        run: cargo doc --workspace --no-deps --locked
+        env:
+          RUSTDOCFLAGS: -D warnings
+      - name: TOML
+        run: taplo fmt --check
+      - name: Spelling
+        run: typos
+      - name: Dependencies (advisories, licenses, bans, sources)
+        run: cargo deny check
+      - name: Unused dependencies
+        run: cargo shear
+      - name: Feature combinations
+        run: cargo hack check --each-feature --workspace --locked
+
+  backend-test:
+    name: Backend tests
+    needs: [changes, codegen]
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: generated-rpc-code
+      - uses: ./.github/actions/rust-toolchain
+      - name: Install llvm-tools (coverage)
+        run: rustup component add llvm-tools-preview
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest,cargo-llvm-cov
+      # The core tests run ffmpeg and ffprobe; a static build, like the container.
+      - uses: FedericoCarboni/setup-ffmpeg@v3
+        with:
+          ffmpeg-version: release
+          linking-type: static
+      # The generated RPC code is left out of the report; it isn't ours to cover.
+      - name: Tests with coverage
+        run: cargo llvm-cov nextest --workspace --locked --ignore-filename-regex '/generated/' --lcov --output-path lcov.info
+      - name: Coverage summary
+        run: |
+          {
+            echo '## Coverage'
+            echo '```'
+            cargo llvm-cov report --summary-only --ignore-filename-regex '/generated/'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: coverage-lcov
+          path: lcov.info
+
+  # The server must link statically, so a C dependency fails here before it reaches master.
+  backend-musl:
+    name: Backend static musl build
+    needs: [changes, codegen]
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: generated-rpc-code
+      - uses: ./.github/actions/rust-toolchain
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+      - name: Build the server for x86_64-unknown-linux-musl
+        run: cargo zigbuild --target x86_64-unknown-linux-musl --locked -p muxmultitool-server
+
+  # The steps in the order of docs/quality.md, "Frontend – CI order". vue-tsc is the
+  # only step that checks components, so it is never optional.
+  frontend:
+    name: Frontend
+    needs: [changes, codegen]
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: generated-rpc-code
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Format (oxfmt)
+        run: npm run format:check
+      - name: Lint (oxlint, type-aware)
+        run: npm run lint
+      - name: Type-check, fast (TS 7)
+        run: npm run typecheck:ts7
+      - name: Type-check, strict (vue-tsc)
+        run: npm run typecheck:vue
+      - name: Build
+        run: npm run build
+      - name: Unit tests (Vitest)
+        run: npm test
+
+  contract:
+    name: RPC contract
+    needs: changes
+    if: needs.changes.outputs.proto == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: crates/proto
+    steps:
+      - uses: actions/checkout@v7
+      - uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+      - name: Lint
+        run: buf lint
+      - name: Format
+        run: buf format -d --exit-code
+      # breaking.sh compares with a local branch: the PR base, or for a push the
+      # commit before it. A branch creation has no "before" commit to compare with.
+      - name: Breaking changes
+        if: github.event_name == 'pull_request' || github.event.before != '0000000000000000000000000000000000000000'
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.base_ref || github.event.before }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE"
+          git branch --force ci-base FETCH_HEAD
+          ./breaking.sh ci-base
+
+  # Conventional Commits, because git-cliff works out the next version from them.
+  # Merge commits are left alone, so a branch may merge master instead of rebasing.
+  commits:
+    name: Commit messages
+    if: github.event_name == 'pull_request' || github.event.before != '0000000000000000000000000000000000000000'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: committed@1.1.11
+      - name: Check every commit against committed.toml
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          for commit in $(git rev-list --no-merges "$BASE..$HEAD"); do
+            committed -vv "$commit~..$commit"
+          done
+
+  # The one status check to require: green when every job passed or was skipped.
+  ci:
+    name: CI
+    needs: [changes, codegen, backend-lint, backend-test, backend-musl, frontend, contract, commits]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail when a job failed or was cancelled
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
