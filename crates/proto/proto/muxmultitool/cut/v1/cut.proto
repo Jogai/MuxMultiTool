@@ -1,0 +1,195 @@
+syntax = "proto3";
+
+package muxmultitool.cut.v1;
+
+// CutService is the lossless cutting engine behind the cut editor (see
+// gui/04-cut): keyframe lookup for the timeline, parsing of typed times,
+// and the plan of an export. The export itself runs as a job:
+// JobsService.SubmitJob takes a CutOperation. PlanCut works the same
+// operation out without queueing anything, so the frontend can show where
+// the cuts will land and the exact ffmpeg command first.
+//
+// Times are seconds from the start of the file, as the preview player
+// counts them, whatever the container's own first timestamp is.
+//
+// Cut modes (CutMode). A lossless cut copies packets, and a video packet
+// can only be decoded from a keyframe on, so where a segment starts
+// matters:
+//
+//   KEYFRAME: the segment starts at the last keyframe at or before its
+//   start time, for every stream. Nothing after the start is lost; up to
+//   one GOP (the distance between keyframes) is added in front of it.
+//   Output durations are the requested ones plus that lead-in.
+//
+//   NORMAL: the segment starts at its start time: audio, subtitles and
+//   data streams begin exactly there, and the video begins with the first
+//   keyframe after it, so players show no picture (black, or the first
+//   frame held) for up to one GOP. Nothing before the start is included.
+//   Output durations match the requested ones.
+//
+// A merged export (CutExport MERGED) joins the segments with ffmpeg's
+// concat demuxer, which can only start a piece at a keyframe: in NORMAL
+// mode every stream then starts at the first keyframe at or after the
+// segment's start. Merged exports need a video stream to align the pieces
+// on and a container that seeks by keyframe index (MP4/MOV, Matroska/WebM,
+// AVI, ...); for audio-only files and for MPEG transport and program
+// streams the pieces would not join cleanly, so they are refused
+// (FAILED_PRECONDITION) and the segments go to separate files. Segments
+// end where they are asked to, within a frame or two, in every mode.
+service CutService {
+  // GetKeyframes lists the keyframe times of the file's first video stream
+  // between from_seconds and to_seconds, so the timeline can draw them and
+  // snap cut points. The list may start a little before from_seconds (the
+  // keyframe the demuxer lands on), and it is empty for a file without
+  // video. For a long range this reads the file between the two times, so
+  // ask for the visible window, not the whole file.
+  rpc GetKeyframes(GetKeyframesRequest) returns (GetKeyframesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // ParseTime turns a typed time into seconds. It accepts plain seconds
+  // ("754.5", also with a decimal comma), minutes and hours with colons
+  // ("12:34", "0:12:34.567", "00:12:34,567" as in SRT), units ("1h2m3.5s",
+  // "90s", "1500ms"), and frames as a fourth group ("0:12:34:12") when the
+  // file's frame rate is known. With a file_id the time must not be past
+  // the end of the file (INVALID_ARGUMENT otherwise).
+  rpc ParseTime(ParseTimeRequest) returns (ParseTimeResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // PlanCut validates a CutOperation and works out what its job would do:
+  // the kept ranges after normalisation (sorted, merged, inverted for
+  // REMOVE mode), where each cut really starts after keyframe snapping,
+  // the output files, the ffmpeg command and the concat list of a merged
+  // export. The output paths need not exist yet; the same checks run again
+  // on submit.
+  rpc PlanCut(PlanCutRequest) returns (PlanCutResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+message GetKeyframesRequest {
+  // file_id is an id from FilesService, or the absolute path of a file
+  // inside a configured media root (as MediaService accepts it for now).
+  string file_id = 1;
+  // from_seconds and to_seconds bound the range; to_seconds 0 means the
+  // end of the file.
+  double from_seconds = 2;
+  double to_seconds = 3;
+}
+
+message GetKeyframesResponse {
+  // keyframes_seconds are the keyframe presentation times, ascending.
+  repeated double keyframes_seconds = 1;
+  // stream_index is the video stream the keyframes belong to.
+  uint32 stream_index = 2;
+  // duration_seconds is the length of the file.
+  double duration_seconds = 3;
+}
+
+message ParseTimeRequest {
+  // text is what the user typed.
+  string text = 1;
+  // file_id (optional) is the file the time is for: the time is checked
+  // against its duration, and frame numbers use its frame rate.
+  string file_id = 2;
+}
+
+message ParseTimeResponse {
+  double seconds = 1;
+  // timecode is the time written back the canonical way, "H:MM:SS.mmm".
+  string timecode = 2;
+}
+
+// CutSegment is one range of the source, in seconds from its start.
+message CutSegment {
+  double start_seconds = 1;
+  double end_seconds = 2;
+}
+
+// SegmentMode tells what the segments mean.
+enum SegmentMode {
+  // Same as KEEP.
+  SEGMENT_MODE_UNSPECIFIED = 0;
+  // Export the segments.
+  SEGMENT_MODE_KEEP = 1;
+  // Export everything except the segments.
+  SEGMENT_MODE_REMOVE = 2;
+}
+
+// CutMode is where a segment's start lands; see the service comment.
+enum CutMode {
+  // Same as KEYFRAME.
+  CUT_MODE_UNSPECIFIED = 0;
+  // Start at the last keyframe at or before the start time.
+  CUT_MODE_KEYFRAME = 1;
+  // Start exactly at the start time; the video joins at its next keyframe.
+  CUT_MODE_NORMAL = 2;
+}
+
+// CutExport is the shape of the output.
+enum CutExport {
+  // Same as SEPARATE_FILES.
+  CUT_EXPORT_UNSPECIFIED = 0;
+  // One file per kept range.
+  CUT_EXPORT_SEPARATE_FILES = 1;
+  // All kept ranges joined into one file.
+  CUT_EXPORT_MERGED = 2;
+}
+
+// CutOperation cuts one file losslessly: every stream is copied.
+message CutOperation {
+  // input is the source: a file id from FilesService, or the absolute
+  // path of a file inside a configured media root.
+  string input = 1;
+  // segments are the ranges, in any order; overlapping and touching ones
+  // are merged, empty ones dropped, and ends are clamped to the file's
+  // duration. At least one range must remain.
+  repeated CutSegment segments = 2;
+  SegmentMode segment_mode = 3;
+  CutMode cut_mode = 4;
+  CutExport export = 5;
+  // output is the file to write for a merged export. For separate files it
+  // is a template: "{n}" is the range's number, zero-padded to the count,
+  // "{start}" and "{end}" are its times as "HH.MM.SS.mmm"; a template
+  // without a placeholder gets "-{n}" before its extension. An output
+  // without an extension takes the input's, so the container stays the
+  // same. Outputs must be inside a media root and must not exist yet.
+  string output = 6;
+}
+
+message PlanCutRequest {
+  CutOperation operation = 1;
+}
+
+message PlanCutResponse {
+  // segments are the kept ranges, in output order.
+  repeated PlannedSegment segments = 1;
+  // outputs are the files the job writes, in order.
+  repeated string outputs = 2;
+  // command is the ffmpeg command line the job would run, quoted for a
+  // shell.
+  string command = 3;
+  // total_duration_seconds is the length of all kept ranges together.
+  double total_duration_seconds = 4;
+  // concat_list is the list a merged export feeds to ffmpeg's concat
+  // demuxer; empty for separate files.
+  string concat_list = 5;
+}
+
+// PlannedSegment is one kept range as it will be cut.
+message PlannedSegment {
+  // number is the range's position in the output, from 1.
+  uint32 number = 1;
+  // start_seconds and end_seconds are the kept range after normalisation.
+  double start_seconds = 2;
+  double end_seconds = 3;
+  // cut_start_seconds is where the cut really begins: the keyframe at or
+  // before start_seconds in KEYFRAME mode, start_seconds itself in NORMAL
+  // mode (the keyframe at or after it for a merged export). The output
+  // runs from here to end_seconds.
+  double cut_start_seconds = 4;
+  // output is the file this range goes to; the merged file for a merged
+  // export.
+  string output = 5;
+}

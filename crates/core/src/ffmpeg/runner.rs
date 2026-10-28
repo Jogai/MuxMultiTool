@@ -337,6 +337,45 @@ impl Runner {
 		Ok(probe::parse_keyframes(&csv))
 	}
 
+	/// Lists the keyframes of stream `stream_index` of `path` within
+	/// `intervals`, each a `(from, to)` in seconds of the container's own
+	/// timestamps, ascending by presentation time.
+	///
+	/// ffprobe seeks to each interval's start and reads to its end, so
+	/// this costs a read of the intervals only, not of the file. The seek
+	/// lands at or before the start (on the previous keyframe for a
+	/// container with a keyframe index, somewhere in the previous GOP for
+	/// one without), so the result can begin a little before an interval.
+	///
+	/// # Errors
+	/// See [`RunError`].
+	pub async fn keyframes_in(
+		&self,
+		path: &Path,
+		stream_index: u32,
+		intervals: &[(f64, f64)],
+		limits: &Limits,
+	) -> Result<Vec<probe::Keyframe>, RunError> {
+		let argv = ffprobe_keyframes_in_argv(path, stream_index, intervals);
+		tracing::info!(target: "ffprobe", command = %ShellLine(&argv), "starting ffprobe");
+		let mut child = self.spawn(Tool::Ffprobe, &argv)?;
+		let stdout = child.stdout.take();
+		let stderr = child.stderr.take();
+		let pipes = async { tokio::join!(read_all(stdout), collect_log(stderr, None)) };
+		let span = tracing::info_span!("ffprobe", pid = child.id());
+		let (status, csv, log_tail) = supervise(&mut child, Tool::Ffprobe, limits, pipes)
+			.instrument(span)
+			.await?;
+		if !status.success() {
+			return Err(RunError::Failed {
+				tool: Tool::Ffprobe,
+				status,
+				log_tail,
+			});
+		}
+		Ok(probe::parse_keyframe_packets(&csv))
+	}
+
 	/// Starts `tool` with `argv`, piping stdout and stderr and closing stdin.
 	// Allowed here and nowhere else; see `clippy.toml`.
 	#[expect(
@@ -412,6 +451,40 @@ pub(crate) fn ffprobe_keyframes_argv(path: &Path, stream_index: u32) -> Vec<std:
 		"error",
 		"-select_streams",
 		&stream_index.to_string(),
+		"-show_entries",
+		"packet=pts_time,dts_time,flags",
+		"-of",
+		"csv=p=0",
+		"-i",
+	]
+	.iter()
+	.map(Into::into)
+	.collect();
+	argv.push(path.into());
+	argv
+}
+
+/// The ffprobe argument list for the packets of one stream of `path`
+/// within `intervals`, as [`ffprobe_keyframes_argv`] lists them. Each
+/// interval is `from%to` in seconds; ffprobe seeks to `from` and stops
+/// after `to`.
+pub(crate) fn ffprobe_keyframes_in_argv(
+	path: &Path,
+	stream_index: u32,
+	intervals: &[(f64, f64)],
+) -> Vec<OsString> {
+	let intervals: Vec<String> = intervals
+		.iter()
+		.map(|(from, to)| format!("{from:.6}%{to:.6}"))
+		.collect();
+	let mut argv: Vec<OsString> = [
+		"-hide_banner",
+		"-v",
+		"error",
+		"-select_streams",
+		&stream_index.to_string(),
+		"-read_intervals",
+		&intervals.join(","),
 		"-show_entries",
 		"packet=pts_time,dts_time,flags",
 		"-of",
@@ -612,6 +685,15 @@ mod tests {
 		insta::assert_snapshot!(ShellLine(&ffprobe_keyframes_argv(
 			Path::new("/media/in/movie.mkv"),
 			3
+		)));
+	}
+
+	#[test]
+	fn ffprobe_keyframes_in_argv_reads_only_the_intervals() {
+		insta::assert_snapshot!(ShellLine(&ffprobe_keyframes_in_argv(
+			Path::new("/media/in/movie.mkv"),
+			0,
+			&[(0.0, 30.0), (3570.5, 3630.5)]
 		)));
 	}
 

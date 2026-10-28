@@ -1,0 +1,5 @@
+---
+source: crates/core/src/cut/command.rs
+expression: "separate(&plan, &input())"
+---
+ffmpeg -ss 2 -i /media/in/movie.mkv -ss 753.567 -i /media/in/movie.mkv -copyts -map 0 -ss 3 -t 2.5 -c copy -avoid_negative_ts make_zero /media/out/a.mkv -map 1 -ss 754.567 -t 45.433 -c copy -avoid_negative_ts make_zero /media/out/b.mkv

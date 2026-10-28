@@ -53,6 +53,47 @@ pub fn parse_keyframes(csv: &str) -> Vec<f64> {
 	times
 }
 
+/// One keyframe of a packet listing: where it is presented and where it
+/// sits in decode order. The two differ by the reorder delay when the
+/// stream has B-frames, and ffmpeg's packet filters (`-ss` after `-i`,
+/// `-t`) go by decode time, so a cut that must keep a keyframe is placed
+/// at its `dts`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Keyframe {
+	/// Presentation time in seconds.
+	pub pts: f64,
+	/// Decode time in seconds, when the container has one.
+	pub dts: Option<f64>,
+}
+
+/// Parses the keyframes out of a packet listing, with both timestamps.
+///
+/// Same input as [`parse_keyframes`]: `pts_time,dts_time,flags` lines of
+/// one stream. A packet whose pts is `N/A` takes its dts as the
+/// presentation time. The result is ascending by pts without duplicates.
+#[must_use]
+pub fn parse_keyframe_packets(csv: &str) -> Vec<Keyframe> {
+	let mut keyframes: Vec<Keyframe> = csv
+		.lines()
+		.filter_map(|line| {
+			let mut fields = line.trim().split(',');
+			let pts = fields.next()?.parse::<f64>().ok();
+			let dts = fields.next()?.parse::<f64>().ok();
+			let flags = fields.next()?;
+			if !flags.contains('K') {
+				return None;
+			}
+			Some(Keyframe {
+				pts: pts.or(dts)?,
+				dts,
+			})
+		})
+		.collect();
+	keyframes.sort_by(|a, b| a.pts.total_cmp(&b.pts));
+	keyframes.dedup_by(|a, b| a.pts.total_cmp(&b.pts).is_eq());
+	keyframes
+}
+
 /// Sums the packet sizes of every stream out of a packet listing, one line
 /// at a time, so a listing of millions of packets never has to be held in
 /// memory.
@@ -233,6 +274,11 @@ pub struct Stream {
 	/// Interlacing (`progressive`, `tt`, `bb`, ...).
 	#[serde(default)]
 	pub field_order: Option<String>,
+	/// How many frames the decoder holds back for reordering (B-frames):
+	/// the delay between a packet's decode and presentation times, in
+	/// frames.
+	#[serde(default, deserialize_with = "lenient")]
+	pub has_b_frames: Option<u32>,
 	/// Real base frame rate, which can be higher than the average for
 	/// variable frame rate material.
 	#[serde(default, deserialize_with = "lenient")]
@@ -576,6 +622,33 @@ mod tests {
 			N/A,3.520000,K__\n3.520000,3.520000,K__\n7.000000,7.000000,K_D\n\ngarbage\n";
 		assert_eq!(parse_keyframes(csv), vec![0.0, 3.52, 7.0]);
 		assert_eq!(parse_keyframes(""), Vec::<f64>::new());
+	}
+
+	#[test]
+	fn keyframe_packets_keep_both_timestamps() {
+		let csv = "6.000000,5.920000,K__\n0.000000,-0.080000,K__\n0.040000,0.000000,___\n\
+			3.000000,N/A,K__\nN/A,4.5,K__\n6.000000,5.920000,K__\n";
+		assert_eq!(
+			parse_keyframe_packets(csv),
+			vec![
+				Keyframe {
+					pts: 0.0,
+					dts: Some(-0.08)
+				},
+				Keyframe {
+					pts: 3.0,
+					dts: None
+				},
+				Keyframe {
+					pts: 4.5,
+					dts: Some(4.5)
+				},
+				Keyframe {
+					pts: 6.0,
+					dts: Some(5.92)
+				},
+			]
+		);
 	}
 
 	#[test]

@@ -1,0 +1,5 @@
+---
+source: crates/core/src/cut/command.rs
+expression: "separate(&plan, Path::new(\"/media/in/movie.ts\"))"
+---
+ffmpeg -ss 8 -i /media/in/movie.ts -copyts -map 0 -ss 10.319 -t 11.081 -c copy -avoid_negative_ts make_zero /media/out/movie-1.ts

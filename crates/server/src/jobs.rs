@@ -58,6 +58,7 @@ impl JobsService for Jobs {
 			Operation::VideoToGif(gif) => self.video_to_gif_spec(&request.name, &gif).await?,
 			Operation::GifToVideo(gif) => self.gif_to_video_spec(&request.name, &gif).await?,
 			Operation::SelectStreams(op) => self.select_streams_spec(&request.name, &op).await?,
+			Operation::Cut(cut) => self.cut_spec(&request.name, &cut).await?,
 		};
 		let job = self
 			.state

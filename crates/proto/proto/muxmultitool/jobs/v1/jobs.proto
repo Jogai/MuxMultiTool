@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package muxmultitool.jobs.v1;
 
+import "muxmultitool/cut/v1/cut.proto";
 import "muxmultitool/gif/v1/gif.proto";
 import "muxmultitool/streams/v1/streams.proto";
 
@@ -58,6 +59,10 @@ message SubmitJobRequest {
     // without re-encoding; refused while StreamsService.PreviewStreams
     // reports a blocking issue (FAILED_PRECONDITION).
     muxmultitool.streams.v1.SelectStreamsOperation select_streams = 5;
+    // A lossless cut of one file into separate files or one merged file;
+    // refused with FAILED_PRECONDITION when the plan cannot be made (see
+    // CutService.PlanCut).
+    muxmultitool.cut.v1.CutOperation cut = 6;
   }
 }
 

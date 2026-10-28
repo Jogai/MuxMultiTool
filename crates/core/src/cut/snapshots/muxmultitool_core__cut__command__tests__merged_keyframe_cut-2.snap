@@ -1,0 +1,13 @@
+---
+source: crates/core/src/cut/command.rs
+expression: "merged(&plan, Path::new(\"/media/in/it's a movie.mkv\"))"
+---
+ffmpeg -f concat -safe 0 -protocol_whitelist data,file -i 'data:text/plain,file '\''file:/media/in/it'\''\'\'''\''s a movie.mkv'\''
+inpoint 2.05
+outpoint 5.5
+duration 3.5
+file '\''file:/media/in/it'\''\'\'''\''s a movie.mkv'\''
+inpoint 752.05
+outpoint 800
+duration 48
+' -map 0 -c copy -avoid_negative_ts make_zero '/media/out/it'\''s cut.mkv'

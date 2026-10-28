@@ -155,6 +155,30 @@ curl -X POST -H 'content-type: application/json' \
 # {"container":"MP4","outputName":"movie.eng.mp4","streams":[{"stream":{"index":0,"type":"STREAM_TYPE_VIDEO","codec":"hevc",…},"kept":true,"why":"ticked"},…],"canRun":true,"command":"… -i /media/movie.mkv -map 0:0 -map 0:1 -c copy /media/movie.eng.mp4","argv":[…]}
 ```
 
+### Cutting
+
+Lossless cutting is `CutService` (`crates/proto/proto/muxmultitool/cut/v1/cut.proto`) plus the `cut` operation of `JobsService`; the logic is `core::cut`. The user marks segments of one file in seconds, keeps or removes them, and exports the kept ranges as one file each or joined into one, every stream copied. Segments are normalised first: clamped to the file, sorted, overlapping ones merged, empty ones dropped (touching ones stay separate, so a split into parts works). `PlanCut` shows what a `CutOperation` would do without queueing anything: the kept ranges, where each cut really starts, the output names, the exact ffmpeg command and, for a merged export, the concat list. `GetKeyframes` lists the keyframes of a time range for the timeline, and `ParseTime` turns typed times (`754.5`, `12:34`, `0:12:34,567`, `1h2m3.5s`, `0:12:34:12` frames) into seconds, checked against the file's duration.
+
+A packet of video can only be decoded from a keyframe on, so the **cut mode** decides where a range starts; where it ends is free, within a frame or two:
+
+| Mode | Start of the range | Output length | Use |
+|---|---|---|---|
+| **Keyframe cut** | The last keyframe at or before the start time, for every stream. Nothing after the start is lost; up to one GOP is added in front. | The range plus that lead-in | The default: clean playback everywhere |
+| **Normal cut** | The start time itself: audio, subtitles and data begin exactly there; the video joins at the next keyframe, so players show no picture (black, or the first frame held) for up to one GOP. Nothing before the start is included. | The range | When nothing before the start may be kept |
+
+Smart cut (re-encoding only the frames up to the next keyframe) is a later task; it builds on the same plan.
+
+How the commands are built (measured on ffmpeg 8, see the `core::cut` docs): an input `-ss` placed a second before the cut, so the demuxer lands before it whatever the container does (MP4 and Matroska land on a keyframe, one too early when the target sits exactly on one; MPEG-TS lands wherever its binary search ends), then `-copyts` and an output `-ss`/`-t`, which ffmpeg applies by decode time: at the keyframe's decode time for a keyframe cut, so the keyframe is kept and the audio leads it by at most the reorder delay, at the start time for a normal cut. Separate files are one ffmpeg run with one input per range. A merged export feeds the ranges to the `concat` demuxer as `inpoint`/`outpoint`/`duration` entries, with the list inside the command as a `data:` URL (no scratch file); the inpoint is nudged 50 ms past the keyframe so the demuxer's seek lands on it. Junctions of a merged file may carry a few overlapping audio packets, which ffmpeg re-stamps (a short hiccup, as with any lossless join). Merged exports need a video stream and a container with a keyframe index: audio-only files, MPEG transport and program streams are refused with `FAILED_PRECONDITION` and go to separate files instead. A FLAC cut keeps the source's `STREAMINFO` header, so ffprobe reports the old length for it; the audio is cut correctly.
+
+For separate files the `output` is a template: `{n}` is the range's number (zero-padded), `{start}` and `{end}` its times as `HH.MM.SS.mmm`; a name without a placeholder gets `-{n}` before its extension, and one without an extension takes the input's. Outputs must be new files in an existing folder inside a media root. The `input` is a file id from `FilesService` or an absolute path inside a media root.
+
+```sh
+curl -X POST -H 'content-type: application/json' \
+  -d '{"operation":{"input":"/media/movie.mkv","segments":[{"startSeconds":648,"endSeconds":716.2},{"startSeconds":732.5,"endSeconds":790}],"cutMode":"CUT_MODE_KEYFRAME","export":"CUT_EXPORT_SEPARATE_FILES","output":"/media/out/movie-{n}.mkv"}}' \
+  http://127.0.0.1:8080/rpc/muxmultitool.cut.v1.CutService/PlanCut
+# {"segments":[{"number":1,"startSeconds":648,"endSeconds":716.2,"cutStartSeconds":646.04,"output":"/media/out/movie-1.mkv"},…],"outputs":[…],"command":"… -ss 645.04 -i /media/movie.mkv -ss 729.5 -i /media/movie.mkv -copyts -map 0 -ss 645.959 -t 70.241 -c copy -avoid_negative_ts make_zero /media/out/movie-1.mkv …","totalDurationSeconds":129.66}
+```
+
 ### Preview (HLS)
 
 The player never gets a source file: `MediaService/StartPreview` starts a preview session for a file and returns the playlist path, `/media/{id}/hls/index.m3u8`, which hls.js plays. Segments (`/media/{id}/hls/{n}.ts`) are H.264 + AAC in MPEG-TS, produced on demand by ffmpeg from wherever the player seeks: copied when the source already is H.264 (8-bit 4:2:0) and AAC, transcoded with x264 otherwise (hardware encoders come after the MVP). Exports always read the original file.

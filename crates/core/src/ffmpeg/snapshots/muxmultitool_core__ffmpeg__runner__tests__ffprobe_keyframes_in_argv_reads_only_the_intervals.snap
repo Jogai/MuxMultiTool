@@ -1,0 +1,5 @@
+---
+source: crates/core/src/ffmpeg/runner.rs
+expression: "ShellLine(&ffprobe_keyframes_in_argv(Path::new(\"/media/in/movie.mkv\"), 0,\n&[(0.0, 30.0), (3570.5, 3630.5)]))"
+---
+-hide_banner -v error -select_streams 0 -read_intervals 0.000000%30.000000,3570.500000%3630.500000 -show_entries packet=pts_time,dts_time,flags -of csv=p=0 -i /media/in/movie.mkv

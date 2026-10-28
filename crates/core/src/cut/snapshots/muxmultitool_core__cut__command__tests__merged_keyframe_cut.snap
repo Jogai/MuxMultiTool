@@ -1,0 +1,12 @@
+---
+source: crates/core/src/cut/command.rs
+expression: "concat_list(&plan, Path::new(\"/media/in/it's a movie.mkv\"))"
+---
+file 'file:/media/in/it'\''s a movie.mkv'
+inpoint 2.05
+outpoint 5.5
+duration 3.5
+file 'file:/media/in/it'\''s a movie.mkv'
+inpoint 752.05
+outpoint 800
+duration 48
