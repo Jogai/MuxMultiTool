@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+:root {
+	--mmt-surface: #ffffff;
+	--mmt-text: #1a1a1a;
+}
+
+@theme {
+	--font-sans: "Atkinson Hyperlegible", sans-serif;
+	--font-mono: "Atkinson Hyperlegible Mono", monospace;
+	--color-surface: var(--mmt-surface);
+	--color-text: var(--mmt-text);
+}
+
+body {
+	font-family: var(--font-sans);
+}
