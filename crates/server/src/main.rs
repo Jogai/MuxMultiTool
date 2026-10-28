@@ -8,10 +8,10 @@ use std::net::IpAddr;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use muxmultitool_core::ffmpeg::tools::{FFMPEG_ENV, FFPROBE_ENV};
 use muxmultitool_server::{
-	Config, DEFAULT_FRONTEND_DIR, DEFAULT_JOB_CONCURRENCY, DEFAULT_PORT, Server, VERSION,
+	Config, DEFAULT_FRONTEND_DIR, DEFAULT_JOB_CONCURRENCY, DEFAULT_PORT, Server, VERSION, health,
 };
 use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
@@ -57,6 +57,35 @@ struct Cli {
 	/// Folder for the user settings (settings.json). Kept in memory for this run when absent.
 	#[arg(long, env = "MMT_DATA_DIR", value_name = "DIR")]
 	data_dir: Option<PathBuf>,
+
+	#[command(subcommand)]
+	command: Option<Command>,
+}
+
+#[derive(Debug, Subcommand)]
+enum Command {
+	/// Check that a running server is healthy: calls the health RPC on the
+	/// configured port and exits 0 when it answers OK. The container's HEALTHCHECK.
+	Health,
+}
+
+/// Probes the server at the configured address, with loopback standing in
+/// for an unspecified listen address (`0.0.0.0` in the container).
+async fn check_health(config: &Config) -> ExitCode {
+	let mut addr = config.socket_addr();
+	if addr.ip().is_unspecified() {
+		addr.set_ip(match addr.ip() {
+			IpAddr::V4(_) => IpAddr::V4(std::net::Ipv4Addr::LOCALHOST),
+			IpAddr::V6(_) => IpAddr::V6(std::net::Ipv6Addr::LOCALHOST),
+		});
+	}
+	match health::probe(addr).await {
+		Ok(()) => ExitCode::SUCCESS,
+		Err(error) => {
+			error!(%addr, %error, "health check failed");
+			ExitCode::FAILURE
+		}
+	}
 }
 
 impl From<Cli> for Config {
@@ -89,7 +118,12 @@ async fn main() -> ExitCode {
 		.with_writer(std::io::stderr)
 		.init();
 
-	let config = Config::from(Cli::parse());
+	let cli = Cli::parse();
+	if let Some(Command::Health) = cli.command {
+		return check_health(&Config::from(cli)).await;
+	}
+
+	let config = Config::from(cli);
 	info!(
 		version = VERSION,
 		ffmpeg = %config.tools.ffmpeg.display(),

@@ -12,6 +12,8 @@
 //! - `/media/…`: the plain HTTP media routes (the HLS preview, module
 //!   `media`; thumbnail sprites, module `timeline`); `GET /files/{id}`:
 //!   downloads (module `download`).
+//! - `muxmultitool-server health` (module `health`): the container health
+//!   check, a client of the health RPC.
 //! - everything else: the built frontend, with `index.html` for unknown paths
 //!   so the router's history mode works on a page reload.
 
@@ -42,6 +44,7 @@ mod cut;
 mod download;
 mod files;
 mod gif;
+pub mod health;
 mod jobs;
 mod media;
 mod merge;
