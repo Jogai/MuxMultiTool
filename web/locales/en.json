@@ -82,6 +82,72 @@
 			"unauthenticated": "Not signed in"
 		}
 	},
+	"jobs": {
+		"title": "Jobs",
+		"summary": "{running} running · {queued} queued · {finished} finished",
+		"empty": "No jobs yet. Every operation that writes output shows up here with its progress and log.",
+		"none": "—",
+		"connection": {
+			"connecting": "Connecting to the job queue…",
+			"reconnecting": "The connection to the job queue was lost. Reconnecting…",
+			"retry": "Retry now"
+		},
+		"columns": {
+			"status": "Status",
+			"job": "Job",
+			"progress": "Progress",
+			"speed": "Speed",
+			"eta": "ETA",
+			"actions": "Actions"
+		},
+		"state": {
+			"unspecified": "unknown",
+			"queued": "queued",
+			"running": "running",
+			"succeeded": "done",
+			"failed": "failed",
+			"cancelled": "cancelled"
+		},
+		"written": "{time} written",
+		"took": "took {time}",
+		"actions": {
+			"cancel": "Cancel",
+			"cancelJob": "Cancel {name}",
+			"showError": "Show error",
+			"details": "Details",
+			"close": "Close the job details",
+			"copyCommand": "Copy command",
+			"copyLog": "Copy log",
+			"copied": "Copied"
+		},
+		"detail": {
+			"progress": "Progress",
+			"eta": "ETA",
+			"speed": "Speed",
+			"fps": "Frames/s",
+			"written": "Written",
+			"elapsed": "Elapsed",
+			"tabs": {
+				"error": "Error",
+				"log": "Log",
+				"command": "Command"
+			},
+			"rawOutput": "Raw ffmpeg output",
+			"noRawOutput": "ffmpeg wrote nothing before it stopped.",
+			"logEmpty": "ffmpeg has not written anything yet.",
+			"log": "ffmpeg log",
+			"command": "The exact command this job runs",
+			"argv": "As separate arguments",
+			"commandPending": "The command arrives with the job details."
+		},
+		"cancelDialog": {
+			"title": "Cancel this job?",
+			"running": "{name} is running. ffmpeg stops now and whatever it has written so far stays on disk.",
+			"queued": "{name} is waiting in the queue and will be removed from it.",
+			"keep": "Keep it",
+			"confirm": "Cancel the job"
+		}
+	},
 	"filePicker": {
 		"title": "Choose files",
 		"titleDirectory": "Choose a folder",
@@ -125,10 +191,6 @@
 		"presets": {
 			"description": "Saved operations, reusable from every screen.",
 			"task": "TASK-41"
-		},
-		"jobs": {
-			"description": "Progress, ETA, speed, cancel, and readable errors with the raw ffmpeg output.",
-			"task": "TASK-17"
 		},
 		"settings": {
 			"description": "Appearance, shortcuts, paths and the ffmpeg capability check.",
