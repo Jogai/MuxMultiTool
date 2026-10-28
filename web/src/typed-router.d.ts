@@ -38,6 +38,76 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/batch': RouteRecordInfo<
+      '/batch',
+      '/batch',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/combine': RouteRecordInfo<
+      '/combine',
+      '/combine',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/cut': RouteRecordInfo<
+      '/cut',
+      '/cut',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/files': RouteRecordInfo<
+      '/files',
+      '/files',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/images': RouteRecordInfo<
+      '/images',
+      '/images',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/jobs': RouteRecordInfo<
+      '/jobs',
+      '/jobs',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/merge': RouteRecordInfo<
+      '/merge',
+      '/merge',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/presets': RouteRecordInfo<
+      '/presets',
+      '/presets',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/settings': RouteRecordInfo<
+      '/settings',
+      '/settings',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/streams': RouteRecordInfo<
+      '/streams',
+      '/streams',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
   }
 
   /**
@@ -54,6 +124,86 @@ declare module 'vue-router/auto-routes' {
     'src/pages/index.vue': {
       routes:
         | '/'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/batch.vue': {
+      routes:
+        | '/batch'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/combine.vue': {
+      routes:
+        | '/combine'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/cut.vue': {
+      routes:
+        | '/cut'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/files.vue': {
+      routes:
+        | '/files'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/images.vue': {
+      routes:
+        | '/images'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/jobs.vue': {
+      routes:
+        | '/jobs'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/merge.vue': {
+      routes:
+        | '/merge'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/presets.vue': {
+      routes:
+        | '/presets'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/settings.vue': {
+      routes:
+        | '/settings'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/streams.vue': {
+      routes:
+        | '/streams'
       views:
         | never
       pathParamNames:

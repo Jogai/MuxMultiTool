@@ -9,9 +9,14 @@
 export {}
 declare global {
   const EffectScope: typeof import('vue').EffectScope
+  const NAV_ENTRIES: typeof import('./core/libs/navigation').NAV_ENTRIES
+  const RAW_OUTPUT_FIELDS: typeof import('./core/libs/errors').RAW_OUTPUT_FIELDS
   const acceptHMRUpdate: typeof import('pinia').acceptHMRUpdate
+  const appMode: typeof import('./core/libs/filePicker').appMode
   const asyncComputed: typeof import('@vueuse/core').asyncComputed
   const autoResetRef: typeof import('@vueuse/core').autoResetRef
+  const baseName: typeof import('./core/libs/filePicker').baseName
+  const codeName: typeof import('./core/libs/errors').codeName
   const computed: typeof import('vue').computed
   const computedAsync: typeof import('@vueuse/core').computedAsync
   const computedEager: typeof import('@vueuse/core').computedEager
@@ -20,8 +25,11 @@ declare global {
   const controlledComputed: typeof import('@vueuse/core').controlledComputed
   const controlledRef: typeof import('@vueuse/core').controlledRef
   const createApp: typeof import('vue').createApp
+  const createContainerFilePicker: typeof import('./core/libs/filePicker').createContainerFilePicker
+  const createDesktopFilePicker: typeof import('./core/libs/filePicker').createDesktopFilePicker
   const createDisposableDirective: typeof import('@vueuse/core').createDisposableDirective
   const createEventHook: typeof import('@vueuse/core').createEventHook
+  const createFilePicker: typeof import('./core/libs/filePicker').createFilePicker
   const createGlobalState: typeof import('@vueuse/core').createGlobalState
   const createInjectionState: typeof import('@vueuse/core').createInjectionState
   const createPinia: typeof import('pinia').createPinia
@@ -48,11 +56,14 @@ declare global {
   const getCurrentInstance: typeof import('vue').getCurrentInstance
   const getCurrentScope: typeof import('vue').getCurrentScope
   const getCurrentWatcher: typeof import('vue').getCurrentWatcher
+  const getRpcTransport: typeof import('./core/libs/rpc').getRpcTransport
   const h: typeof import('vue').h
   const ignorableWatch: typeof import('@vueuse/core').ignorableWatch
   const inject: typeof import('vue').inject
   const injectLocal: typeof import('@vueuse/core').injectLocal
+  const isAppError: typeof import('./core/libs/errors').isAppError
   const isDefined: typeof import('@vueuse/core').isDefined
+  const isDesktop: typeof import('./core/libs/filePicker').isDesktop
   const isProxy: typeof import('vue').isProxy
   const isReactive: typeof import('vue').isReactive
   const isReadonly: typeof import('vue').isReadonly
@@ -65,6 +76,7 @@ declare global {
   const mapStores: typeof import('pinia').mapStores
   const mapWritableState: typeof import('pinia').mapWritableState
   const markRaw: typeof import('vue').markRaw
+  const navNameForPath: typeof import('./core/libs/navigation').navNameForPath
   const nextTick: typeof import('vue').nextTick
   const onActivated: typeof import('vue').onActivated
   const onBeforeMount: typeof import('vue').onBeforeMount
@@ -107,6 +119,7 @@ declare global {
   const resolveComponent: typeof import('vue').resolveComponent
   const setActivePinia: typeof import('pinia').setActivePinia
   const setMapStoreSuffix: typeof import('pinia').setMapStoreSuffix
+  const setRpcTransport: typeof import('./core/libs/rpc').setRpcTransport
   const shallowReactive: typeof import('vue').shallowReactive
   const shallowReadonly: typeof import('vue').shallowReadonly
   const shallowRef: typeof import('vue').shallowRef
@@ -115,6 +128,7 @@ declare global {
   const syncRefs: typeof import('@vueuse/core').syncRefs
   const throttledRef: typeof import('@vueuse/core').throttledRef
   const throttledWatch: typeof import('@vueuse/core').throttledWatch
+  const toAppError: typeof import('./core/libs/errors').toAppError
   const toRaw: typeof import('vue').toRaw
   const toReactive: typeof import('@vueuse/core').toReactive
   const toRef: typeof import('vue').toRef
@@ -192,6 +206,8 @@ declare global {
   const useFavicon: typeof import('@vueuse/core').useFavicon
   const useFetch: typeof import('@vueuse/core').useFetch
   const useFileDialog: typeof import('@vueuse/core').useFileDialog
+  const useFilePicker: typeof import('./core/composables/useFilePicker').useFilePicker
+  const useFilePickerStore: typeof import('./core/stores/filePicker').useFilePickerStore
   const useFileSystemAccess: typeof import('@vueuse/core').useFileSystemAccess
   const useFocus: typeof import('@vueuse/core').useFocus
   const useFocusWithin: typeof import('@vueuse/core').useFocusWithin
@@ -207,6 +223,7 @@ declare global {
   const useIntersectionObserver: typeof import('@vueuse/core').useIntersectionObserver
   const useInterval: typeof import('@vueuse/core').useInterval
   const useIntervalFn: typeof import('@vueuse/core').useIntervalFn
+  const useJobsStore: typeof import('./core/stores/jobs').useJobsStore
   const useKeyModifier: typeof import('@vueuse/core').useKeyModifier
   const useLastChanged: typeof import('@vueuse/core').useLastChanged
   const useLiveAnnouncer: typeof import('@vueuse/core').useLiveAnnouncer
@@ -249,6 +266,7 @@ declare global {
   const useResizeObserver: typeof import('@vueuse/core').useResizeObserver
   const useRoute: typeof import('vue-router').useRoute
   const useRouter: typeof import('vue-router').useRouter
+  const useRpcClient: typeof import('./core/libs/rpc').useRpcClient
   const useSSRWidth: typeof import('@vueuse/core').useSSRWidth
   const useScreenOrientation: typeof import('@vueuse/core').useScreenOrientation
   const useScreenSafeArea: typeof import('@vueuse/core').useScreenSafeArea
@@ -268,12 +286,14 @@ declare global {
   const useSupported: typeof import('@vueuse/core').useSupported
   const useSwipe: typeof import('@vueuse/core').useSwipe
   const useSystemStatus: typeof import('./core/composables/useSystemStatus').useSystemStatus
+  const useSystemStore: typeof import('./core/stores/system').useSystemStore
   const useTemplateRef: typeof import('vue').useTemplateRef
   const useTemplateRefsList: typeof import('@vueuse/core').useTemplateRefsList
   const useTemporalNow: typeof import('@vueuse/core').useTemporalNow
   const useTextDirection: typeof import('@vueuse/core').useTextDirection
   const useTextSelection: typeof import('@vueuse/core').useTextSelection
   const useTextareaAutosize: typeof import('@vueuse/core').useTextareaAutosize
+  const useTheme: typeof import('./core/composables/useTheme').useTheme
   const useThrottle: typeof import('@vueuse/core').useThrottle
   const useThrottleFn: typeof import('@vueuse/core').useThrottleFn
   const useThrottledRefHistory: typeof import('@vueuse/core').useThrottledRefHistory
@@ -328,6 +348,21 @@ declare global {
   // @ts-ignore
   export type { BackendState } from './core/composables/useSystemStatus'
   import('./core/composables/useSystemStatus')
+  // @ts-ignore
+  export type { ThemeVariant } from './core/composables/useTheme'
+  import('./core/composables/useTheme')
+  // @ts-ignore
+  export type { AppError, ToAppErrorOptions } from './core/libs/errors'
+  import('./core/libs/errors')
+  // @ts-ignore
+  export type { AppMode, PickFilesOptions, PickedFile, FilePicker, OpenFileBrowser } from './core/libs/filePicker'
+  import('./core/libs/filePicker')
+  // @ts-ignore
+  export type { NavName } from './core/libs/navigation'
+  import('./core/libs/navigation')
+  // @ts-ignore
+  export type { RpcTransportOptions } from './core/libs/rpc'
+  import('./core/libs/rpc')
 }
 
 // for vue template auto import
@@ -336,9 +371,14 @@ declare module 'vue' {
   interface GlobalComponents {}
   interface ComponentCustomProperties {
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
+    readonly NAV_ENTRIES: UnwrapRef<typeof import('./core/libs/navigation')['NAV_ENTRIES']>
+    readonly RAW_OUTPUT_FIELDS: UnwrapRef<typeof import('./core/libs/errors')['RAW_OUTPUT_FIELDS']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
+    readonly appMode: UnwrapRef<typeof import('./core/libs/filePicker')['appMode']>
     readonly asyncComputed: UnwrapRef<typeof import('@vueuse/core')['asyncComputed']>
     readonly autoResetRef: UnwrapRef<typeof import('@vueuse/core')['autoResetRef']>
+    readonly baseName: UnwrapRef<typeof import('./core/libs/filePicker')['baseName']>
+    readonly codeName: UnwrapRef<typeof import('./core/libs/errors')['codeName']>
     readonly computed: UnwrapRef<typeof import('vue')['computed']>
     readonly computedAsync: UnwrapRef<typeof import('@vueuse/core')['computedAsync']>
     readonly computedEager: UnwrapRef<typeof import('@vueuse/core')['computedEager']>
@@ -347,8 +387,11 @@ declare module 'vue' {
     readonly controlledComputed: UnwrapRef<typeof import('@vueuse/core')['controlledComputed']>
     readonly controlledRef: UnwrapRef<typeof import('@vueuse/core')['controlledRef']>
     readonly createApp: UnwrapRef<typeof import('vue')['createApp']>
+    readonly createContainerFilePicker: UnwrapRef<typeof import('./core/libs/filePicker')['createContainerFilePicker']>
+    readonly createDesktopFilePicker: UnwrapRef<typeof import('./core/libs/filePicker')['createDesktopFilePicker']>
     readonly createDisposableDirective: UnwrapRef<typeof import('@vueuse/core')['createDisposableDirective']>
     readonly createEventHook: UnwrapRef<typeof import('@vueuse/core')['createEventHook']>
+    readonly createFilePicker: UnwrapRef<typeof import('./core/libs/filePicker')['createFilePicker']>
     readonly createGlobalState: UnwrapRef<typeof import('@vueuse/core')['createGlobalState']>
     readonly createInjectionState: UnwrapRef<typeof import('@vueuse/core')['createInjectionState']>
     readonly createPinia: UnwrapRef<typeof import('pinia')['createPinia']>
@@ -357,7 +400,6 @@ declare module 'vue' {
     readonly createReusableTemplate: UnwrapRef<typeof import('@vueuse/core')['createReusableTemplate']>
     readonly createRpcTransport: UnwrapRef<typeof import('./core/libs/rpc')['createRpcTransport']>
     readonly createSharedComposable: UnwrapRef<typeof import('@vueuse/core')['createSharedComposable']>
-    readonly createSystemClient: UnwrapRef<typeof import('./core/libs/rpc')['createSystemClient']>
     readonly createTemplatePromise: UnwrapRef<typeof import('@vueuse/core')['createTemplatePromise']>
     readonly createUnrefFn: UnwrapRef<typeof import('@vueuse/core')['createUnrefFn']>
     readonly customRef: UnwrapRef<typeof import('vue')['customRef']>
@@ -375,11 +417,14 @@ declare module 'vue' {
     readonly getCurrentInstance: UnwrapRef<typeof import('vue')['getCurrentInstance']>
     readonly getCurrentScope: UnwrapRef<typeof import('vue')['getCurrentScope']>
     readonly getCurrentWatcher: UnwrapRef<typeof import('vue')['getCurrentWatcher']>
+    readonly getRpcTransport: UnwrapRef<typeof import('./core/libs/rpc')['getRpcTransport']>
     readonly h: UnwrapRef<typeof import('vue')['h']>
     readonly ignorableWatch: UnwrapRef<typeof import('@vueuse/core')['ignorableWatch']>
     readonly inject: UnwrapRef<typeof import('vue')['inject']>
     readonly injectLocal: UnwrapRef<typeof import('@vueuse/core')['injectLocal']>
+    readonly isAppError: UnwrapRef<typeof import('./core/libs/errors')['isAppError']>
     readonly isDefined: UnwrapRef<typeof import('@vueuse/core')['isDefined']>
+    readonly isDesktop: UnwrapRef<typeof import('./core/libs/filePicker')['isDesktop']>
     readonly isProxy: UnwrapRef<typeof import('vue')['isProxy']>
     readonly isReactive: UnwrapRef<typeof import('vue')['isReactive']>
     readonly isReadonly: UnwrapRef<typeof import('vue')['isReadonly']>
@@ -392,6 +437,7 @@ declare module 'vue' {
     readonly mapStores: UnwrapRef<typeof import('pinia')['mapStores']>
     readonly mapWritableState: UnwrapRef<typeof import('pinia')['mapWritableState']>
     readonly markRaw: UnwrapRef<typeof import('vue')['markRaw']>
+    readonly navNameForPath: UnwrapRef<typeof import('./core/libs/navigation')['navNameForPath']>
     readonly nextTick: UnwrapRef<typeof import('vue')['nextTick']>
     readonly onActivated: UnwrapRef<typeof import('vue')['onActivated']>
     readonly onBeforeMount: UnwrapRef<typeof import('vue')['onBeforeMount']>
@@ -434,6 +480,7 @@ declare module 'vue' {
     readonly resolveComponent: UnwrapRef<typeof import('vue')['resolveComponent']>
     readonly setActivePinia: UnwrapRef<typeof import('pinia')['setActivePinia']>
     readonly setMapStoreSuffix: UnwrapRef<typeof import('pinia')['setMapStoreSuffix']>
+    readonly setRpcTransport: UnwrapRef<typeof import('./core/libs/rpc')['setRpcTransport']>
     readonly shallowReactive: UnwrapRef<typeof import('vue')['shallowReactive']>
     readonly shallowReadonly: UnwrapRef<typeof import('vue')['shallowReadonly']>
     readonly shallowRef: UnwrapRef<typeof import('vue')['shallowRef']>
@@ -442,6 +489,7 @@ declare module 'vue' {
     readonly syncRefs: UnwrapRef<typeof import('@vueuse/core')['syncRefs']>
     readonly throttledRef: UnwrapRef<typeof import('@vueuse/core')['throttledRef']>
     readonly throttledWatch: UnwrapRef<typeof import('@vueuse/core')['throttledWatch']>
+    readonly toAppError: UnwrapRef<typeof import('./core/libs/errors')['toAppError']>
     readonly toRaw: UnwrapRef<typeof import('vue')['toRaw']>
     readonly toReactive: UnwrapRef<typeof import('@vueuse/core')['toReactive']>
     readonly toRef: UnwrapRef<typeof import('vue')['toRef']>
@@ -519,6 +567,8 @@ declare module 'vue' {
     readonly useFavicon: UnwrapRef<typeof import('@vueuse/core')['useFavicon']>
     readonly useFetch: UnwrapRef<typeof import('@vueuse/core')['useFetch']>
     readonly useFileDialog: UnwrapRef<typeof import('@vueuse/core')['useFileDialog']>
+    readonly useFilePicker: UnwrapRef<typeof import('./core/composables/useFilePicker')['useFilePicker']>
+    readonly useFilePickerStore: UnwrapRef<typeof import('./core/stores/filePicker')['useFilePickerStore']>
     readonly useFileSystemAccess: UnwrapRef<typeof import('@vueuse/core')['useFileSystemAccess']>
     readonly useFocus: UnwrapRef<typeof import('@vueuse/core')['useFocus']>
     readonly useFocusWithin: UnwrapRef<typeof import('@vueuse/core')['useFocusWithin']>
@@ -534,6 +584,7 @@ declare module 'vue' {
     readonly useIntersectionObserver: UnwrapRef<typeof import('@vueuse/core')['useIntersectionObserver']>
     readonly useInterval: UnwrapRef<typeof import('@vueuse/core')['useInterval']>
     readonly useIntervalFn: UnwrapRef<typeof import('@vueuse/core')['useIntervalFn']>
+    readonly useJobsStore: UnwrapRef<typeof import('./core/stores/jobs')['useJobsStore']>
     readonly useKeyModifier: UnwrapRef<typeof import('@vueuse/core')['useKeyModifier']>
     readonly useLastChanged: UnwrapRef<typeof import('@vueuse/core')['useLastChanged']>
     readonly useLiveAnnouncer: UnwrapRef<typeof import('@vueuse/core')['useLiveAnnouncer']>
@@ -576,6 +627,7 @@ declare module 'vue' {
     readonly useResizeObserver: UnwrapRef<typeof import('@vueuse/core')['useResizeObserver']>
     readonly useRoute: UnwrapRef<typeof import('vue-router')['useRoute']>
     readonly useRouter: UnwrapRef<typeof import('vue-router')['useRouter']>
+    readonly useRpcClient: UnwrapRef<typeof import('./core/libs/rpc')['useRpcClient']>
     readonly useSSRWidth: UnwrapRef<typeof import('@vueuse/core')['useSSRWidth']>
     readonly useScreenOrientation: UnwrapRef<typeof import('@vueuse/core')['useScreenOrientation']>
     readonly useScreenSafeArea: UnwrapRef<typeof import('@vueuse/core')['useScreenSafeArea']>
@@ -595,12 +647,14 @@ declare module 'vue' {
     readonly useSupported: UnwrapRef<typeof import('@vueuse/core')['useSupported']>
     readonly useSwipe: UnwrapRef<typeof import('@vueuse/core')['useSwipe']>
     readonly useSystemStatus: UnwrapRef<typeof import('./core/composables/useSystemStatus')['useSystemStatus']>
+    readonly useSystemStore: UnwrapRef<typeof import('./core/stores/system')['useSystemStore']>
     readonly useTemplateRef: UnwrapRef<typeof import('vue')['useTemplateRef']>
     readonly useTemplateRefsList: UnwrapRef<typeof import('@vueuse/core')['useTemplateRefsList']>
     readonly useTemporalNow: UnwrapRef<typeof import('@vueuse/core')['useTemporalNow']>
     readonly useTextDirection: UnwrapRef<typeof import('@vueuse/core')['useTextDirection']>
     readonly useTextSelection: UnwrapRef<typeof import('@vueuse/core')['useTextSelection']>
     readonly useTextareaAutosize: UnwrapRef<typeof import('@vueuse/core')['useTextareaAutosize']>
+    readonly useTheme: UnwrapRef<typeof import('./core/composables/useTheme')['useTheme']>
     readonly useThrottle: UnwrapRef<typeof import('@vueuse/core')['useThrottle']>
     readonly useThrottleFn: UnwrapRef<typeof import('@vueuse/core')['useThrottleFn']>
     readonly useThrottledRefHistory: UnwrapRef<typeof import('@vueuse/core')['useThrottledRefHistory']>

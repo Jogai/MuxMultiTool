@@ -44,12 +44,18 @@ export default defineConfig((): UserConfig => {
 			transformer: "lightningcss"
 		},
 
-		// The frontend always calls its own origin; in development Vite forwards to the backend
+		resolve: {
+			alias: { "~": path.resolve(import.meta.dirname, "src") }
+		},
+
+		// The frontend always calls its own origin; in development Vite forwards to the backend.
+		// The media and download routes carry an id after the prefix (`/media/{id}/…`, `/files/{id}`),
+		// so the prefix alone is not proxied: `/files` is also the Files page
 		server: {
 			proxy: {
 				"/rpc": BACKEND,
-				"/media": BACKEND,
-				"/files": BACKEND
+				"^/media/": BACKEND,
+				"^/files/": BACKEND
 			}
 		},
 

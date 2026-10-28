@@ -1,17 +1,63 @@
 @import "tailwindcss";
 
+/*
+ * Default palette, light and dark. The theme system (TASK-42) adds the other families as palette
+ * files that set the same --mmt-* tokens; components only ever use the semantic Tailwind colours below.
+ */
 :root {
+	color-scheme: light;
 	--mmt-surface: #ffffff;
+	--mmt-surface-raised: #f4f4f5;
+	--mmt-surface-sunken: #e4e4e7;
 	--mmt-text: #1a1a1a;
+	--mmt-muted: #5f6672;
+	--mmt-border: #d4d4d8;
+	--mmt-accent: #2563eb;
+	--mmt-on-accent: #ffffff;
+	--mmt-accent-surface: #dbeafe;
+	--mmt-danger: #b91c1c;
+	--mmt-danger-surface: #fef2f2;
+	--mmt-success: #15803d;
+	--mmt-warning: #b45309;
+}
+
+:root[data-theme="dark"] {
+	color-scheme: dark;
+	--mmt-surface: #18181b;
+	--mmt-surface-raised: #27272a;
+	--mmt-surface-sunken: #09090b;
+	--mmt-text: #f4f4f5;
+	--mmt-muted: #a1a1aa;
+	--mmt-border: #3f3f46;
+	--mmt-accent: #60a5fa;
+	--mmt-on-accent: #0b1220;
+	--mmt-accent-surface: #1e3a5f;
+	--mmt-danger: #f87171;
+	--mmt-danger-surface: #3b1111;
+	--mmt-success: #4ade80;
+	--mmt-warning: #fbbf24;
 }
 
 @theme {
 	--font-sans: "Atkinson Hyperlegible", sans-serif;
 	--font-mono: "Atkinson Hyperlegible Mono", monospace;
 	--color-surface: var(--mmt-surface);
+	--color-surface-raised: var(--mmt-surface-raised);
+	--color-surface-sunken: var(--mmt-surface-sunken);
 	--color-text: var(--mmt-text);
+	--color-muted: var(--mmt-muted);
+	--color-border: var(--mmt-border);
+	--color-accent: var(--mmt-accent);
+	--color-on-accent: var(--mmt-on-accent);
+	--color-accent-surface: var(--mmt-accent-surface);
+	--color-danger: var(--mmt-danger);
+	--color-danger-surface: var(--mmt-danger-surface);
+	--color-success: var(--mmt-success);
+	--color-warning: var(--mmt-warning);
 }
 
 body {
 	font-family: var(--font-sans);
+	background: var(--color-surface);
+	color: var(--color-text);
 }
