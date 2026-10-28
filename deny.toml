@@ -107,7 +107,12 @@ features = [
 ]
 # Duplicate versions tolerated for now, each with a reason:
 # { crate = "name@version", reason = "..." }
-skip = []
+skip = [
+	# buffa 0.9 pins hashbrown 0.15 while the rest of the tree is on 0.17
+	{ crate = "hashbrown@0.15", reason = "upstream: buffa 0.9" },
+	# proc-macro crates are moving from syn 2 to syn 3; both coexist until the ecosystem catches up
+	{ crate = "syn@2", reason = "upstream: syn 2 to 3 transition" },
+]
 skip-tree = []
 
 # crates.io only. A git dependency must be a deliberate, listed exception.

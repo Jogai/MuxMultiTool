@@ -4,3 +4,5 @@ extend-exclude = ["package-lock.json", "Cargo.lock", "web/src/*.d.ts"]
 [default.extend-words]
 # HTMLMediaElement event name
 seeked = "seeked"
+# The flate2 crate (deflate)
+flate = "flate"
