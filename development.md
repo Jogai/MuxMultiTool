@@ -72,12 +72,12 @@ cd web && npm ci && npx lefthook install
 
 The hooks also need `typos` (`cargo install typos-cli --locked`) and, for Rust files, the toolchain from `rust-toolchain.toml`. Run `typos` by hand to check spelling across the repo.
 
+### Frontend
+
+The Vue app lives in `web/`. From there: `npm ci`, `npm run dev`, and `npm run ci` for the format, lint, type-check and build steps.
+
 ## License
 
 MuxMultiTool is licensed under the [GNU General Public License v3.0 or later](https://www.gnu.org/licenses/gpl-3.0.html).
 
 SPDX-License-Identifier: GPL-3.0-or-later
-
-## Frontend
-
-The Vue app lives in `web/`. From there: `npm ci`, `npm run dev`, and `npm run ci` for the format, lint, type-check and build steps.
