@@ -43,6 +43,7 @@ mod config;
 mod crop;
 mod cut;
 mod download;
+mod extract;
 mod files;
 mod gif;
 pub mod health;
@@ -136,7 +137,8 @@ fn app_with_state(state: Arc<AppState>) -> Router {
 		.add_service(Arc::new(cut::Cut::new(Arc::clone(&state))))
 		.add_service(Arc::new(merge::Merge::new(Arc::clone(&state))))
 		.add_service(Arc::new(crop::Crop::new(Arc::clone(&state))))
-		.add_service(Arc::new(combine::Combine::new(Arc::clone(&state))));
+		.add_service(Arc::new(combine::Combine::new(Arc::clone(&state))))
+		.add_service(Arc::new(extract::Extract::new(Arc::clone(&state))));
 
 	let index = state.frontend_dir.join("index.html");
 	let frontend = ServeDir::new(&state.frontend_dir).fallback(ServeFile::new(index));

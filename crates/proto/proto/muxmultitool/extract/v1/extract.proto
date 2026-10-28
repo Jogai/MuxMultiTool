@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package muxmultitool.extract.v1;
+
+import "muxmultitool/streams/v1/streams.proto";
+
+// ExtractService previews an extraction: which files each stream of the
+// input would get, which streams have no file format of their own, and the
+// exact ffmpeg command. The extraction itself runs as a job:
+// JobsService.SubmitJob takes the same ExtractStreamsOperation and refuses
+// it while the preview has a blocking issue. Streams are copied, never
+// re-encoded, except cover art that is not JPEG yet, which is encoded as
+// one, and mov_text subtitles, which are rewritten as SRT.
+service ExtractService {
+  // PreviewExtract resolves the selection against the input's streams. It
+  // probes the input and queues nothing.
+  rpc PreviewExtract(PreviewExtractRequest) returns (PreviewExtractResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+// ExtractStreamsOperation writes streams of the input to one file each, in
+// a single ffmpeg run.
+message ExtractStreamsOperation {
+  // Input is the source file: a file id from FilesService, or the absolute
+  // path of a file inside a configured media root.
+  string input = 1;
+  // OutputFolder is the existing folder the files go into: an absolute path
+  // inside a media root. Empty puts them next to the input. A file that
+  // already exists is never overwritten: the submit fails with
+  // ALREADY_EXISTS.
+  string output_folder = 2;
+  // Mode says how stream_indexes are read. ALL extracts every stream that
+  // has a file format; the others are reported as skipped. RULES is not
+  // accepted here (INVALID_ARGUMENT).
+  muxmultitool.streams.v1.SelectionMode mode = 3;
+  // StreamIndexes are the streams to extract (KEEP) or to leave out (DROP).
+  // A stream listed under KEEP that has no file format blocks the job.
+  repeated uint32 stream_indexes = 4;
+}
+
+message PreviewExtractRequest {
+  ExtractStreamsOperation operation = 1;
+}
+
+message PreviewExtractResponse {
+  // Files are the files the job would write, in stream order.
+  repeated ExtractFile files = 1;
+  // Skipped are the selected streams without a file format.
+  repeated ExtractSkipped skipped = 2;
+  // CanRun is false while a blocking entry is skipped: a submit of the same
+  // operation would be refused (FAILED_PRECONDITION).
+  bool can_run = 3;
+  // Command is the ffmpeg command line the job would run, quoted for a
+  // shell.
+  string command = 4;
+  // Argv is the same command as the program followed by its arguments.
+  repeated string argv = 5;
+}
+
+// ExtractFile is one file of the extraction.
+message ExtractFile {
+  // StreamIndex is the stream that goes into the file.
+  uint32 stream_index = 1;
+  // Kind is "video", "audio", "subtitle" or "cover".
+  string kind = 2;
+  // Codec is the stream's codec name, e.g. "aac"; empty when unknown.
+  string codec = 3;
+  // Language is the stream's language tag; empty when it has none.
+  string language = 4;
+  // FileName is the name of the file, without its folder, e.g.
+  // "clip.s1.audio.eng.aac".
+  string file_name = 5;
+}
+
+// ExtractSkipped is a selected stream that cannot be written to a file of
+// its own.
+message ExtractSkipped {
+  uint32 stream_index = 1;
+  // Blocking is true when the stream was ticked by hand: the job would be
+  // refused until it is unticked.
+  bool blocking = 2;
+  // Message says what the stream is and why it has no file.
+  string message = 3;
+}

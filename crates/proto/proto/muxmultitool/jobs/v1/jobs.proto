@@ -5,6 +5,7 @@ package muxmultitool.jobs.v1;
 import "muxmultitool/combine/v1/combine.proto";
 import "muxmultitool/crop/v1/crop.proto";
 import "muxmultitool/cut/v1/cut.proto";
+import "muxmultitool/extract/v1/extract.proto";
 import "muxmultitool/gif/v1/gif.proto";
 import "muxmultitool/merge/v1/merge.proto";
 import "muxmultitool/streams/v1/streams.proto";
@@ -78,6 +79,10 @@ message SubmitJobRequest {
     // CombineService.PreviewCombine reports a blocking issue
     // (FAILED_PRECONDITION).
     muxmultitool.combine.v1.CombineOperation combine = 9;
+    // Streams written to one file each, cover art as JPEG; refused when a
+    // ticked stream has no file format (FAILED_PRECONDITION, see
+    // ExtractService.PreviewExtract).
+    muxmultitool.extract.v1.ExtractStreamsOperation extract_streams = 22;
   }
 }
 

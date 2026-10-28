@@ -6,6 +6,7 @@
 pub mod combine;
 pub mod crop;
 pub mod cut;
+pub mod extract;
 pub mod ffmpeg;
 pub mod files;
 pub mod fs;

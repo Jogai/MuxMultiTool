@@ -1,0 +1,5 @@
+---
+source: crates/core/src/extract.rs
+expression: "command(&Selection::keep([1, 4]))"
+---
+ffmpeg -i '/media/in/Movie A (2024).mkv' -map 0:1 -map_chapters -1 -c copy '/media/out/Movie A (2024).s1.audio.eng.aac' -map 0:4 -map_chapters -1 -c:s srt '/media/out/Movie A (2024).s4.subtitle.srt'

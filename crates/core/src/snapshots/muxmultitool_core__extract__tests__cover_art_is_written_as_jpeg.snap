@@ -1,0 +1,5 @@
+---
+source: crates/core/src/extract.rs
+expression: "command(&Selection::keep([6, 7]))"
+---
+ffmpeg -i '/media/in/Movie A (2024).mkv' -map 0:6 -map_chapters -1 -c:v mjpeg -q:v 2 -frames:v 1 -update 1 '/media/out/Movie A (2024).s6.cover.jpg' -map 0:7 -map_chapters -1 -c copy -frames:v 1 -update 1 '/media/out/Movie A (2024).s7.cover.jpg'

@@ -1,0 +1,5 @@
+---
+source: crates/core/src/extract.rs
+expression: "command(&Selection::all())"
+---
+ffmpeg -i '/media/in/Movie A (2024).mkv' -map 0:0 -map_chapters -1 -c copy '/media/out/Movie A (2024).s0.video.mkv' -map 0:1 -map_chapters -1 -c copy '/media/out/Movie A (2024).s1.audio.eng.aac' -map 0:2 -map_chapters -1 -c copy '/media/out/Movie A (2024).s2.audio.fre.thd' -map 0:3 -map_chapters -1 -c copy '/media/out/Movie A (2024).s3.subtitle.eng.srt' -map 0:4 -map_chapters -1 -c:s srt '/media/out/Movie A (2024).s4.subtitle.srt' -map 0:5 -map_chapters -1 -c copy '/media/out/Movie A (2024).s5.subtitle.ger.sup' -map 0:6 -map_chapters -1 -c:v mjpeg -q:v 2 -frames:v 1 -update 1 '/media/out/Movie A (2024).s6.cover.jpg' -map 0:7 -map_chapters -1 -c copy -frames:v 1 -update 1 '/media/out/Movie A (2024).s7.cover.jpg' -map 0:9 -map_chapters -1 -c copy '/media/out/Movie A (2024).s9.audio.mka'

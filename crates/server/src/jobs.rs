@@ -62,6 +62,7 @@ impl JobsService for Jobs {
 			Operation::Merge(merge) => self.merge_spec(&request.name, &merge).await?,
 			Operation::Crop(crop) => self.crop_spec(&request.name, &crop).await?,
 			Operation::Combine(op) => self.combine_spec(&request.name, &op).await?,
+			Operation::ExtractStreams(op) => self.extract_streams_spec(&request.name, &op).await?,
 		};
 		let job = self
 			.state
