@@ -25,6 +25,10 @@ const PATTERNS: &[(&str, &str)] = &[
 		"the output container cannot hold one of the streams; pick another container or drop the stream",
 	),
 	(
+		"muxer supports only",
+		"the output container cannot hold one of the streams; pick another container or drop the stream",
+	),
+	(
 		"Error opening output",
 		"the output file could not be created; check that its folder exists",
 	),
@@ -50,6 +54,11 @@ const PATTERNS: &[(&str, &str)] = &[
 	),
 	("No such file or directory", "the input file was not found"),
 	("Error opening input", "the input file could not be opened"),
+	// Last: the generic line ffmpeg prints after the muxer complaints above.
+	(
+		"Could not write header",
+		"the output container cannot hold the streams as they are; pick another container or re-encode",
+	),
 ];
 
 /// Turns ffmpeg's exit status and the tail of its stderr into one sentence
@@ -104,6 +113,15 @@ mod tests {
 
 		let tail = "File '/media/out/movie.mkv' already exists. Exiting.";
 		assert_eq!(explain(status(1), tail), "the output file already exists");
+
+		let tail = "[gif @ 0x1] gif muxer supports only codec gif for type video\n\
+			[out#0/gif @ 0x2] Could not write header (incorrect codec parameters ?): Invalid argument\n\
+			Conversion failed!";
+		assert!(explain(status(234), tail).starts_with("the output container cannot hold one"));
+		let tail = "[out#0/mp4 @ 0x2] Could not write header (incorrect codec parameters ?): Invalid argument";
+		assert!(
+			explain(status(234), tail).starts_with("the output container cannot hold the streams")
+		);
 	}
 
 	#[cfg(unix)]
