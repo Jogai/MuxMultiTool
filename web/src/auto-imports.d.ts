@@ -98,6 +98,7 @@ declare global {
   const isRef: typeof import('vue').isRef
   const isShallow: typeof import('vue').isShallow
   const isTerminal: typeof import('./core/libs/jobQueue').isTerminal
+  const joinPath: typeof import('./core/libs/filePicker').joinPath
   const makeDestructurable: typeof import('@vueuse/core').makeDestructurable
   const mapActions: typeof import('pinia').mapActions
   const mapGetters: typeof import('pinia').mapGetters
@@ -424,7 +425,7 @@ declare global {
   export type { AppError, ToAppErrorOptions } from './core/libs/errors'
   import('./core/libs/errors')
   // @ts-ignore
-  export type { AppMode, PickFilesOptions, PickedFile, FilePicker, OpenFileBrowser } from './core/libs/filePicker'
+  export type { AppMode, PickFilesOptions, PickSavePathOptions, PickedFile, FilePicker, OpenFileBrowser } from './core/libs/filePicker'
   import('./core/libs/filePicker')
   // @ts-ignore
   export type { QueueJobs } from './core/libs/jobQueue'
@@ -540,6 +541,7 @@ declare module 'vue' {
     readonly isRef: UnwrapRef<typeof import('vue')['isRef']>
     readonly isShallow: UnwrapRef<typeof import('vue')['isShallow']>
     readonly isTerminal: UnwrapRef<typeof import('./core/libs/jobQueue')['isTerminal']>
+    readonly joinPath: UnwrapRef<typeof import('./core/libs/filePicker')['joinPath']>
     readonly makeDestructurable: UnwrapRef<typeof import('@vueuse/core')['makeDestructurable']>
     readonly mapActions: UnwrapRef<typeof import('pinia')['mapActions']>
     readonly mapGetters: UnwrapRef<typeof import('pinia')['mapGetters']>

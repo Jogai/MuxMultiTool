@@ -1,5 +1,11 @@
 [files]
-extend-exclude = ["package-lock.json", "Cargo.lock", "web/src/*.d.ts"]
+extend-exclude = [
+	"package-lock.json",
+	"Cargo.lock",
+	"web/src/*.d.ts",
+	# binary, but the pre-commit hook passes staged files by name
+	"crates/desktop/icons/*",
+]
 
 [default.extend-words]
 # HTMLMediaElement event name

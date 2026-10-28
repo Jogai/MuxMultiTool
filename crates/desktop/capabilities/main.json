@@ -1,0 +1,15 @@
+{
+	"identifier": "main",
+	"description": "The app window. It loads the UI from the embedded server on 127.0.0.1, so IPC is allowed for that origin only (architecture.md, \"Desktop specifics\"): the native file dialogs behind pickFiles() and opening external links in the system browser.",
+	"local": false,
+	"remote": {
+		"urls": ["http://127.0.0.1:*"]
+	},
+	"windows": ["main"],
+	"permissions": [
+		"dialog:allow-open",
+		"dialog:allow-save",
+		"opener:allow-open-url",
+		"opener:allow-default-urls"
+	]
+}

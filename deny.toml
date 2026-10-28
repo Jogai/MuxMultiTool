@@ -101,7 +101,6 @@ features = [
 	{ crate = "reqwest", deny = [
 		"default-tls",
 		"native-tls",
-		"native-tls-alpn",
 		"native-tls-vendored",
 	] },
 ]
@@ -112,6 +111,32 @@ skip = [
 	{ crate = "hashbrown@0.15", reason = "upstream: buffa 0.9" },
 	# proc-macro crates are moving from syn 2 to syn 3; both coexist until the ecosystem catches up
 	{ crate = "syn@2", reason = "upstream: syn 2 to 3 transition" },
+	# The Tauri 3 alpha tree (desktop app only, never in the static container
+	# binary): its plugins, build helpers and GTK bindings lag behind the core
+	# crates. cargo-deny cannot tell that the GTK crates are Linux-only and the
+	# Tauri crates Windows/macOS-only (crates/desktop/Cargo.toml), so the
+	# Linux-only duplicates show up as well. Revisit on each alpha bump.
+	{ crate = "base64@0.21", reason = "upstream: tauri-utils via swift-rs" },
+	{ crate = "base64@0.23", reason = "upstream: tauri-codegen, reqwest, hyper-util" },
+	{ crate = "bitflags@1", reason = "upstream: png 0.17 (ico), webkit2gtk" },
+	{ crate = "foldhash@0.2", reason = "upstream: tauri (serde_json preserve_order), dom_query" },
+	{ crate = "getrandom@0.3", reason = "upstream: tauri" },
+	{ crate = "heck@0.4", reason = "upstream: glib-macros" },
+	{ crate = "miniz_oxide@0.8", reason = "upstream: png" },
+	{ crate = "png@0.17", reason = "upstream: ico (tauri-codegen)" },
+	{ crate = "proc-macro-crate@1", reason = "upstream: gtk3-macros" },
+	{ crate = "proc-macro-crate@2", reason = "upstream: glib-macros" },
+	{ crate = "serde_spanned@0.6", reason = "upstream: toml 0.8 (system-deps)" },
+	{ crate = "syn@1", reason = "upstream: proc-macro-error (gtk bindings)" },
+	{ crate = "thiserror@1", reason = "upstream: gtk bindings" },
+	{ crate = "thiserror-impl@1", reason = "upstream: gtk bindings" },
+	{ crate = "toml@0.8", reason = "upstream: system-deps" },
+	{ crate = "toml_datetime@0.6", reason = "upstream: toml 0.8, proc-macro-crate 2" },
+	{ crate = "toml_edit@0.19", reason = "upstream: proc-macro-crate 1" },
+	{ crate = "toml_edit@0.20", reason = "upstream: proc-macro-crate 2, toml 0.8" },
+	{ crate = "tower-http@0.6", reason = "upstream: reqwest (tauri)" },
+	{ crate = "windows-sys@0.60", reason = "upstream: rfd (tauri-plugin-dialog)" },
+	{ crate = "winnow@0.5", reason = "upstream: toml_edit 0.19 and 0.20" },
 ]
 skip-tree = []
 

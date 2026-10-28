@@ -34,6 +34,7 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
       proto: ${{ steps.filter.outputs.proto }}
+      desktop: ${{ steps.filter.outputs.desktop }}
     steps:
       - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v4
@@ -48,13 +49,11 @@ jobs:
               - Cargo.toml
               - rust-toolchain.toml
               - .github/**
-            # Backend checks, plus later the container image (server, Dockerfile) and
-            # the desktop build matrix (desktop, tauri.conf.json).
+            # Backend checks, plus later the container image (server, Dockerfile).
             backend:
               - *everything
               - crates/**
               - Dockerfile
-              - tauri.conf.json
               - clippy.toml
               - deny.toml
               - rustfmt.toml
@@ -68,6 +67,13 @@ jobs:
             proto:
               - crates/proto/**
               - .github/**
+            # The desktop installers: the Tauri crate, the server it embeds and the
+            # frontend it bundles (web/package-lock.json pins the Tauri CLI).
+            desktop:
+              - *everything
+              - crates/server/**
+              - crates/desktop/**
+              - web/**
 
   # `buf generate` once; the backend and frontend jobs download the result. The
   # generated code is git-ignored, see development.md ("RPC contract and generated code").
@@ -269,6 +275,82 @@ jobs:
           git branch --force ci-base FETCH_HEAD
           ./breaking.sh ci-base
 
+  # The desktop installers (development.md, "Desktop app"): the Tauri app with the server
+  # embedded, the built frontend as a resource and ffmpeg/ffprobe as sidecars. The
+  # Apple Silicon runner also cross-compiles the Intel build. macOS signing and
+  # notarization run when the Apple secrets exist; Windows signing is not set up
+  # yet. Both are release blockers, documented in development.md.
+  desktop:
+    name: Desktop (${{ matrix.target }})
+    needs: [changes, codegen]
+    if: needs.changes.outputs.desktop == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: nsis
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            bundles: dmg
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            bundles: dmg
+    runs-on: ${{ matrix.os }}
+    env:
+      # Only a job-level env can look at the secrets; the step below reads this.
+      APPLE_SIGNING: ${{ secrets.APPLE_SIGNING_IDENTITY != '' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: generated-rpc-code
+      - uses: ./.github/actions/rust-toolchain
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install the web dependencies (the Tauri CLI among them)
+        run: npm ci --no-audit --no-fund
+        working-directory: web
+      - name: Build the frontend (bundled as the web/ resource)
+        run: npm run build
+        working-directory: web
+      - name: Fetch the ffmpeg and ffprobe sidecars
+        run: crates/desktop/scripts/fetch-sidecars.sh ${{ matrix.target }}
+        shell: bash
+      # The Tauri CLI signs and notarizes the macOS bundle when these variables are
+      # set; an empty value would not do, so they are only exported when they exist.
+      - name: Apple signing credentials
+        if: runner.os == 'macOS' && env.APPLE_SIGNING == 'true'
+        run: |
+          {
+            echo "APPLE_CERTIFICATE=${{ secrets.APPLE_CERTIFICATE }}"
+            echo "APPLE_CERTIFICATE_PASSWORD=${{ secrets.APPLE_CERTIFICATE_PASSWORD }}"
+            echo "APPLE_SIGNING_IDENTITY=${{ secrets.APPLE_SIGNING_IDENTITY }}"
+            echo "APPLE_ID=${{ secrets.APPLE_ID }}"
+            echo "APPLE_PASSWORD=${{ secrets.APPLE_PASSWORD }}"
+            echo "APPLE_TEAM_ID=${{ secrets.APPLE_TEAM_ID }}"
+          } >> "$GITHUB_ENV"
+      - name: Build the installer
+        run: npx tauri build --ci --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+        working-directory: web
+        env:
+          TAURI_APP_PATH: ../crates/desktop
+          TAURI_FRONTEND_PATH: .
+      - uses: actions/upload-artifact@v7
+        with:
+          name: desktop-${{ matrix.target }}
+          path: |
+            target/${{ matrix.target }}/release/bundle/nsis/*.exe
+            target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+
   # Conventional Commits, because git-cliff works out the next version from them.
   # Merge commits are left alone, so a branch may merge master instead of rebasing.
   commits:
@@ -294,7 +376,7 @@ jobs:
   # The one status check to require: green when every job passed or was skipped.
   ci:
     name: CI
-    needs: [changes, codegen, backend-lint, backend-test, backend-musl, frontend, contract, commits]
+    needs: [changes, codegen, backend-lint, backend-test, backend-musl, frontend, contract, desktop, commits]
     if: always()
     runs-on: ubuntu-latest
     steps:

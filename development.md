@@ -239,12 +239,13 @@ GitHub Actions runs the checks above on every pull request and on `master` (`.gi
 | Changed | Runs |
 |---|---|
 | `crates/core/**`, `crates/proto/**`, `Cargo.lock`, `Cargo.toml`, `rust-toolchain.toml`, `.github/**` | Everything |
-| `crates/server/**`, `crates/desktop/**`, `Dockerfile`, `tauri.conf.json`, the root `*.toml` configs | Backend checks |
+| `crates/server/**`, `crates/desktop/**`, `Dockerfile`, the root `*.toml` configs | Backend checks |
 | `web/**` | Frontend checks |
+| `crates/server/**`, `crates/desktop/**`, `web/**` | Desktop installers (Windows x64, macOS arm64 and x64) |
 | `crates/proto/**` | RPC contract checks (lint, format, breaking changes) |
 | anything else (readme, docs) | Nothing |
 
-The jobs: `codegen` runs `buf generate` once and hands the result to the others; `backend-lint`, `backend-test` (nextest with coverage, needs ffmpeg) and `backend-musl` (`cargo zigbuild` of the server for `x86_64-unknown-linux-musl`, so a C dependency can't slip in); `frontend` runs the `npm run ci` steps one by one, then the unit tests; `contract` runs the buf checks; `commits` runs `committed` over the new commits. `CI` is the one status check to require in branch protection: it is green when every job passed or was skipped. Cargo builds are cached with `Swatinem/rust-cache`, npm with `actions/setup-node`.
+The jobs: `codegen` runs `buf generate` once and hands the result to the others; `backend-lint`, `backend-test` (nextest with coverage, needs ffmpeg) and `backend-musl` (`cargo zigbuild` of the server for `x86_64-unknown-linux-musl`, so a C dependency can't slip in); `frontend` runs the `npm run ci` steps one by one, then the unit tests; `desktop` builds the installers (see "Desktop app"); `contract` runs the buf checks; `commits` runs `committed` over the new commits. `CI` is the one status check to require in branch protection: it is green when every job passed or was skipped. Cargo builds are cached with `Swatinem/rust-cache`, npm with `actions/setup-node`.
 
 A daily workflow (`.github/workflows/security.yml`) runs `cargo deny check advisories` and `npm audit`. The container image has its own workflow, see "Container" below.
 
@@ -261,6 +262,26 @@ The Vue app lives in `web/`. From there: `npm ci`, `npm run dev`, and `npm run c
 The preview player is `web/src/features/player/` (`<PlayerView file-id=…>`): hls.js on MediaSource wherever MSE decodes H.264/AAC, the browser's own HLS player only where MSE is absent, and a plain message where neither works (the engine rule from the TASK-4 spike, `lib/engine.ts`). It plays the file's preview session, steps frame by frame (frame rate from the stream report) and keyframe by keyframe (keyframe times are a prop; the cut service supplies them), plays or loops a range, shows the cues of a text subtitle track over the picture, and has fixed keyboard shortcuts (`lib/shortcuts.ts`, listed in the UI under the keyboard button or `?`). The Cut screen shows it for `/cut?file=<id>` until the timeline editor lands.
 
 Themes are palette files in `web/src/core/themes/families/`, one per family, registered in `web/src/core/themes/index.ts`. A palette gives each variant its official colours; the semantic `--mmt-*` tokens that every component uses through Tailwind are derived from them at runtime, nudged just far enough for WCAG AA contrast. `npx vitest run src/core/themes` checks every variant.
+
+### Desktop app
+
+`crates/desktop` is the Tauri app for Windows (WebView2) and macOS (WKWebView). It runs the same server in its own process on `127.0.0.1` with a random port and opens its window on that URL, so the frontend calls its own origin exactly as in the container; there is no separate backend process, and closing the window stops the server, which kills every running ffmpeg job. The frontend's only Tauri calls are the native file dialogs behind `pickFiles()` and `pickSavePath()` (`web/src/core/libs/filePicker.ts`) and opening external links in the system browser (`externalLink.ts`); `crates/desktop/capabilities/main.json` allows exactly those two plugin commands, for the server's origin only (`http://127.0.0.1:*`). The server runs with `Config::desktop` set, so the absolute paths the dialogs return are accepted, and with the app-data folder as `Config::data_dir` (`%APPDATA%\io.github.jogai.muxmultitool` on Windows, `~/Library/Application Support/io.github.jogai.muxmultitool` on macOS), so the theme persists.
+
+The Tauri crates are pinned to the 3.0.0 alpha named in the architecture doc (`tauri`, `tauri-build`, `tauri-runtime-wry`, `tauri-plugin-dialog`, `tauri-plugin-opener`) together with `@tauri-apps/cli` in `web/package.json`; bump them together. The Tauri dependencies are Windows/macOS only: on Linux the binary is a stub that says so (the Linux shell, Tauri's CEF runtime, is a separate task), which keeps the workspace checks free of GTK and WebKit libraries. The duplicate crate versions the alpha drags in are listed in `deny.toml` with reasons.
+
+Build an installer on Windows or macOS:
+
+1. `cd web && npm ci && npm run build`: the frontend, bundled as the `web/` resource.
+2. `crates/desktop/scripts/fetch-sidecars.sh <target>` downloads the pinned GPL ffmpeg and ffprobe builds for the target triple into `crates/desktop/binaries/` (git-ignored): BtbN `win64-gpl` for Windows, Martin Riedl's static builds for macOS arm64 and x64, each checked against its SHA-256.
+3. `cd web && TAURI_APP_PATH=../crates/desktop npx tauri build --target <target>` writes the NSIS installer or the `.app` and `.dmg` to `target/<target>/release/bundle/`. `tauri.conf.json` has no `version`: it inherits the workspace version from `Cargo.toml`.
+
+For development, `cargo run -p muxmultitool-desktop` after `npm run build` is enough: without a bundle the app serves `web/dist` (or `MMT_FRONTEND_DIR`), and `MMT_FFMPEG` and `MMT_FFPROBE` point at an installed ffmpeg when the sidecars are not fetched. Logs go to stderr, filtered by `RUST_LOG`.
+
+CI (the `desktop` job) builds the three installers on every change to the desktop crate, the server or the frontend and uploads them as workflow artifacts. **Release blockers:**
+
+- **macOS signing and notarization** run in CI when the repository secrets `APPLE_CERTIFICATE` (base64 `.p12`), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD` (an app-specific password) and `APPLE_TEAM_ID` exist. They do not yet: the `.dmg` is unsigned and Gatekeeper refuses it until they are added.
+- **Windows signing** is not set up: there is no code-signing certificate. Configure `bundle.windows.signCommand` (for example Azure Trusted Signing) or `certificateThumbprint` in `tauri.conf.json` once there is one; until then SmartScreen warns about the installer.
+- **Preview playback in WebView2 and WKWebView** still needs the manual test from the HLS spike on real machines (architecture doc, "HLS playback spike").
 
 ## Container
 

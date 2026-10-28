@@ -20,7 +20,7 @@ pre-commit:
       glob: "*.{ts,vue}"
       run: npx oxlint --type-aware {staged_files}
     spelling:
-      run: typos {staged_files}
+      run: typos --force-exclude {staged_files}
 
 # Conventional Commits (committed.toml). CI checks the whole branch.
 commit-msg:

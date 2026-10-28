@@ -9,6 +9,32 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
+muxmultitool-core = { path = "../core", version = "0.1.0" }
+muxmultitool-server = { path = "../server", version = "0.1.0" }
+tokio = { version = "1.54.1", features = ["rt", "sync", "time"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", default-features = false, features = [
+	"env-filter",
+	"fmt",
+] }
+
+# The Tauri shell for Windows (WebView2) and macOS (WKWebView). The versions are
+# pinned: Tauri 3 is an alpha and its crates, plugins and the `@tauri-apps/cli`
+# npm package (web/package.json) must match. The Linux shell (Tauri's CEF
+# runtime, architecture.md "Desktop shell") is a separate task; on Linux the
+# binary is a stub, so the workspace checks need no GTK or WebKit libraries.
+[target.'cfg(any(windows, target_os = "macos"))'.dependencies]
+tauri = { version = "=3.0.0-alpha.5" }
+tauri-plugin-dialog = { version = "=3.0.0-alpha.4", default-features = false }
+tauri-plugin-opener = { version = "=3.0.0-alpha.3" }
+tauri-runtime-wry = { version = "=3.0.0-alpha.5", default-features = false }
+
+[build-dependencies]
+tauri-build = { version = "=3.0.0-alpha.4" }
+
+[dev-dependencies]
+tempfile = "3.27.0"
+tokio = { version = "1.54.1", features = ["io-util", "macros", "net"] }
 
 [lints]
 workspace = true
