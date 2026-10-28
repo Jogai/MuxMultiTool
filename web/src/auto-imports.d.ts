@@ -17,12 +17,14 @@ declare global {
   const REPOSITORY_URL: typeof import('./core/libs/externalLink').REPOSITORY_URL
   const THEME_STORAGE_KEY: typeof import('./core/libs/theme').THEME_STORAGE_KEY
   const acceptHMRUpdate: typeof import('pinia').acceptHMRUpdate
+  const alignColumns: typeof import('./core/libs/reportText').alignColumns
   const appMode: typeof import('./core/libs/filePicker').appMode
   const applyEvent: typeof import('./core/libs/jobQueue').applyEvent
   const applyFetchedJob: typeof import('./core/libs/jobQueue').applyFetchedJob
   const applySnapshot: typeof import('./core/libs/jobQueue').applySnapshot
   const applyThemeTokens: typeof import('./core/libs/theme').applyThemeTokens
   const asyncComputed: typeof import('@vueuse/core').asyncComputed
+  const audioLabel: typeof import('./core/libs/reportFormat').audioLabel
   const autoResetRef: typeof import('@vueuse/core').autoResetRef
   const baseName: typeof import('./core/libs/filePicker').baseName
   const codeName: typeof import('./core/libs/errors').codeName
@@ -31,6 +33,8 @@ declare global {
   const computedEager: typeof import('@vueuse/core').computedEager
   const computedInject: typeof import('@vueuse/core').computedInject
   const computedWithControl: typeof import('@vueuse/core').computedWithControl
+  const containerLabel: typeof import('./core/libs/reportFormat').containerLabel
+  const containerLine: typeof import('./core/libs/reportText').containerLine
   const controlledComputed: typeof import('@vueuse/core').controlledComputed
   const controlledRef: typeof import('@vueuse/core').controlledRef
   const countJobs: typeof import('./core/libs/jobQueue').countJobs
@@ -63,12 +67,17 @@ declare global {
   const eagerComputed: typeof import('@vueuse/core').eagerComputed
   const effectScope: typeof import('vue').effectScope
   const elapsedMs: typeof import('./core/libs/jobFormat').elapsedMs
+  const entriesForPicked: typeof import('./core/libs/pickedFiles').entriesForPicked
   const extendRef: typeof import('@vueuse/core').extendRef
+  const formatBitRate: typeof import('./core/libs/reportFormat').formatBitRate
   const formatBuildInfo: typeof import('./core/libs/buildInfo').formatBuildInfo
   const formatBytes: typeof import('./core/libs/jobFormat').formatBytes
+  const formatDuration: typeof import('./core/libs/reportFormat').formatDuration
+  const formatGb: typeof import('./core/libs/reportFormat').formatGb
   const formatPercent: typeof import('./core/libs/jobFormat').formatPercent
   const formatSpan: typeof import('./core/libs/jobFormat').formatSpan
   const formatSpeed: typeof import('./core/libs/jobFormat').formatSpeed
+  const formatStreamSize: typeof import('./core/libs/reportFormat').formatStreamSize
   const formatTimecode: typeof import('./core/libs/format').formatTimecode
   const getActivePinia: typeof import('pinia').getActivePinia
   const getCurrentInstance: typeof import('vue').getCurrentInstance
@@ -76,6 +85,7 @@ declare global {
   const getCurrentWatcher: typeof import('vue').getCurrentWatcher
   const getRpcTransport: typeof import('./core/libs/rpc').getRpcTransport
   const h: typeof import('vue').h
+  const hasExtension: typeof import('./core/composables/useFolderBrowser').hasExtension
   const ignorableWatch: typeof import('@vueuse/core').ignorableWatch
   const inject: typeof import('vue').inject
   const injectLocal: typeof import('@vueuse/core').injectLocal
@@ -123,6 +133,7 @@ declare global {
   const openExternal: typeof import('./core/libs/externalLink').openExternal
   const parseStoredTheme: typeof import('./core/libs/theme').parseStoredTheme
   const pausableWatch: typeof import('@vueuse/core').pausableWatch
+  const pickedFromEntry: typeof import('./core/libs/pickedFiles').pickedFromEntry
   const provide: typeof import('vue').provide
   const provideLocal: typeof import('@vueuse/core').provideLocal
   const queueEventId: typeof import('./core/libs/jobQueue').queueEventId
@@ -141,6 +152,8 @@ declare global {
   const refManualReset: typeof import('@vueuse/core').refManualReset
   const refThrottled: typeof import('@vueuse/core').refThrottled
   const refWithControl: typeof import('@vueuse/core').refWithControl
+  const reportAsText: typeof import('./core/libs/reportText').reportAsText
+  const reportName: typeof import('./core/libs/reportText').reportName
   const resolveComponent: typeof import('vue').resolveComponent
   const resolveTheme: typeof import('./core/libs/theme').resolveTheme
   const setActivePinia: typeof import('pinia').setActivePinia
@@ -150,7 +163,10 @@ declare global {
   const shallowReadonly: typeof import('vue').shallowReadonly
   const shallowRef: typeof import('vue').shallowRef
   const sortJobs: typeof import('./core/libs/jobQueue').sortJobs
+  const splitPatterns: typeof import('./core/composables/useFolderBrowser').splitPatterns
   const storeToRefs: typeof import('pinia').storeToRefs
+  const streamCells: typeof import('./core/libs/reportText').streamCells
+  const streamTypeName: typeof import('./core/libs/reportFormat').streamTypeName
   const syncRef: typeof import('@vueuse/core').syncRef
   const syncRefs: typeof import('@vueuse/core').syncRefs
   const themeSettingFromProto: typeof import('./core/libs/theme').themeSettingFromProto
@@ -241,9 +257,11 @@ declare global {
   const useFileDialog: typeof import('@vueuse/core').useFileDialog
   const useFilePicker: typeof import('./core/composables/useFilePicker').useFilePicker
   const useFilePickerStore: typeof import('./core/stores/filePicker').useFilePickerStore
+  const useFileSelectionStore: typeof import('./core/stores/fileSelection').useFileSelectionStore
   const useFileSystemAccess: typeof import('@vueuse/core').useFileSystemAccess
   const useFocus: typeof import('@vueuse/core').useFocus
   const useFocusWithin: typeof import('@vueuse/core').useFocusWithin
+  const useFolderBrowser: typeof import('./core/composables/useFolderBrowser').useFolderBrowser
   const useFps: typeof import('@vueuse/core').useFps
   const useFullscreen: typeof import('@vueuse/core').useFullscreen
   const useGamepad: typeof import('@vueuse/core').useGamepad
@@ -316,6 +334,7 @@ declare global {
   const useStepper: typeof import('@vueuse/core').useStepper
   const useStorage: typeof import('@vueuse/core').useStorage
   const useStorageAsync: typeof import('@vueuse/core').useStorageAsync
+  const useStreamReport: typeof import('./core/composables/useStreamReport').useStreamReport
   const useStyleTag: typeof import('@vueuse/core').useStyleTag
   const useSupported: typeof import('@vueuse/core').useSupported
   const useSwipe: typeof import('@vueuse/core').useSwipe
@@ -359,6 +378,7 @@ declare global {
   const useWindowFocus: typeof import('@vueuse/core').useWindowFocus
   const useWindowScroll: typeof import('@vueuse/core').useWindowScroll
   const useWindowSize: typeof import('@vueuse/core').useWindowSize
+  const videoLabel: typeof import('./core/libs/reportFormat').videoLabel
   const watch: typeof import('vue').watch
   const watchArray: typeof import('@vueuse/core').watchArray
   const watchAtMost: typeof import('@vueuse/core').watchAtMost
@@ -386,6 +406,9 @@ declare global {
   export type { QueueConnection, JobQueueOptions } from './core/composables/useJobQueue'
   import('./core/composables/useJobQueue')
   // @ts-ignore
+  export type { CachedReport } from './core/composables/useStreamReport'
+  import('./core/composables/useStreamReport')
+  // @ts-ignore
   export type { BackendState } from './core/composables/useSystemStatus'
   import('./core/composables/useSystemStatus')
   // @ts-ignore
@@ -409,6 +432,9 @@ declare global {
   // @ts-ignore
   export type { NavName } from './core/libs/navigation'
   import('./core/libs/navigation')
+  // @ts-ignore
+  export type { ReportLayout } from './core/libs/reportText'
+  import('./core/libs/reportText')
   // @ts-ignore
   export type { RpcTransportOptions } from './core/libs/rpc'
   import('./core/libs/rpc')
@@ -434,12 +460,14 @@ declare module 'vue' {
     readonly REPOSITORY_URL: UnwrapRef<typeof import('./core/libs/externalLink')['REPOSITORY_URL']>
     readonly THEME_STORAGE_KEY: UnwrapRef<typeof import('./core/libs/theme')['THEME_STORAGE_KEY']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
+    readonly alignColumns: UnwrapRef<typeof import('./core/libs/reportText')['alignColumns']>
     readonly appMode: UnwrapRef<typeof import('./core/libs/filePicker')['appMode']>
     readonly applyEvent: UnwrapRef<typeof import('./core/libs/jobQueue')['applyEvent']>
     readonly applyFetchedJob: UnwrapRef<typeof import('./core/libs/jobQueue')['applyFetchedJob']>
     readonly applySnapshot: UnwrapRef<typeof import('./core/libs/jobQueue')['applySnapshot']>
     readonly applyThemeTokens: UnwrapRef<typeof import('./core/libs/theme')['applyThemeTokens']>
     readonly asyncComputed: UnwrapRef<typeof import('@vueuse/core')['asyncComputed']>
+    readonly audioLabel: UnwrapRef<typeof import('./core/libs/reportFormat')['audioLabel']>
     readonly autoResetRef: UnwrapRef<typeof import('@vueuse/core')['autoResetRef']>
     readonly baseName: UnwrapRef<typeof import('./core/libs/filePicker')['baseName']>
     readonly codeName: UnwrapRef<typeof import('./core/libs/errors')['codeName']>
@@ -448,6 +476,8 @@ declare module 'vue' {
     readonly computedEager: UnwrapRef<typeof import('@vueuse/core')['computedEager']>
     readonly computedInject: UnwrapRef<typeof import('@vueuse/core')['computedInject']>
     readonly computedWithControl: UnwrapRef<typeof import('@vueuse/core')['computedWithControl']>
+    readonly containerLabel: UnwrapRef<typeof import('./core/libs/reportFormat')['containerLabel']>
+    readonly containerLine: UnwrapRef<typeof import('./core/libs/reportText')['containerLine']>
     readonly controlledComputed: UnwrapRef<typeof import('@vueuse/core')['controlledComputed']>
     readonly controlledRef: UnwrapRef<typeof import('@vueuse/core')['controlledRef']>
     readonly countJobs: UnwrapRef<typeof import('./core/libs/jobQueue')['countJobs']>
@@ -479,12 +509,17 @@ declare module 'vue' {
     readonly eagerComputed: UnwrapRef<typeof import('@vueuse/core')['eagerComputed']>
     readonly effectScope: UnwrapRef<typeof import('vue')['effectScope']>
     readonly elapsedMs: UnwrapRef<typeof import('./core/libs/jobFormat')['elapsedMs']>
+    readonly entriesForPicked: UnwrapRef<typeof import('./core/libs/pickedFiles')['entriesForPicked']>
     readonly extendRef: UnwrapRef<typeof import('@vueuse/core')['extendRef']>
+    readonly formatBitRate: UnwrapRef<typeof import('./core/libs/reportFormat')['formatBitRate']>
     readonly formatBuildInfo: UnwrapRef<typeof import('./core/libs/buildInfo')['formatBuildInfo']>
     readonly formatBytes: UnwrapRef<typeof import('./core/libs/jobFormat')['formatBytes']>
+    readonly formatDuration: UnwrapRef<typeof import('./core/libs/reportFormat')['formatDuration']>
+    readonly formatGb: UnwrapRef<typeof import('./core/libs/reportFormat')['formatGb']>
     readonly formatPercent: UnwrapRef<typeof import('./core/libs/jobFormat')['formatPercent']>
     readonly formatSpan: UnwrapRef<typeof import('./core/libs/jobFormat')['formatSpan']>
     readonly formatSpeed: UnwrapRef<typeof import('./core/libs/jobFormat')['formatSpeed']>
+    readonly formatStreamSize: UnwrapRef<typeof import('./core/libs/reportFormat')['formatStreamSize']>
     readonly formatTimecode: UnwrapRef<typeof import('./core/libs/format')['formatTimecode']>
     readonly getActivePinia: UnwrapRef<typeof import('pinia')['getActivePinia']>
     readonly getCurrentInstance: UnwrapRef<typeof import('vue')['getCurrentInstance']>
@@ -492,6 +527,7 @@ declare module 'vue' {
     readonly getCurrentWatcher: UnwrapRef<typeof import('vue')['getCurrentWatcher']>
     readonly getRpcTransport: UnwrapRef<typeof import('./core/libs/rpc')['getRpcTransport']>
     readonly h: UnwrapRef<typeof import('vue')['h']>
+    readonly hasExtension: UnwrapRef<typeof import('./core/composables/useFolderBrowser')['hasExtension']>
     readonly ignorableWatch: UnwrapRef<typeof import('@vueuse/core')['ignorableWatch']>
     readonly inject: UnwrapRef<typeof import('vue')['inject']>
     readonly injectLocal: UnwrapRef<typeof import('@vueuse/core')['injectLocal']>
@@ -539,6 +575,7 @@ declare module 'vue' {
     readonly openExternal: UnwrapRef<typeof import('./core/libs/externalLink')['openExternal']>
     readonly parseStoredTheme: UnwrapRef<typeof import('./core/libs/theme')['parseStoredTheme']>
     readonly pausableWatch: UnwrapRef<typeof import('@vueuse/core')['pausableWatch']>
+    readonly pickedFromEntry: UnwrapRef<typeof import('./core/libs/pickedFiles')['pickedFromEntry']>
     readonly provide: UnwrapRef<typeof import('vue')['provide']>
     readonly provideLocal: UnwrapRef<typeof import('@vueuse/core')['provideLocal']>
     readonly queueEventId: UnwrapRef<typeof import('./core/libs/jobQueue')['queueEventId']>
@@ -557,6 +594,8 @@ declare module 'vue' {
     readonly refManualReset: UnwrapRef<typeof import('@vueuse/core')['refManualReset']>
     readonly refThrottled: UnwrapRef<typeof import('@vueuse/core')['refThrottled']>
     readonly refWithControl: UnwrapRef<typeof import('@vueuse/core')['refWithControl']>
+    readonly reportAsText: UnwrapRef<typeof import('./core/libs/reportText')['reportAsText']>
+    readonly reportName: UnwrapRef<typeof import('./core/libs/reportText')['reportName']>
     readonly resolveComponent: UnwrapRef<typeof import('vue')['resolveComponent']>
     readonly resolveTheme: UnwrapRef<typeof import('./core/libs/theme')['resolveTheme']>
     readonly setActivePinia: UnwrapRef<typeof import('pinia')['setActivePinia']>
@@ -566,7 +605,10 @@ declare module 'vue' {
     readonly shallowReadonly: UnwrapRef<typeof import('vue')['shallowReadonly']>
     readonly shallowRef: UnwrapRef<typeof import('vue')['shallowRef']>
     readonly sortJobs: UnwrapRef<typeof import('./core/libs/jobQueue')['sortJobs']>
+    readonly splitPatterns: UnwrapRef<typeof import('./core/composables/useFolderBrowser')['splitPatterns']>
     readonly storeToRefs: UnwrapRef<typeof import('pinia')['storeToRefs']>
+    readonly streamCells: UnwrapRef<typeof import('./core/libs/reportText')['streamCells']>
+    readonly streamTypeName: UnwrapRef<typeof import('./core/libs/reportFormat')['streamTypeName']>
     readonly syncRef: UnwrapRef<typeof import('@vueuse/core')['syncRef']>
     readonly syncRefs: UnwrapRef<typeof import('@vueuse/core')['syncRefs']>
     readonly themeSettingFromProto: UnwrapRef<typeof import('./core/libs/theme')['themeSettingFromProto']>
@@ -657,9 +699,11 @@ declare module 'vue' {
     readonly useFileDialog: UnwrapRef<typeof import('@vueuse/core')['useFileDialog']>
     readonly useFilePicker: UnwrapRef<typeof import('./core/composables/useFilePicker')['useFilePicker']>
     readonly useFilePickerStore: UnwrapRef<typeof import('./core/stores/filePicker')['useFilePickerStore']>
+    readonly useFileSelectionStore: UnwrapRef<typeof import('./core/stores/fileSelection')['useFileSelectionStore']>
     readonly useFileSystemAccess: UnwrapRef<typeof import('@vueuse/core')['useFileSystemAccess']>
     readonly useFocus: UnwrapRef<typeof import('@vueuse/core')['useFocus']>
     readonly useFocusWithin: UnwrapRef<typeof import('@vueuse/core')['useFocusWithin']>
+    readonly useFolderBrowser: UnwrapRef<typeof import('./core/composables/useFolderBrowser')['useFolderBrowser']>
     readonly useFps: UnwrapRef<typeof import('@vueuse/core')['useFps']>
     readonly useFullscreen: UnwrapRef<typeof import('@vueuse/core')['useFullscreen']>
     readonly useGamepad: UnwrapRef<typeof import('@vueuse/core')['useGamepad']>
@@ -732,6 +776,7 @@ declare module 'vue' {
     readonly useStepper: UnwrapRef<typeof import('@vueuse/core')['useStepper']>
     readonly useStorage: UnwrapRef<typeof import('@vueuse/core')['useStorage']>
     readonly useStorageAsync: UnwrapRef<typeof import('@vueuse/core')['useStorageAsync']>
+    readonly useStreamReport: UnwrapRef<typeof import('./core/composables/useStreamReport')['useStreamReport']>
     readonly useStyleTag: UnwrapRef<typeof import('@vueuse/core')['useStyleTag']>
     readonly useSupported: UnwrapRef<typeof import('@vueuse/core')['useSupported']>
     readonly useSwipe: UnwrapRef<typeof import('@vueuse/core')['useSwipe']>
@@ -775,6 +820,7 @@ declare module 'vue' {
     readonly useWindowFocus: UnwrapRef<typeof import('@vueuse/core')['useWindowFocus']>
     readonly useWindowScroll: UnwrapRef<typeof import('@vueuse/core')['useWindowScroll']>
     readonly useWindowSize: UnwrapRef<typeof import('@vueuse/core')['useWindowSize']>
+    readonly videoLabel: UnwrapRef<typeof import('./core/libs/reportFormat')['videoLabel']>
     readonly watch: UnwrapRef<typeof import('vue')['watch']>
     readonly watchArray: UnwrapRef<typeof import('@vueuse/core')['watchArray']>
     readonly watchAtMost: UnwrapRef<typeof import('@vueuse/core')['watchAtMost']>

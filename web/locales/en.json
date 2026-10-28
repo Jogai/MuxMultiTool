@@ -160,19 +160,25 @@
 	},
 	"filePicker": {
 		"title": "Choose files",
+		"titleSingle": "Choose a file",
 		"titleDirectory": "Choose a folder",
-		"placeholder": "The folder browser over the files service arrives with the Files screen (TASK-18). Nothing can be chosen yet.",
+		"description": "Browse the media folders and choose what to open.",
+		"descriptionDirectory": "Browse the media folders and choose one.",
 		"startIn": "Starting in {path}",
+		"roots": "Media roots",
+		"up": "Up one folder",
+		"empty": "Nothing here.",
+		"noMatches": "No files of the accepted types here ({extensions}).",
+		"chosen": "{n} chosen",
+		"chooseFolder": "Choose this folder",
+		"choose": "Choose",
 		"cancel": "Cancel"
 	},
 	"pages": {
 		"arrives": "This screen arrives with {task}.",
 		"files": {
 			"description": "Browse the media folders, select files by wildcard and read the per-stream report.",
-			"task": "TASK-18",
-			"open": "Open files…",
-			"picked": "Chosen: {names}",
-			"nothing": "Nothing chosen."
+			"task": "TASK-18"
 		},
 		"streams": {
 			"description": "Pick the streams to keep, apply filter rules by language, codec or id, and preview the ffmpeg command.",
@@ -223,6 +229,114 @@
 			"sameVariantHint": "A family without a light variant uses the same variant for both.",
 			"later": "Material and GitHub follow after the MVP.",
 			"saveError": "The theme could not be saved on the server; it is kept in this browser only."
+		}
+	},
+	"files": {
+		"title": "Files",
+		"roots": "Media roots",
+		"breadcrumb": "Current folder",
+		"tree": {
+			"label": "Folders",
+			"empty": "No subfolders",
+			"error": "Could not list {name}",
+			"noRoots": "No media folders are configured. Mount one and set MMT_MEDIA_ROOTS."
+		},
+		"pattern": {
+			"label": "Pattern",
+			"placeholder": "*.mkv",
+			"select": "Select matching",
+			"recursive": "Include subfolders",
+			"hint": "Wildcards: * any run, ? one character, [abc] one of a set. Several patterns separated by spaces.",
+			"none": "No files match {patterns}.",
+			"added": "{n} file added ({matched} matched) | {n} files added ({matched} matched)"
+		},
+		"open": "Open files…",
+		"table": {
+			"caption": "{folder} · {files} file · {selected} selected | {folder} · {files} files · {selected} selected",
+			"selectAll": "Select every file in this folder",
+			"select": "Select {name}",
+			"name": "Name",
+			"container": "Container",
+			"duration": "Duration",
+			"streams": "Streams",
+			"size": "Size",
+			"video": "Video",
+			"empty": "No media files in this folder.",
+			"loading": "Listing the folder…"
+		},
+		"report": {
+			"title": "Stream report · {n} file | Stream report · {n} files",
+			"empty": "Select files above, or by wildcard, to see their streams here.",
+			"loading": "Probing…",
+			"layout": "Report layout",
+			"grouped": "Grouped",
+			"flat": "Flat",
+			"measure": "Measure exact sizes",
+			"measureHint": "Reads every selected file once to sum the packets of each stream. Sizes marked ~ are estimates.",
+			"measured": "Sizes are exact",
+			"copy": "Copy as text",
+			"copied": "Copied",
+			"columns": {
+				"file": "File / #",
+				"index": "#",
+				"type": "Type",
+				"codec": "Codec",
+				"language": "Lang",
+				"title": "Title",
+				"size": "Size (GB)",
+				"flags": "Flags"
+			},
+			"streams": "{n} stream | {n} streams",
+			"chapters": "{n} chapter | {n} chapters",
+			"collapse": "Hide the streams of {name}",
+			"expand": "Show the streams of {name}",
+			"failed": "Could not be probed",
+			"ffprobeOutput": "ffprobe output",
+			"showOutput": "Show the ffprobe output",
+			"hideOutput": "Hide the ffprobe output",
+			"pending": "Waiting for the report of {n} file… | Waiting for the reports of {n} files…",
+			"selectStream": "Show the details of stream {index} of {name}",
+			"sizeMethod": {
+				"unspecified": "Size unknown",
+				"packets": "Exact: summed from the packets",
+				"tags": "From the container's statistics tags",
+				"extradata": "Exact: the attachment's data",
+				"estimated": "Estimated from the bit rate"
+			}
+		},
+		"details": {
+			"title": "Details · {name} #{index}",
+			"close": "Close the details",
+			"loading": "Asking ffprobe…",
+			"fields": "ffprobe fields",
+			"json": "Raw ffprobe JSON",
+			"showJson": "Show the raw ffprobe JSON",
+			"hideJson": "Hide the raw ffprobe JSON",
+			"copyJson": "Copy JSON",
+			"copied": "Copied",
+			"empty": "Click a stream in the report to see everything ffprobe knows about it.",
+			"figures": {
+				"type": "Type",
+				"codec": "Codec",
+				"profile": "Profile",
+				"language": "Language",
+				"title": "Title",
+				"size": "Size",
+				"duration": "Duration",
+				"bitRate": "Bit rate",
+				"video": "Video",
+				"audio": "Audio",
+				"flags": "Flags"
+			}
+		},
+		"actions": {
+			"with": "With {n} selected:",
+			"none": "Nothing selected",
+			"streams": "Streams…",
+			"combine": "Combine…",
+			"merge": "Merge…",
+			"batch": "Batch…",
+			"clear": "Clear selection"
 		}
 	}
 }
