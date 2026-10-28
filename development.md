@@ -142,6 +142,19 @@ curl -X POST -H 'content-type: application/json' \
 # {"estimate":{"width":480,"height":200,"fps":12,"durationMs":"8000","frames":96,"estimatedBytes":"4149728"},"violations":[{"limit":"GIF_LIMIT_SIZE","message":"the estimated size of 4.1 MB is over the 4 MB limit; shorten the range to 7 s or reduce the width to 470 px","suggestedDurationMs":"7000","suggestedWidth":470}],"command":"…"}
 ```
 
+### Streams: remux and selective copy
+
+A remux (the whole file into another container) and a selective stream copy (tick streams to keep or drop, down to a video-only file) are one `JobsService` operation, `select_streams`; the logic is `core::streams` and the messages are in `crates/proto/proto/muxmultitool/streams/v1/streams.proto`. Nothing is re-encoded: the command is the input, one `-map 0:<index>` per kept stream (`-map 0` when every stream is kept), `-c copy` and the output. The output's extension picks the container (`.mkv`/`.mka`/`.mks`, `.mp4`/`.m4v`/`.m4a`, `.mov`, `.webm`); the output is an absolute path inside a media root or a bare file name, which puts it next to the input. The input is a file id from `FilesService` or the absolute path of a file inside a media root.
+
+A selection has a `mode`: `ALL` (a remux), `KEEP` or `DROP` with `stream_indexes`, or `VIDEO_ONLY`, which drops audio, subtitles, attachments, data and cover art. `StreamsService/PreviewStreams` resolves it without queueing anything: every stream of the input marked kept or dropped with the reason (the report's "why" column), the exact ffmpeg command, and the **issues**: kept streams the container is known to refuse on a copy (SubRip or ASS subtitles, attachments and TrueHD in MP4; Opus and FLAC in MOV; anything but VP8/VP9/AV1, Vorbis/Opus and WebVTT in WebM; `mov_text` subtitles and data streams in MKV), each with what to do, e.g. "MP4 cannot hold subrip subtitles (stream 2); drop stream 2 or choose MKV". A codec the table does not know gets a non-blocking warning instead. A submit with a blocking issue fails with `FAILED_PRECONDITION` and the same messages, so the job never starts; the table is `core::streams::containers`.
+
+```sh
+curl -X POST -H 'content-type: application/json' \
+  -d '{"operation":{"input":"/media/movie.mkv","output":"movie.eng.mp4","mode":"SELECTION_MODE_KEEP","streamIndexes":[0,1]}}' \
+  http://127.0.0.1:8080/rpc/muxmultitool.streams.v1.StreamsService/PreviewStreams
+# {"container":"MP4","outputName":"movie.eng.mp4","streams":[{"stream":{"index":0,"type":"STREAM_TYPE_VIDEO","codec":"hevc",…},"kept":true,"why":"ticked"},…],"canRun":true,"command":"… -i /media/movie.mkv -map 0:0 -map 0:1 -c copy /media/movie.eng.mp4","argv":[…]}
+```
+
 ### Preview (HLS)
 
 The player never gets a source file: `MediaService/StartPreview` starts a preview session for a file and returns the playlist path, `/media/{id}/hls/index.m3u8`, which hls.js plays. Segments (`/media/{id}/hls/{n}.ts`) are H.264 + AAC in MPEG-TS, produced on demand by ffmpeg from wherever the player seeks: copied when the source already is H.264 (8-bit 4:2:0) and AAC, transcoded with x264 otherwise (hardware encoders come after the MVP). Exports always read the original file.

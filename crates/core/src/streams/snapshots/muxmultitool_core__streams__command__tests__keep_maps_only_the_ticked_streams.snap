@@ -1,0 +1,5 @@
+---
+source: crates/core/src/streams/command.rs
+expression: "command(&Selection::keep([0, 1, 3]), \"/media/out/Movie A (2024).eng.mkv\")"
+---
+ffmpeg -i '/media/in/Movie A (2024).mkv' -map 0:0 -map 0:1 -map 0:3 -c copy '/media/out/Movie A (2024).eng.mkv'

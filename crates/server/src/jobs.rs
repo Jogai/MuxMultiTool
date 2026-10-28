@@ -57,6 +57,7 @@ impl JobsService for Jobs {
 			Operation::Remux(remux) => self.remux_spec(&request.name, &remux).await?,
 			Operation::VideoToGif(gif) => self.video_to_gif_spec(&request.name, &gif).await?,
 			Operation::GifToVideo(gif) => self.gif_to_video_spec(&request.name, &gif).await?,
+			Operation::SelectStreams(op) => self.select_streams_spec(&request.name, &op).await?,
 		};
 		let job = self
 			.state

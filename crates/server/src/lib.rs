@@ -43,6 +43,7 @@ mod gif;
 mod jobs;
 mod media;
 mod report;
+mod streams;
 mod system;
 mod timeline;
 
@@ -123,7 +124,8 @@ fn app_with_state(state: Arc<AppState>) -> Router {
 		.add_service(Arc::new(Jobs {
 			state: Arc::clone(&state),
 		}))
-		.add_service(Arc::new(gif::Gif::new(Arc::clone(&state))));
+		.add_service(Arc::new(gif::Gif::new(Arc::clone(&state))))
+		.add_service(Arc::new(streams::Streams::new(Arc::clone(&state))));
 
 	let index = state.frontend_dir.join("index.html");
 	let frontend = ServeDir::new(&state.frontend_dir).fallback(ServeFile::new(index));

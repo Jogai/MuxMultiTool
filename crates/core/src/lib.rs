@@ -11,4 +11,5 @@ pub mod jobs;
 pub mod preview;
 pub mod report;
 pub mod settings;
+pub mod streams;
 pub mod timeline;

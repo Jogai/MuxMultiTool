@@ -245,7 +245,7 @@ fn container(report: &Report) -> pb::ContainerInfo {
 	}
 }
 
-fn stream(s: StreamReport) -> pb::StreamSummary {
+pub(crate) fn stream(s: StreamReport) -> pb::StreamSummary {
 	pb::StreamSummary {
 		index: s.index,
 		r#type: match s.kind {

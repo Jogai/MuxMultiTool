@@ -3,6 +3,7 @@ syntax = "proto3";
 package muxmultitool.jobs.v1;
 
 import "muxmultitool/gif/v1/gif.proto";
+import "muxmultitool/streams/v1/streams.proto";
 
 // JobsService runs ffmpeg operations as jobs: every operation that writes
 // output goes through here. Jobs keep running after the browser tab closes
@@ -53,6 +54,10 @@ message SubmitJobRequest {
     muxmultitool.gif.v1.VideoToGifOperation video_to_gif = 3;
     // An animated GIF to an MP4 or WebM video.
     muxmultitool.gif.v1.GifToVideoOperation gif_to_video = 4;
+    // A selection of the input's streams copied into a new container
+    // without re-encoding; refused while StreamsService.PreviewStreams
+    // reports a blocking issue (FAILED_PRECONDITION).
+    muxmultitool.streams.v1.SelectStreamsOperation select_streams = 5;
   }
 }
 

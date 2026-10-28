@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package muxmultitool.streams.v1;
+
+import "muxmultitool/files/v1/files.proto";
+
+// StreamsService previews a stream selection before it runs: which streams
+// of the input the output would hold, which ones the target container
+// cannot hold, and the exact ffmpeg command. The copy itself runs as a job:
+// JobsService.SubmitJob takes the same SelectStreamsOperation and refuses
+// it while the preview has a blocking issue. Streams are never re-encoded
+// (-map + -c copy). See gui/02-streams.
+service StreamsService {
+  // PreviewStreams resolves the selection against the input's streams. It
+  // probes the input and queues nothing; the output may not exist yet but
+  // need not be checked here.
+  rpc PreviewStreams(PreviewStreamsRequest) returns (PreviewStreamsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+// SelectStreamsOperation copies a selection of the input's streams into a
+// new container without re-encoding. With mode ALL it is a plain remux.
+message SelectStreamsOperation {
+  // Input is the source file: a file id from FilesService, or the absolute
+  // path of a file inside a configured media root.
+  string input = 1;
+  // Output is the file to write: an absolute path inside a media root, or a
+  // bare file name, which puts the output next to the input. The extension
+  // picks the container: .mkv/.mka/.mks (Matroska), .mp4/.m4v/.m4a (MP4),
+  // .mov (QuickTime) or .webm (WebM). The file must not exist yet.
+  string output = 2;
+  // Mode says how stream_indexes are read.
+  SelectionMode mode = 3;
+  // StreamIndexes are the streams to keep (KEEP) or to drop (DROP), as
+  // StreamSummary.index numbers them. Ignored by the other modes.
+  repeated uint32 stream_indexes = 4;
+}
+
+// SelectionMode is how a selection names the streams it keeps.
+enum SelectionMode {
+  // Same as ALL.
+  SELECTION_MODE_UNSPECIFIED = 0;
+  // Every stream is copied: a remux.
+  SELECTION_MODE_ALL = 1;
+  // Only the streams in stream_indexes are copied.
+  SELECTION_MODE_KEEP = 2;
+  // Every stream except those in stream_indexes is copied.
+  SELECTION_MODE_DROP = 3;
+  // Only the video streams are copied; audio, subtitles, attachments, data
+  // and cover art are dropped.
+  SELECTION_MODE_VIDEO_ONLY = 4;
+}
+
+message PreviewStreamsRequest {
+  SelectStreamsOperation operation = 1;
+}
+
+message PreviewStreamsResponse {
+  // Container is the target container's name, e.g. "MKV".
+  string container = 1;
+  // OutputName is the file name the output would get, without its folder.
+  string output_name = 2;
+  // Streams are every stream of the input in container order, each marked
+  // kept or dropped.
+  repeated ResultStream streams = 3;
+  // Issues are the kept streams the container cannot hold, and warnings
+  // about ones it may not hold. Empty when the copy is expected to work.
+  repeated StreamIssue issues = 4;
+  // CanRun is false while a blocking issue is listed: a submit of the same
+  // operation would be refused (FAILED_PRECONDITION).
+  bool can_run = 5;
+  // Command is the ffmpeg command line the job would run, quoted for a
+  // shell.
+  string command = 6;
+  // Argv is the same command as the program followed by its arguments.
+  repeated string argv = 7;
+}
+
+// ResultStream is one stream of the input and what happens to it.
+message ResultStream {
+  // Stream is the stream as the report describes it, with a quick size.
+  muxmultitool.files.v1.StreamSummary stream = 1;
+  // Kept is true when the stream is copied to the output.
+  bool kept = 2;
+  // Why says what kept or dropped the stream, for the report's "why"
+  // column, e.g. "unticked" or "not video".
+  string why = 3;
+}
+
+// StreamIssue is a kept stream the target container cannot hold, or may
+// not hold.
+message StreamIssue {
+  // StreamIndex is the stream in question.
+  uint32 stream_index = 1;
+  // Blocking is true when ffmpeg is known to refuse the combination: the
+  // job would fail at once. False for a warning about a codec the server
+  // does not know the container's rules for.
+  bool blocking = 2;
+  // Message explains the problem and what to do, e.g. "MP4 cannot hold
+  // SubRip subtitles; drop stream 2 or choose MKV".
+  string message = 3;
+}
