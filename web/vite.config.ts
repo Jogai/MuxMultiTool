@@ -18,6 +18,8 @@ import Layouts from "vite-plugin-vue-layouts-next";
 import { VueRouterAutoImports } from "vue-router/unplugin";
 import VueRouter from "vue-router/vite";
 
+import pkg from "./package.json" with { type: "json" };
+
 const VUE_FILE_REGEX = /\.vue$/;
 const VUE_QUERY_REGEX = /\.vue\?vue/;
 
@@ -26,6 +28,9 @@ const BACKEND = "http://127.0.0.1:8080";
 
 export default defineConfig((): UserConfig => {
 	return {
+		// Shown by the About screen; commit and build time come from the Info() plugin below
+		define: { __APP_VERSION__: JSON.stringify(pkg.version) },
+
 		build: {
 			outDir: "./dist", // Ensure the output is always in 'dist'; served by axum and embedded by Tauri
 			emptyOutDir: true, // Remove existing files before the build starts

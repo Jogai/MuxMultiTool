@@ -8,3 +8,6 @@ declare module "*.vue" {
 	const component: DefineComponent<object, object, unknown>;
 	export default component;
 }
+
+/** The version from package.json, defined in vite.config.ts and vitest.config.ts. */
+declare const __APP_VERSION__: string;

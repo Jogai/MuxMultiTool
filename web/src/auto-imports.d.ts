@@ -10,8 +10,11 @@ export {}
 declare global {
   const EffectScope: typeof import('vue').EffectScope
   const JOB_LOG_LIMIT: typeof import('./core/libs/jobQueue').JOB_LOG_LIMIT
+  const LICENSE_ID: typeof import('./core/libs/externalLink').LICENSE_ID
+  const LICENSE_URL: typeof import('./core/libs/externalLink').LICENSE_URL
   const NAV_ENTRIES: typeof import('./core/libs/navigation').NAV_ENTRIES
   const RAW_OUTPUT_FIELDS: typeof import('./core/libs/errors').RAW_OUTPUT_FIELDS
+  const REPOSITORY_URL: typeof import('./core/libs/externalLink').REPOSITORY_URL
   const THEME_STORAGE_KEY: typeof import('./core/libs/theme').THEME_STORAGE_KEY
   const acceptHMRUpdate: typeof import('pinia').acceptHMRUpdate
   const appMode: typeof import('./core/libs/filePicker').appMode
@@ -61,6 +64,7 @@ declare global {
   const effectScope: typeof import('vue').effectScope
   const elapsedMs: typeof import('./core/libs/jobFormat').elapsedMs
   const extendRef: typeof import('@vueuse/core').extendRef
+  const formatBuildInfo: typeof import('./core/libs/buildInfo').formatBuildInfo
   const formatBytes: typeof import('./core/libs/jobFormat').formatBytes
   const formatPercent: typeof import('./core/libs/jobFormat').formatPercent
   const formatSpan: typeof import('./core/libs/jobFormat').formatSpan
@@ -116,6 +120,7 @@ declare global {
   const onUnmounted: typeof import('vue').onUnmounted
   const onUpdated: typeof import('vue').onUpdated
   const onWatcherCleanup: typeof import('vue').onWatcherCleanup
+  const openExternal: typeof import('./core/libs/externalLink').openExternal
   const parseStoredTheme: typeof import('./core/libs/theme').parseStoredTheme
   const pausableWatch: typeof import('@vueuse/core').pausableWatch
   const provide: typeof import('vue').provide
@@ -127,6 +132,7 @@ declare global {
   const reactiveComputed: typeof import('@vueuse/core').reactiveComputed
   const reactiveOmit: typeof import('@vueuse/core').reactiveOmit
   const reactivePick: typeof import('@vueuse/core').reactivePick
+  const readBuildInfo: typeof import('./core/libs/buildInfo').readBuildInfo
   const readonly: typeof import('vue').readonly
   const ref: typeof import('vue').ref
   const refAutoReset: typeof import('@vueuse/core').refAutoReset
@@ -231,6 +237,7 @@ declare global {
   const useEyeDropper: typeof import('@vueuse/core').useEyeDropper
   const useFavicon: typeof import('@vueuse/core').useFavicon
   const useFetch: typeof import('@vueuse/core').useFetch
+  const useFfmpegInfo: typeof import('./core/composables/useFfmpegInfo').useFfmpegInfo
   const useFileDialog: typeof import('@vueuse/core').useFileDialog
   const useFilePicker: typeof import('./core/composables/useFilePicker').useFilePicker
   const useFilePickerStore: typeof import('./core/stores/filePicker').useFilePickerStore
@@ -388,6 +395,9 @@ declare global {
   export type { ThemeStorage, ThemeSettingsOptions } from './core/composables/useThemeSettings'
   import('./core/composables/useThemeSettings')
   // @ts-ignore
+  export type { BuildInfo } from './core/libs/buildInfo'
+  import('./core/libs/buildInfo')
+  // @ts-ignore
   export type { AppError, ToAppErrorOptions } from './core/libs/errors'
   import('./core/libs/errors')
   // @ts-ignore
@@ -417,8 +427,11 @@ declare module 'vue' {
   interface ComponentCustomProperties {
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
     readonly JOB_LOG_LIMIT: UnwrapRef<typeof import('./core/libs/jobQueue')['JOB_LOG_LIMIT']>
+    readonly LICENSE_ID: UnwrapRef<typeof import('./core/libs/externalLink')['LICENSE_ID']>
+    readonly LICENSE_URL: UnwrapRef<typeof import('./core/libs/externalLink')['LICENSE_URL']>
     readonly NAV_ENTRIES: UnwrapRef<typeof import('./core/libs/navigation')['NAV_ENTRIES']>
     readonly RAW_OUTPUT_FIELDS: UnwrapRef<typeof import('./core/libs/errors')['RAW_OUTPUT_FIELDS']>
+    readonly REPOSITORY_URL: UnwrapRef<typeof import('./core/libs/externalLink')['REPOSITORY_URL']>
     readonly THEME_STORAGE_KEY: UnwrapRef<typeof import('./core/libs/theme')['THEME_STORAGE_KEY']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
     readonly appMode: UnwrapRef<typeof import('./core/libs/filePicker')['appMode']>
@@ -467,6 +480,7 @@ declare module 'vue' {
     readonly effectScope: UnwrapRef<typeof import('vue')['effectScope']>
     readonly elapsedMs: UnwrapRef<typeof import('./core/libs/jobFormat')['elapsedMs']>
     readonly extendRef: UnwrapRef<typeof import('@vueuse/core')['extendRef']>
+    readonly formatBuildInfo: UnwrapRef<typeof import('./core/libs/buildInfo')['formatBuildInfo']>
     readonly formatBytes: UnwrapRef<typeof import('./core/libs/jobFormat')['formatBytes']>
     readonly formatPercent: UnwrapRef<typeof import('./core/libs/jobFormat')['formatPercent']>
     readonly formatSpan: UnwrapRef<typeof import('./core/libs/jobFormat')['formatSpan']>
@@ -522,6 +536,7 @@ declare module 'vue' {
     readonly onUnmounted: UnwrapRef<typeof import('vue')['onUnmounted']>
     readonly onUpdated: UnwrapRef<typeof import('vue')['onUpdated']>
     readonly onWatcherCleanup: UnwrapRef<typeof import('vue')['onWatcherCleanup']>
+    readonly openExternal: UnwrapRef<typeof import('./core/libs/externalLink')['openExternal']>
     readonly parseStoredTheme: UnwrapRef<typeof import('./core/libs/theme')['parseStoredTheme']>
     readonly pausableWatch: UnwrapRef<typeof import('@vueuse/core')['pausableWatch']>
     readonly provide: UnwrapRef<typeof import('vue')['provide']>
@@ -533,6 +548,7 @@ declare module 'vue' {
     readonly reactiveComputed: UnwrapRef<typeof import('@vueuse/core')['reactiveComputed']>
     readonly reactiveOmit: UnwrapRef<typeof import('@vueuse/core')['reactiveOmit']>
     readonly reactivePick: UnwrapRef<typeof import('@vueuse/core')['reactivePick']>
+    readonly readBuildInfo: UnwrapRef<typeof import('./core/libs/buildInfo')['readBuildInfo']>
     readonly readonly: UnwrapRef<typeof import('vue')['readonly']>
     readonly ref: UnwrapRef<typeof import('vue')['ref']>
     readonly refAutoReset: UnwrapRef<typeof import('@vueuse/core')['refAutoReset']>
@@ -637,6 +653,7 @@ declare module 'vue' {
     readonly useEyeDropper: UnwrapRef<typeof import('@vueuse/core')['useEyeDropper']>
     readonly useFavicon: UnwrapRef<typeof import('@vueuse/core')['useFavicon']>
     readonly useFetch: UnwrapRef<typeof import('@vueuse/core')['useFetch']>
+    readonly useFfmpegInfo: UnwrapRef<typeof import('./core/composables/useFfmpegInfo')['useFfmpegInfo']>
     readonly useFileDialog: UnwrapRef<typeof import('@vueuse/core')['useFileDialog']>
     readonly useFilePicker: UnwrapRef<typeof import('./core/composables/useFilePicker')['useFilePicker']>
     readonly useFilePickerStore: UnwrapRef<typeof import('./core/stores/filePicker')['useFilePickerStore']>

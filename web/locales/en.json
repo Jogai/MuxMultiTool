@@ -43,8 +43,17 @@
 		},
 		"about": {
 			"title": "About MuxMultiTool",
-			"body": "Version, repository, license and the bundled ffmpeg build are listed here by the About screen (TASK-48).",
-			"license": "License: GPL-3.0-or-later"
+			"version": "Version",
+			"commit": "commit {commit}",
+			"builtAt": "built {time}",
+			"project": "Project",
+			"license": "License",
+			"ffmpegBuild": "{version} · GPL build",
+			"ffmpegUnavailable": "Not available",
+			"ffmpegError": "Could not be queried",
+			"ffmpegLoading": "Checking…",
+			"copy": "Copy version info",
+			"copied": "Copied"
 		}
 	},
 	"statusBar": {

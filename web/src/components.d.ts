@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AboutDialog: typeof import('./core/components/AboutDialog.vue')['default']
     CutTimeline: typeof import('./features/cut/components/CutTimeline.vue')['default']
     ErrorPanel: typeof import('./core/components/ErrorPanel.vue')['default']
     FilePickerDialog: typeof import('./core/components/FilePickerDialog.vue')['default']

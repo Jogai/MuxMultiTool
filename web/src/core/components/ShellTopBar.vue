@@ -18,6 +18,7 @@ const themeLabel = computed(() => {
 	return themeVariant.value === "dark" ? t("topBar.theme.toLight") : t("topBar.theme.toDark");
 });
 const info = ref<InfoDialogKind>();
+const aboutOpen = ref(false);
 </script>
 
 <template>
@@ -45,9 +46,10 @@ const info = ref<InfoDialogKind>();
 			<ShellIconButton :label="t('topBar.help')" @click="info = 'help'">
 				<IconHelp />
 			</ShellIconButton>
-			<ShellMenu @select="(kind) => (info = kind)" />
+			<ShellMenu @select="(kind) => (kind === 'about' ? (aboutOpen = true) : (info = kind))" />
 		</div>
 
 		<ShellInfoDialog v-model="info" />
+		<AboutDialog v-model:open="aboutOpen" />
 	</header>
 </template>
