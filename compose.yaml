@@ -1,0 +1,48 @@
+# MuxMultiTool, self-hosted. `docker compose up -d`, then open http://localhost:8080.
+#
+# There is no authentication: keep the port on a trusted network. Every
+# setting is an MMT_* variable (development.md, "Container"); the image's defaults
+# already point at /media and /data, so only the mounts are required.
+services:
+  muxmultitool:
+    image: ghcr.io/muxmultitool/muxmultitool:latest
+    container_name: muxmultitool
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    # The server runs as uid/gid 65532 and writes outputs next to the sources.
+    # Set this to the owner of the media folders when they are not world-writable.
+    # user: "1000:1000"
+    volumes:
+      # Media folders: everything the app may read and write. Mount as many as
+      # you like and list them in MMT_MEDIA_ROOTS (comma-separated).
+      - /srv/media/movies:/media/movies
+      - /srv/media/series:/media/series
+      # Settings (settings.json) survive a recreate.
+      - muxmultitool-data:/data
+      # Preview segments and thumbnail sprites. tmpfs keeps them off the disk;
+      # drop this block to use the container's own /tmp instead.
+      - type: tmpfs
+        target: /tmp
+        tmpfs:
+          size: 2g
+    environment:
+      MMT_MEDIA_ROOTS: /media/movies,/media/series
+      # Jobs that run at the same time; the rest wait in the queue.
+      MMT_JOBS: "1"
+      # Log level: error, warn, info, debug, trace.
+      RUST_LOG: info
+    # A stop cancels running ffmpeg jobs and waits for them (seconds, not minutes);
+    # 30 s leaves room for a slow disk.
+    stop_grace_period: 30s
+    # The image's HEALTHCHECK calls the health RPC through the server binary.
+    # Listed here so the interval can be tuned without rebuilding the image.
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/muxmultitool-server", "health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+volumes:
+  muxmultitool-data:

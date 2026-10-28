@@ -1,0 +1,250 @@
+# The container image (Dockerfile): the static musl server for amd64 and arm64
+# next to a static GPL ffmpeg. Pull requests build and smoke-test the image;
+# pushes to master publish `edge`, tags publish the version and `latest`, and a
+# weekly run rebuilds as a safety net (docs/quality.md, "Shared: CI triggers").
+#
+# A publish is skipped when the last published image carries the same build
+# hash (the source tree, lockfiles, toolchain and Dockerfile), so a merge that
+# only touches docs produces no new image.
+name: Image
+
+on:
+  push:
+    branches: [master]
+    tags: ["v*"]
+  pull_request:
+    paths:
+      - crates/**
+      - web/**
+      - Cargo.toml
+      - Cargo.lock
+      - rust-toolchain.toml
+      - Dockerfile
+      - .dockerignore
+      - .github/workflows/image.yml
+      - .github/actions/**
+  schedule:
+    - cron: "41 4 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  NODE_VERSION: 26
+  ZIG_VERSION: 0.17.0
+  IMAGE: ghcr.io/${{ github.repository }}
+  # The label that carries the build hash; the next run compares against it.
+  HASH_LABEL: org.muxmultitool.build-hash
+
+jobs:
+  plan:
+    name: Build hash
+    runs-on: ubuntu-latest
+    outputs:
+      hash: ${{ steps.hash.outputs.hash }}
+      build: ${{ steps.decide.outputs.build }}
+      publish: ${{ steps.decide.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v7
+      # Git tree and blob ids of everything that ends up in the image, so the
+      # hash is the same for the same content whatever the commit.
+      - name: Hash the inputs of the image
+        id: hash
+        run: |
+          hash=$(git rev-parse \
+            HEAD:crates HEAD:web HEAD:Cargo.toml HEAD:Cargo.lock HEAD:rust-toolchain.toml \
+            HEAD:Dockerfile HEAD:.dockerignore HEAD:.github/workflows/image.yml \
+            | sha256sum | cut -d ' ' -f 1)
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+          echo "build hash: $hash"
+      - uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Decide whether to build and publish
+        id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          HASH: ${{ steps.hash.outputs.hash }}
+        run: |
+          case "$EVENT" in
+            pull_request)
+              build=true; publish=false ;;
+            schedule)
+              # The weekly safety net rebuilds even when nothing changed.
+              build=true; publish=true ;;
+            *)
+              if [[ "$REF" == refs/tags/* ]]; then
+                build=true; publish=true
+              else
+                # skopeo is preinstalled on the runner and reads the docker login.
+                previous=$(skopeo inspect --override-os linux --override-arch amd64 \
+                  "docker://$IMAGE:edge" 2>/dev/null \
+                  | jq -r --arg label "$HASH_LABEL" '.Labels[$label] // empty' || true)
+                if [[ -n "$previous" && "$previous" == "$HASH" ]]; then
+                  echo "::notice::$IMAGE:edge already carries build hash $HASH; nothing to publish"
+                  build=false; publish=false
+                else
+                  build=true; publish=true
+                fi
+              fi ;;
+          esac
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+          echo "build=$build publish=$publish"
+
+  image:
+    name: Build the image
+    needs: plan
+    if: needs.plan.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+
+      # Generated RPC code, as the codegen job of ci.yml makes it.
+      - uses: ./.github/actions/rust-toolchain
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install the web dependencies (protoc-gen-es)
+        run: npm ci --no-audit --no-fund
+        working-directory: web
+      - uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+      - uses: taiki-e/cache-cargo-install-action@v3
+        with:
+          tool: protoc-gen-buffa@0.9.2
+      - uses: taiki-e/cache-cargo-install-action@v3
+        with:
+          tool: protoc-gen-buffa-packaging@0.9.2
+      - uses: taiki-e/cache-cargo-install-action@v3
+        with:
+          tool: connectrpc-codegen@0.9.0
+      - name: Generate the Rust and TypeScript code
+        run: buf generate
+        working-directory: crates/proto
+
+      # The frontend, embedded in the image.
+      - name: Build the frontend
+        run: npm run build
+        working-directory: web
+
+      # The server for both platforms, cross-compiled with zig as the linker and
+      # wrapped in cargo-auditable, which embeds the dependency list in the
+      # binary so image scanners see the Rust crates.
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild,cargo-auditable
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+      - name: Build the static musl server for amd64 and arm64
+        run: |
+          cargo auditable zigbuild --release --locked -p muxmultitool-server \
+            --target x86_64-unknown-linux-musl --target aarch64-unknown-linux-musl
+          mkdir -p dist/amd64 dist/arm64
+          cp target/x86_64-unknown-linux-musl/release/muxmultitool-server dist/amd64/
+          cp target/aarch64-unknown-linux-musl/release/muxmultitool-server dist/arm64/
+          # Fail here, not in the image, if a dynamic dependency slipped in.
+          for binary in dist/*/muxmultitool-server; do
+            file "$binary" | grep -q 'statically linked' || { file "$binary"; exit 1; }
+          done
+
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=ref,event=pr
+            type=edge,branch=master
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+          # metadata-action adds the OCI source, revision, version and created labels.
+          labels: |
+            org.opencontainers.image.licenses=GPL-3.0-or-later
+            ${{ env.HASH_LABEL }}=${{ needs.plan.outputs.hash }}
+      - uses: docker/login-action@v3
+        if: needs.plan.outputs.publish == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The amd64 image alone first, loaded into the local docker for the smoke
+      # test; the multi-platform build below reuses its layers from the cache.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: ${{ env.IMAGE }}:smoke
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Start the container, wait for its HEALTHCHECK (the health RPC through
+      # the server binary), check the bundled ffmpeg through the capability
+      # RPC, then stop it and expect a clean exit.
+      - name: Smoke test
+        run: |
+          docker run --detach --name smoke --publish 8080:8080 "$IMAGE:smoke"
+          for _ in $(seq 1 30); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' smoke)
+            [[ "$status" == healthy ]] && break
+            sleep 1
+          done
+          docker logs smoke
+          [[ "$status" == healthy ]] || { echo "::error::container never became healthy ($status)"; exit 1; }
+          docker exec smoke /usr/local/bin/muxmultitool-server health
+          curl --silent --show-error --fail --request POST --header 'content-type: application/json' --data '{}' \
+            http://127.0.0.1:8080/rpc/muxmultitool.system.v1.SystemService/GetCapabilities > capabilities.json
+          jq --exit-status '.status == "CAPABILITIES_STATUS_AVAILABLE"' capabilities.json
+          jq --exit-status '.capabilities.version' capabilities.json
+          jq --exit-status '[.capabilities.encoders[] | select(.name == "libx264" and .kind == "CODEC_KIND_VIDEO")] | length > 0' capabilities.json
+          jq --exit-status '[.capabilities.encoders[] | select(.name == "aac")] | length > 0' capabilities.json
+          docker stop --time 30 smoke
+          exit_code=$(docker inspect --format '{{.State.ExitCode}}' smoke)
+          docker logs smoke 2>&1 | tail --lines 5
+          [[ "$exit_code" == 0 ]] || { echo "::error::container exited with $exit_code on stop"; exit 1; }
+          docker rm smoke
+      - name: Image labels
+        run: docker inspect --format '{{json .Config.Labels}}' "$IMAGE:smoke" | jq .
+
+      # Vulnerabilities in the ffmpeg build and, thanks to cargo-auditable, the Rust crates.
+      - uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE }}:smoke
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - uses: docker/build-push-action@v6
+        if: needs.plan.outputs.publish == 'true'
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha

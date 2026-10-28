@@ -1,0 +1,4 @@
+# The image is assembled from staged build outputs only (see Dockerfile).
+*
+!dist/
+!web/dist/

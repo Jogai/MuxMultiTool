@@ -74,7 +74,7 @@ Methods that have no side effects must declare `option idempotency_level = NO_SI
 | Parallel jobs | `--jobs` | `MMT_JOBS` | `1` |
 | Data folder | `--data-dir` | `MMT_DATA_DIR` | none: settings live in memory for this run |
 
-Ctrl-C or `SIGTERM` (what `docker stop` sends) stops it cleanly. The health method is a plain JSON call, which also serves as the container `HEALTHCHECK`:
+Ctrl-C or `SIGTERM` (what `docker stop` sends) stops it cleanly. The health method is a plain JSON call; `muxmultitool-server health` calls it on the configured port and exits 0 when the server answers OK, which is the container's `HEALTHCHECK` (see "Container"):
 
 ```sh
 curl -X POST -H 'content-type: application/json' -d '{}' \
@@ -246,7 +246,7 @@ GitHub Actions runs the checks above on every pull request and on `master` (`.gi
 
 The jobs: `codegen` runs `buf generate` once and hands the result to the others; `backend-lint`, `backend-test` (nextest with coverage, needs ffmpeg) and `backend-musl` (`cargo zigbuild` of the server for `x86_64-unknown-linux-musl`, so a C dependency can't slip in); `frontend` runs the `npm run ci` steps one by one, then the unit tests; `contract` runs the buf checks; `commits` runs `committed` over the new commits. `CI` is the one status check to require in branch protection: it is green when every job passed or was skipped. Cargo builds are cached with `Swatinem/rust-cache`, npm with `actions/setup-node`.
 
-A daily workflow (`.github/workflows/security.yml`) runs `cargo deny check advisories` and `npm audit`.
+A daily workflow (`.github/workflows/security.yml`) runs `cargo deny check advisories` and `npm audit`. The container image has its own workflow, see "Container" below.
 
 Without a GitHub remote, check the workflows with [actionlint](https://github.com/rhysd/actionlint) and run the steps' commands locally.
 
@@ -261,6 +261,53 @@ The Vue app lives in `web/`. From there: `npm ci`, `npm run dev`, and `npm run c
 The preview player is `web/src/features/player/` (`<PlayerView file-id=…>`): hls.js on MediaSource wherever MSE decodes H.264/AAC, the browser's own HLS player only where MSE is absent, and a plain message where neither works (the engine rule from the TASK-4 spike, `lib/engine.ts`). It plays the file's preview session, steps frame by frame (frame rate from the stream report) and keyframe by keyframe (keyframe times are a prop; the cut service supplies them), plays or loops a range, shows the cues of a text subtitle track over the picture, and has fixed keyboard shortcuts (`lib/shortcuts.ts`, listed in the UI under the keyboard button or `?`). The Cut screen shows it for `/cut?file=<id>` until the timeline editor lands.
 
 Themes are palette files in `web/src/core/themes/families/`, one per family, registered in `web/src/core/themes/index.ts`. A palette gives each variant its official colours; the semantic `--mmt-*` tokens that every component uses through Tailwind are derived from them at runtime, nudged just far enough for WCAG AA contrast. `npx vitest run src/core/themes` checks every variant.
+
+## Container
+
+The container is the self-hosted way to run MuxMultiTool: the static musl `server` binary next to a static GPL ffmpeg, published for `linux/amd64` and `linux/arm64` as `ghcr.io/jogai/muxmultitool`. There is no authentication; keep the port on a trusted network.
+
+```sh
+docker run -d --name muxmultitool -p 8080:8080 \
+  -v /srv/media:/media -v muxmultitool-data:/data \
+  ghcr.io/jogai/muxmultitool:latest
+```
+
+`compose.yaml` is the same as a compose file, with several media folders, a tmpfs for the preview segments and the health check spelled out.
+
+| Purpose | Mount or variable | Default in the image |
+|---|---|---|
+| Media folders: what the app may read and write (outputs go next to the sources) | mount under `/media`; list several in `MMT_MEDIA_ROOTS`, comma-separated | `MMT_MEDIA_ROOTS=/media` |
+| Settings (`settings.json`) | a volume at `MMT_DATA_DIR` | `MMT_DATA_DIR=/data` |
+| Preview segments and thumbnail sprites | `TMPDIR`; mount a tmpfs there to keep them off the disk | `TMPDIR=/tmp` |
+| Port | `MMT_PORT`, and publish it with `-p` | `8080`, listening on `0.0.0.0` (`MMT_LISTEN`) |
+| Parallel jobs | `MMT_JOBS` | `1` |
+| Log level | `RUST_LOG` | `info` |
+| ffmpeg, ffprobe | `MMT_FFMPEG`, `MMT_FFPROBE` | the bundled `/usr/local/bin/ffmpeg` and `ffprobe` |
+
+The server runs as uid/gid `65532` (no root). Media folders must be writable by that id, or run the container with `--user` set to the folders' owner. Any other setting from "Running the server" works the same way.
+
+**Health check.** The image's `HEALTHCHECK` runs `muxmultitool-server health`, which calls the health RPC (`SystemService/GetHealth`) on the configured port and exits 0 when it answers OK; there is no separate health endpoint. `docker inspect --format '{{.State.Health.Status}}' muxmultitool` shows the result, and `docker exec muxmultitool /usr/local/bin/muxmultitool-server health` runs it by hand.
+
+**Stopping.** The server is PID 1 and handles `SIGTERM`, what `docker stop` sends: every running job is cancelled, its ffmpeg process killed and waited for, in-flight requests finish, preview files are removed, and the process exits 0. That takes well under a second; `stop_grace_period` in `compose.yaml` only matters for a disk that is slow to flush. Queued jobs are not kept across a restart.
+
+**What is in the image.** Only the server binary, `ffmpeg` and `ffprobe` with their fontconfig files and CA bundle, the built frontend and empty `/media`, `/data` and `/tmp` folders on `scratch`: no shell, no package manager, no libc. `docker exec` therefore only runs the server binary itself. The ffmpeg build is [mwader/static-ffmpeg](https://github.com/wader/static-ffmpeg), a fully static musl build configured `--enable-gpl --enable-version3` with x264, published for both architectures and pinned by digest in the `Dockerfile`. (The BtbN linux builds link glibc dynamically, so they would need a glibc base image; a hardware-encoding image on Debian with jellyfin-ffmpeg and the GPU drivers is a later, separate image.) The capability check (`SystemService/GetCapabilities`) runs against the bundled build at startup and in the image's CI smoke test.
+
+**Labels.** Besides the OCI `title`, `description`, `source`, `licenses` and `base.name` labels, a published image carries `org.opencontainers.image.revision` (the commit), `org.opencontainers.image.version` and `org.muxmultitool.build-hash`, a hash of everything that goes into the image (the `crates/` and `web/` trees, `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `Dockerfile`, `.dockerignore`, the image workflow). The server binary is built with cargo-auditable, so `rust-audit-info /usr/local/bin/muxmultitool-server` (or an image scanner such as Trivy) lists the Rust crates and their versions. The libraries linked into the static ffmpeg are invisible to scanners; their versions are in `/usr/local/share/muxmultitool/ffmpeg-versions.json`, copied from the ffmpeg image.
+
+**Building the image.** The `Dockerfile` assembles, it does not compile: it takes the server binaries from `dist/amd64/` and `dist/arm64/` and the frontend from `web/dist/` (`.dockerignore` excludes everything else), so one `buildx` run produces both platforms without emulation. After the code generation setup above:
+
+```sh
+cargo install --locked cargo-zigbuild cargo-auditable   # zig must be on the PATH
+cargo auditable zigbuild --release --locked -p muxmultitool-server \
+  --target x86_64-unknown-linux-musl --target aarch64-unknown-linux-musl
+mkdir -p dist/amd64 dist/arm64
+cp target/x86_64-unknown-linux-musl/release/muxmultitool-server dist/amd64/
+cp target/aarch64-unknown-linux-musl/release/muxmultitool-server dist/arm64/
+(cd web && npm ci && npm run build)
+docker buildx build --platform linux/amd64,linux/arm64 -t muxmultitool .
+```
+
+`.github/workflows/image.yml` runs exactly this on pull requests (build, smoke test, Trivy scan), publishes `edge` from `master`, the version and `latest` from a `v*` tag, and rebuilds weekly as a safety net. A push to `master` whose build hash matches the last published `edge` image publishes nothing. `hadolint Dockerfile` and `actionlint` check the files without Docker.
 
 ## License
 
