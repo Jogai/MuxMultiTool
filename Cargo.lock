@@ -743,6 +743,7 @@ dependencies = [
 name = "muxmultitool-core"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "insta",
  "proptest",
  "serde",
