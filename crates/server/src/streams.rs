@@ -10,6 +10,10 @@
 //! anything: it returns every stream of the input marked kept or dropped,
 //! the issues the target container raises, and the exact command, so the
 //! frontend shows the result while the user ticks streams.
+//!
+//! Mode `RULES` resolves `StreamRules` (`muxmultitool_core::streams::rules`)
+//! instead of ticks: the "why" of every stream then names the rule that
+//! decided it, and the preview carries the rules' warnings.
 
 use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
@@ -17,15 +21,19 @@ use std::time::Duration;
 
 use connectrpc::{ConnectError, RequestContext, Response, ServiceRequest, ServiceResult};
 use muxmultitool_core::ffmpeg::command::ShellLine;
+use muxmultitool_core::ffmpeg::probe::CodecType;
 use muxmultitool_core::ffmpeg::{Limits, ProbeResult};
 use muxmultitool_core::files::{FileId, Kind};
 use muxmultitool_core::jobs::JobSpec;
 use muxmultitool_core::report;
+use muxmultitool_core::streams::rules::{Matcher, Rule, Rules, Untagged};
 use muxmultitool_core::streams::{self, Container, Plan, Selection};
 use muxmultitool_proto::connect::muxmultitool::streams::v1::StreamsService;
+use muxmultitool_proto::proto::muxmultitool::files::v1::StreamType;
+use muxmultitool_proto::proto::muxmultitool::streams::v1::__buffa::oneof::stream_rule::Match;
 use muxmultitool_proto::proto::muxmultitool::streams::v1::{
-	self as proto, PreviewStreamsRequest, PreviewStreamsResponse, SelectStreamsOperation,
-	SelectionMode,
+	self as proto, PreviewStreamsRequest, PreviewStreamsResponse, RuleAction,
+	SelectStreamsOperation, SelectionMode, StreamRule, StreamRules, UntaggedLanguage,
 };
 use tracing::warn;
 
@@ -70,10 +78,11 @@ impl StreamsService for Streams {
 			.streams
 			.into_iter()
 			.zip(&resolved.plan.decisions)
-			.map(|(stream, decision)| proto::ResultStream {
+			.zip(resolved.whys)
+			.map(|((stream, decision), why)| proto::ResultStream {
 				stream: Some(crate::report::stream(stream)).into(),
 				kept: decision.kept,
-				why: decision.reason.to_string(),
+				why,
 				..Default::default()
 			})
 			.collect();
@@ -94,6 +103,7 @@ impl StreamsService for Streams {
 				.collect(),
 			can_run: resolved.plan.can_run(),
 			command: ShellLine(&argv).to_string(),
+			warnings: resolved.warnings,
 			argv: argv
 				.iter()
 				.map(|a| a.to_string_lossy().into_owned())
@@ -109,6 +119,11 @@ struct Resolved {
 	output: PathBuf,
 	probe: ProbeResult,
 	plan: Plan,
+	/// The "why" of every stream, in the plan's order: the plan's reason,
+	/// or the rule that decided it.
+	whys: Vec<String>,
+	/// The rules' warnings; empty for the other modes.
+	warnings: Vec<String>,
 }
 
 impl Jobs {
@@ -165,6 +180,20 @@ impl Jobs {
 			Some(SelectionMode::Keep) => Selection::keep(streams),
 			Some(SelectionMode::Drop) => Selection::drop(streams),
 			Some(SelectionMode::VideoOnly) => Selection::video_only(),
+			Some(SelectionMode::Rules) => {
+				let rules = rules(operation.rules.as_option())?;
+				let probe = self.probe_stream_input(&input).await?;
+				let planned = streams::rules::plan(&probe, &rules, container)
+					.map_err(|error| ConnectError::invalid_argument(error.to_string()))?;
+				return Ok(Resolved {
+					input,
+					output,
+					probe,
+					plan: planned.plan,
+					whys: planned.decisions.into_iter().map(|d| d.why).collect(),
+					warnings: planned.warnings.iter().map(ToString::to_string).collect(),
+				});
+			}
 			None => {
 				return Err(ConnectError::invalid_argument(format!(
 					"unknown selection mode {}",
@@ -172,22 +201,32 @@ impl Jobs {
 				)));
 			}
 		};
-		let probe = self
-			.state
-			.runner
-			.probe(&input, &Limits::timeout(PROBE_TIMEOUT))
-			.await
-			.map_err(|error| {
-				ConnectError::invalid_argument(format!("the input is not a media file: {error}"))
-			})?;
+		let probe = self.probe_stream_input(&input).await?;
 		let plan = streams::plan(&probe, &selection, container)
 			.map_err(|error| ConnectError::invalid_argument(error.to_string()))?;
+		let whys = plan
+			.decisions
+			.iter()
+			.map(|d| d.reason.to_string())
+			.collect();
 		Ok(Resolved {
 			input,
 			output,
 			probe,
 			plan,
+			whys,
+			warnings: Vec::new(),
 		})
+	}
+
+	async fn probe_stream_input(&self, input: &Path) -> Result<ProbeResult, ConnectError> {
+		self.state
+			.runner
+			.probe(input, &Limits::timeout(PROBE_TIMEOUT))
+			.await
+			.map_err(|error| {
+				ConnectError::invalid_argument(format!("the input is not a media file: {error}"))
+			})
 	}
 
 	/// The input as a path: an opaque id from `FilesService`, or the
@@ -216,6 +255,65 @@ impl Jobs {
 			)));
 		}
 		Ok(path)
+	}
+}
+
+/// The rules of a `RULES` operation as the core sees them. Every rule
+/// needs an action and a match; the core checks the values.
+fn rules(rules: Option<&StreamRules>) -> Result<Rules, ConnectError> {
+	let Some(rules) = rules else {
+		return Err(ConnectError::invalid_argument(
+			"mode RULES needs rules; use mode ALL for a remux",
+		));
+	};
+	let untagged = match rules.untagged.as_known() {
+		Some(UntaggedLanguage::Unspecified | UntaggedLanguage::Keep) => Untagged::Keep,
+		Some(UntaggedLanguage::Drop) => Untagged::Drop,
+		None => {
+			return Err(ConnectError::invalid_argument(format!(
+				"unknown untagged setting {}",
+				rules.untagged.to_i32()
+			)));
+		}
+	};
+	let rules = rules
+		.rules
+		.iter()
+		.enumerate()
+		.map(|(i, r)| {
+			rule(r).map_err(|what| ConnectError::invalid_argument(format!("rule {i} {what}")))
+		})
+		.collect::<Result<Vec<_>, _>>()?;
+	Ok(Rules { rules, untagged })
+}
+
+/// One rule, or what is wrong with it.
+fn rule(rule: &StreamRule) -> Result<Rule, String> {
+	let stream_type = match rule.stream_type.as_known() {
+		Some(StreamType::Unspecified) => None,
+		Some(StreamType::Video) => Some(CodecType::Video),
+		Some(StreamType::Audio) => Some(CodecType::Audio),
+		Some(StreamType::Subtitle) => Some(CodecType::Subtitle),
+		Some(StreamType::Data) => Some(CodecType::Data),
+		Some(StreamType::Attachment) => Some(CodecType::Attachment),
+		None => {
+			return Err(format!(
+				"has an unknown stream type {}",
+				rule.stream_type.to_i32()
+			));
+		}
+	};
+	let matcher = match &rule.r#match {
+		Some(Match::Language(language)) => Matcher::Language(language.clone()),
+		Some(Match::Codec(codec)) => Matcher::Codec(codec.clone()),
+		Some(Match::StreamIndex(index)) => Matcher::Stream(*index),
+		None => return Err("needs a language, codec or stream index to match".into()),
+	};
+	match rule.action.as_known() {
+		Some(RuleAction::Drop) => Ok(Rule::drop(stream_type, matcher)),
+		Some(RuleAction::Keep) => Ok(Rule::keep(stream_type, matcher)),
+		Some(RuleAction::Unspecified) => Err("needs an action: drop or keep".into()),
+		None => Err(format!("has an unknown action {}", rule.action.to_i32())),
 	}
 }
 

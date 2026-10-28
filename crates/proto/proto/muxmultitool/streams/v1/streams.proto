@@ -35,6 +35,9 @@ message SelectStreamsOperation {
   // StreamIndexes are the streams to keep (KEEP) or to drop (DROP), as
   // StreamSummary.index numbers them. Ignored by the other modes.
   repeated uint32 stream_indexes = 4;
+  // Rules are the filters mode RULES resolves against the input's streams.
+  // Ignored by the other modes.
+  StreamRules rules = 5;
 }
 
 // SelectionMode is how a selection names the streams it keeps.
@@ -50,6 +53,78 @@ enum SelectionMode {
   // Only the video streams are copied; audio, subtitles, attachments, data
   // and cover art are dropped.
   SELECTION_MODE_VIDEO_ONLY = 4;
+  // The streams the rules keep are copied; see StreamRules.
+  SELECTION_MODE_RULES = 5;
+}
+
+// StreamRules is a filter that resolves to a selection for any file, so
+// the same rules apply to many files, a preset or a batch. Every stream is
+// decided on its own, in this order; the first step that applies wins:
+//
+//  1. A stream that matches any DROP rule is dropped. A drop always wins
+//     over a keep.
+//  2. Otherwise, when KEEP rules cover the stream (a keep rule covers the
+//     streams of its stream_type, or every stream when that is
+//     unspecified), the stream is kept only if it matches one of them:
+//     "keep English audio" drops every other audio stream and touches
+//     nothing else.
+//  3. A stream without a language tag (none, or "und") never matches a
+//     language rule. When a keep-only language rule covers it and no other
+//     keep rule matches it, untagged decides whether it stays.
+//  4. A stream no rule covers is kept.
+//
+// The order of the rules in the list never changes the result. Languages
+// match case-insensitively and the ISO 639-2 bibliographic/terminologic
+// pairs (fre/fra, ger/deu) are the same language; codecs match ffprobe's
+// codec_name case-insensitively. A rule that matches nothing in a file is
+// fine. The preview's "why" per stream names the rule that decided it, e.g.
+// "rule: drop audio fre, drop audio dts".
+message StreamRules {
+  // Rules, in any order.
+  repeated StreamRule rules = 1;
+  // Untagged says what a keep-only language rule does with a stream of its
+  // type that has no language tag. Unspecified means KEEP.
+  UntaggedLanguage untagged = 2;
+}
+
+// StreamRule is one filter: an action, the stream type it looks at and
+// what it matches.
+message StreamRule {
+  // Action is what happens to the matching streams. Required.
+  RuleAction action = 1;
+  // StreamType limits the rule to streams of that type; unspecified means
+  // every stream.
+  muxmultitool.files.v1.StreamType stream_type = 2;
+  // Match is what the rule compares. Required.
+  oneof match {
+    // Language is the stream's language tag, e.g. "fre".
+    string language = 3;
+    // Codec is the stream's codec name as ffprobe reports it, e.g. "dts".
+    string codec = 4;
+    // StreamIndex is the stream's index in its file, as StreamSummary.index
+    // numbers them.
+    uint32 stream_index = 5;
+  }
+}
+
+// RuleAction is what a rule does with the streams it matches.
+enum RuleAction {
+  RULE_ACTION_UNSPECIFIED = 0;
+  // Drop every matching stream.
+  RULE_ACTION_DROP = 1;
+  // Keep only the matching streams of the rule's type.
+  RULE_ACTION_KEEP = 2;
+}
+
+// UntaggedLanguage is what a keep-only language rule does with a stream
+// that has no language tag.
+enum UntaggedLanguage {
+  // Same as KEEP.
+  UNTAGGED_LANGUAGE_UNSPECIFIED = 0;
+  // Keep it: its language is unknown, so it may be the wanted one.
+  UNTAGGED_LANGUAGE_KEEP = 1;
+  // Drop it: only streams known to be in the wanted language stay.
+  UNTAGGED_LANGUAGE_DROP = 2;
 }
 
 message PreviewStreamsRequest {
@@ -75,6 +150,10 @@ message PreviewStreamsResponse {
   string command = 6;
   // Argv is the same command as the program followed by its arguments.
   repeated string argv = 7;
+  // Warnings are about the selection as a whole, from mode RULES: the rules
+  // drop every video stream, or every audio stream, of the input. They do
+  // not block the job; the user may mean it.
+  repeated string warnings = 8;
 }
 
 // ResultStream is one stream of the input and what happens to it.

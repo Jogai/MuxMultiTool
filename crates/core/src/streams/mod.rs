@@ -11,8 +11,9 @@
 //! A job is only submitted for a plan without blocking issues, so a
 //! combination the container refuses is reported before anything runs.
 //!
-//! Every later stream operation (rule-based filters, combining sources,
-//! extraction, batch) builds on the same plan.
+//! Every later stream operation (combining sources, extraction, batch)
+//! builds on the same plan; [`rules`] already does, resolving language,
+//! codec and stream-id filters into a selection.
 
 use std::collections::BTreeSet;
 use std::fmt;
@@ -23,6 +24,7 @@ use crate::ffmpeg::probe::{CodecType, ProbeResult, Stream};
 
 pub mod command;
 pub mod containers;
+pub mod rules;
 
 pub use containers::{CONTAINERS, Compatibility, Container};
 

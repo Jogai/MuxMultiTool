@@ -14,3 +14,5 @@ seeked = "seeked"
 flate = "flate"
 # ISO 639-2/B language code for French, as ffmpeg tags streams
 fre = "fre"
+# ISO 639-2/B language code for Welsh
+wel = "wel"

@@ -2,8 +2,9 @@
 //! the dev frontend uses it (JSON): the preview with its streams, issues
 //! and command, a remux job, keep/drop and video-only jobs with their
 //! outputs probed, a submit refused for a container that cannot hold a
-//! stream, an input given as a file id, and the request validation. Needs
-//! ffmpeg and ffprobe on `PATH`.
+//! stream, a rule-based selection with its "why" per stream and its
+//! warnings, an input given as a file id, and the request validation.
+//! Needs ffmpeg and ffprobe on `PATH`.
 
 use std::net::{IpAddr, Ipv4Addr};
 use std::path::{Path, PathBuf};
@@ -259,6 +260,86 @@ async fn keep_drop_and_video_only_write_exactly_the_chosen_streams() {
 }
 
 #[tokio::test]
+async fn rules_resolve_to_a_selection_with_the_rule_as_the_why() {
+	let root = MediaRoot::new().await.unwrap();
+	let router = app(&root.config());
+
+	// Keep English audio only and drop SubRip subtitles: the video has no
+	// language tag and no rule covers it.
+	let rules = json!({
+		"rules": [
+			{ "action": "RULE_ACTION_KEEP", "streamType": "STREAM_TYPE_AUDIO", "language": "ENG" },
+			{ "action": "RULE_ACTION_DROP", "streamType": "STREAM_TYPE_SUBTITLE", "codec": "subrip" },
+		],
+	});
+	let operation = json!({
+		"input": root.mkv,
+		"output": "rules.mkv",
+		"mode": "SELECTION_MODE_RULES",
+		"rules": rules,
+	});
+	let (status, preview) = post_json(&router, PREVIEW, json!({ "operation": operation }))
+		.await
+		.unwrap();
+	assert_eq!(status, StatusCode::OK, "{preview}");
+	assert_eq!(kept_indexes(&preview), [0, 1]);
+	let streams = preview["streams"].as_array().unwrap();
+	assert_eq!(streams[0]["why"], "no rule applies");
+	assert_eq!(streams[1]["why"], "rule: keep audio ENG");
+	assert_eq!(streams[2]["why"], "rule: drop subtitle subrip");
+	assert_eq!(preview["canRun"], true);
+	assert!(preview.get("warnings").is_none(), "{preview}");
+	let job = run_job(&router, operation).await.unwrap();
+	assert_eq!(job["state"], "JOB_STATE_SUCCEEDED", "{job}");
+	assert_eq!(
+		root.probe("rules.mkv").await.unwrap(),
+		[
+			(CodecType::Video, "h264".into()),
+			(CodecType::Audio, "aac".into())
+		]
+	);
+
+	// Dropping the only audio stream warns but runs; a keep-only rule for
+	// a language the file lacks drops the English audio and, with untagged
+	// streams dropped, the untagged video as well.
+	let operation = json!({
+		"input": root.mkv,
+		"output": "no-audio.mkv",
+		"mode": "SELECTION_MODE_RULES",
+		"rules": { "rules": [{ "action": "RULE_ACTION_DROP", "streamType": "STREAM_TYPE_AUDIO", "language": "eng" }] },
+	});
+	let (_, preview) = post_json(&router, PREVIEW, json!({ "operation": operation }))
+		.await
+		.unwrap();
+	assert_eq!(kept_indexes(&preview), [0, 2]);
+	assert_eq!(
+		preview["warnings"],
+		json!(["the rules drop every audio stream of the input"])
+	);
+	assert_eq!(preview["canRun"], true);
+	let job = run_job(&router, operation).await.unwrap();
+	assert_eq!(job["state"], "JOB_STATE_SUCCEEDED", "{job}");
+
+	let (_, preview) = post_json(
+		&router,
+		PREVIEW,
+		json!({ "operation": {
+			"input": root.mkv,
+			"output": "fre.mkv",
+			"mode": "SELECTION_MODE_RULES",
+			"rules": {
+				"rules": [{ "action": "RULE_ACTION_KEEP", "language": "fre" }],
+				"untagged": "UNTAGGED_LANGUAGE_DROP",
+			},
+		} }),
+	)
+	.await
+	.unwrap();
+	assert_eq!(preview["code"], "invalid_argument", "{preview}");
+	assert_eq!(preview["message"], "no stream is left to copy");
+}
+
+#[tokio::test]
 async fn a_container_that_cannot_hold_a_stream_is_reported_before_running() {
 	let root = MediaRoot::new().await.unwrap();
 	let router = app(&root.config());
@@ -356,6 +437,46 @@ async fn the_input_can_be_a_file_id() {
 		json["message"].as_str().unwrap().contains("folder"),
 		"{json}"
 	);
+}
+
+#[tokio::test]
+async fn rule_requests_are_validated() {
+	let root = MediaRoot::new().await.unwrap();
+	let router = app(&root.config());
+	let rules = |rules: Value| {
+		json!({ "operation": {
+			"input": root.mkv,
+			"output": "x.mkv",
+			"mode": "SELECTION_MODE_RULES",
+			"rules": rules,
+		} })
+	};
+	let cases = [
+		(
+			json!({ "operation": { "input": root.mkv, "output": "x.mkv", "mode": "SELECTION_MODE_RULES" } }),
+			"mode RULES needs rules; use mode ALL for a remux",
+		),
+		(
+			rules(json!({ "rules": [{ "language": "fre" }] })),
+			"rule 0 needs an action: drop or keep",
+		),
+		(
+			rules(json!({ "rules": [{ "action": "RULE_ACTION_DROP" }] })),
+			"rule 0 needs a language, codec or stream index to match",
+		),
+		(
+			rules(
+				json!({ "rules": [{ "action": "RULE_ACTION_DROP", "codec": "aac" }, { "action": "RULE_ACTION_KEEP", "language": " " }] }),
+			),
+			"rule 1 has an empty value",
+		),
+	];
+	for (body, message) in cases {
+		let (status, json) = post_json(&router, PREVIEW, body.clone()).await.unwrap();
+		assert_ne!(status, StatusCode::OK, "{body}");
+		assert_eq!(json["code"], "invalid_argument", "{body}: {json}");
+		assert_eq!(json["message"], message, "{body}: {json}");
+	}
 }
 
 #[tokio::test]
