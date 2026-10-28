@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package muxmultitool.media.v1;
+
+// MediaService prepares what the browser fetches by URL: the H.264/AAC HLS
+// preview of a source file. The playlist and segments themselves are served
+// on the plain HTTP media routes (GET /media/{id}/hls/...), because a
+// <video> element needs a URL, not an RPC response.
+service MediaService {
+  // StartPreview starts an HLS preview session for a source file, or returns
+  // the existing session for that file, and tells where its playlist is.
+  rpc StartPreview(StartPreviewRequest) returns (StartPreviewResponse);
+
+  // StopPreview ends a preview session: ffmpeg is stopped and the temporary
+  // segments are removed. Unknown ids are fine; the session may have expired.
+  rpc StopPreview(StopPreviewRequest) returns (StopPreviewResponse);
+}
+
+message StartPreviewRequest {
+  // file_id identifies the source file. Until FilesService issues file ids,
+  // it is the absolute path of a file inside a configured media root.
+  string file_id = 1;
+}
+
+message StartPreviewResponse {
+  // media_id is the opaque id of the session, the {id} of the media routes.
+  string media_id = 1;
+  // playlist_url is the path of the HLS playlist on this server, e.g.
+  // "/media/{media_id}/hls/index.m3u8".
+  string playlist_url = 2;
+  // duration_seconds is the length of the preview, as probed from the file.
+  double duration_seconds = 3;
+  // mode tells whether the file is remuxed or transcoded.
+  PreviewMode mode = 4;
+  // segment_count is the number of segments in the playlist.
+  uint32 segment_count = 5;
+}
+
+// PreviewMode is how the preview is produced from the source.
+enum PreviewMode {
+  PREVIEW_MODE_UNSPECIFIED = 0;
+  // The video and audio are already H.264 and AAC: both are copied.
+  PREVIEW_MODE_REMUX = 1;
+  // The video is H.264 and copied; only the audio is transcoded to AAC.
+  PREVIEW_MODE_TRANSCODE_AUDIO = 2;
+  // The video is transcoded to H.264 (x264), the audio to AAC where needed.
+  PREVIEW_MODE_TRANSCODE = 3;
+}
+
+message StopPreviewRequest {
+  // media_id is the id from StartPreviewResponse.
+  string media_id = 1;
+}
+
+message StopPreviewResponse {}
