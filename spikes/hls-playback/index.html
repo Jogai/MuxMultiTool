@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>HLS playback spike</title>
+	<style>
+		body { font: 14px/1.4 system-ui, sans-serif; margin: 16px; max-width: 720px; }
+		video { width: 100%; background: #000; }
+		button { margin: 8px 8px 8px 0; }
+		pre { background: #f3f3f3; padding: 8px; white-space: pre-wrap; }
+		#status { font-weight: bold; }
+	</style>
+</head>
+<body>
+	<h1>HLS playback spike</h1>
+	<p>
+		Engine: <span id="engine">detecting</span>
+		&middot; Status: <span id="status">idle</span>
+		&middot; Time: <span id="time">0.0</span> s
+		&middot; Decoded frames: <span id="frames">0</span>
+	</p>
+	<video id="video" controls playsinline></video>
+	<p>
+		<button id="play">Play</button>
+		<button id="seek40">Seek to 40 s</button>
+		<button id="seek10">Seek to 10 s</button>
+		<button id="mute">Toggle mute</button>
+	</p>
+	<p>Manual check: the clock in the picture should jump with each seek, the tone should keep playing and the status should return to <code>playing</code>.</p>
+	<pre id="log"></pre>
+	<script>
+		const video = document.getElementById('video');
+		const src = '/hls/index.m3u8';
+		// Read by test.mjs through page.evaluate(); also useful from devtools in a webview.
+		const spike = window.spike = { engine: null, ready: false, errors: [], log: [] };
+
+		function log(line) {
+			spike.log.push(line);
+			document.getElementById('log').textContent += line + '\n';
+		}
+		function show(id, text) { document.getElementById(id).textContent = text; }
+
+		for (const name of ['loadedmetadata', 'canplay', 'playing', 'waiting', 'seeking', 'seeked', 'stalled', 'pause', 'ended']) {
+			video.addEventListener(name, () => {
+				show('status', name);
+				log(`${name} @ ${video.currentTime.toFixed(2)}`);
+			});
+		}
+		video.addEventListener('error', () => {
+			const err = `media error code=${video.error?.code} ${video.error?.message ?? ''}`;
+			spike.errors.push(err);
+			show('status', 'error');
+			log(err);
+		});
+		video.addEventListener('timeupdate', () => {
+			show('time', video.currentTime.toFixed(1));
+			show('frames', video.getVideoPlaybackQuality?.().totalVideoFrames ?? '?');
+		});
+
+		document.getElementById('play').onclick = () => video.play();
+		document.getElementById('seek40').onclick = () => { video.currentTime = 40; };
+		document.getElementById('seek10').onclick = () => { video.currentTime = 10; };
+		document.getElementById('mute').onclick = () => { video.muted = !video.muted; };
+
+		function useNative() {
+			spike.engine = 'native';
+			show('engine', 'native HLS');
+			video.src = src;
+			spike.ready = true;
+		}
+
+		function useHlsJs() {
+			const script = document.createElement('script');
+			script.src = '/hls.js';
+			script.onload = () => {
+				if (!Hls.isSupported()) {
+					spike.engine = 'none';
+					show('engine', 'none: no MSE and no native HLS');
+					spike.errors.push('hls.js unsupported');
+					spike.ready = true;
+					return;
+				}
+				spike.engine = 'hls.js';
+				show('engine', `hls.js ${Hls.version}`);
+				const hls = new Hls();
+				hls.on(Hls.Events.ERROR, (_, data) => {
+					const err = `hls.js ${data.fatal ? 'fatal ' : ''}${data.type}/${data.details}`;
+					if (data.fatal) spike.errors.push(err);
+					log(err);
+				});
+				hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+					// A plain media playlist has no CODECS attribute; hls.js then sniffs the codecs from the first segment.
+					log(`manifest: ${data.levels.length} level(s), codecs ${data.levels.map((l) => l.codecs || 'from segment').join(' ')}`);
+				});
+				hls.loadSource(src);
+				hls.attachMedia(video);
+				spike.ready = true;
+			};
+			script.onerror = () => {
+				spike.errors.push('hls.js failed to load');
+				spike.ready = true;
+			};
+			document.head.appendChild(script);
+		}
+
+		// Default: the browser's own HLS stack where it exists (Safari / WKWebView),
+		// hls.js on MSE everywhere else. `?engine=native` or `?engine=hlsjs` forces
+		// one, so a shell that has both (WKWebView) can be checked with each.
+		const forced = new URLSearchParams(location.search).get('engine');
+		const nativeHls = video.canPlayType('application/vnd.apple.mpegurl') !== '';
+		if (forced === 'native' || (!forced && nativeHls)) {
+			useNative();
+		} else if (forced === 'hlsjs' || window.MediaSource) {
+			useHlsJs();
+		} else {
+			spike.engine = 'none';
+			show('engine', 'none: no MSE and no native HLS');
+			spike.errors.push('no playback path');
+			spike.ready = true;
+		}
+	</script>
+</body>
+</html>
