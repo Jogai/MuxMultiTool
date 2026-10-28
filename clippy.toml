@@ -1,0 +1,11 @@
+msrv = "1.88"
+allow-unwrap-in-tests = true
+# Names that clippy::doc_markdown would otherwise want in backticks. `..` keeps the defaults.
+doc-valid-idents = ["MuxMultiTool", "ConnectRPC", ".."]
+# Every ffmpeg/ffprobe call goes through `core::ffmpeg::Runner`. Only that
+# module may spawn processes; it opts out with `#[expect(clippy::disallowed_methods)]`.
+disallowed-methods = [
+	{ path = "std::process::Command::new", reason = "use core::ffmpeg::Runner" },
+	{ path = "tokio::process::Command::new", reason = "use core::ffmpeg::Runner" },
+	{ path = "std::thread::sleep", reason = "blocks the async runtime" },
+]
