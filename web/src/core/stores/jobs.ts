@@ -1,19 +1,9 @@
 import { defineStore } from "pinia";
-import { computed, ref } from "vue";
+
+import { useJobQueue } from "~/core/composables/useJobQueue";
 
 /**
- * Queue counts for the top bar's job indicator.
- * The job queue UI (TASK-17) feeds them from the `WatchQueue` stream; until then they stay at zero.
+ * The live job queue, shared by the top bar's indicator, the Jobs screen and whatever submits jobs.
+ * One `WatchQueue` stream for the whole app, opened on first use and resumed after every disconnect.
  */
-export const useJobsStore = defineStore("jobs", () => {
-	const running = ref(0);
-	const queued = ref(0);
-	const isActive = computed(() => running.value > 0 || queued.value > 0);
-
-	function setCounts(counts: { running: number; queued: number }): void {
-		running.value = counts.running;
-		queued.value = counts.queued;
-	}
-
-	return { running, queued, isActive, setCounts };
-});
+export const useJobsStore = defineStore("jobs", () => useJobQueue());

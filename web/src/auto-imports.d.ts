@@ -9,10 +9,14 @@
 export {}
 declare global {
   const EffectScope: typeof import('vue').EffectScope
+  const JOB_LOG_LIMIT: typeof import('./core/libs/jobQueue').JOB_LOG_LIMIT
   const NAV_ENTRIES: typeof import('./core/libs/navigation').NAV_ENTRIES
   const RAW_OUTPUT_FIELDS: typeof import('./core/libs/errors').RAW_OUTPUT_FIELDS
   const acceptHMRUpdate: typeof import('pinia').acceptHMRUpdate
   const appMode: typeof import('./core/libs/filePicker').appMode
+  const applyEvent: typeof import('./core/libs/jobQueue').applyEvent
+  const applyFetchedJob: typeof import('./core/libs/jobQueue').applyFetchedJob
+  const applySnapshot: typeof import('./core/libs/jobQueue').applySnapshot
   const asyncComputed: typeof import('@vueuse/core').asyncComputed
   const autoResetRef: typeof import('@vueuse/core').autoResetRef
   const baseName: typeof import('./core/libs/filePicker').baseName
@@ -24,6 +28,7 @@ declare global {
   const computedWithControl: typeof import('@vueuse/core').computedWithControl
   const controlledComputed: typeof import('@vueuse/core').controlledComputed
   const controlledRef: typeof import('@vueuse/core').controlledRef
+  const countJobs: typeof import('./core/libs/jobQueue').countJobs
   const createApp: typeof import('vue').createApp
   const createContainerFilePicker: typeof import('./core/libs/filePicker').createContainerFilePicker
   const createDesktopFilePicker: typeof import('./core/libs/filePicker').createDesktopFilePicker
@@ -44,13 +49,19 @@ declare global {
   const customRef: typeof import('vue').customRef
   const debouncedRef: typeof import('@vueuse/core').debouncedRef
   const debouncedWatch: typeof import('@vueuse/core').debouncedWatch
+  const defaultRetryDelay: typeof import('./core/libs/watchStream').defaultRetryDelay
   const defineAsyncComponent: typeof import('vue').defineAsyncComponent
   const defineComponent: typeof import('vue').defineComponent
   const definePage: typeof import('vue-router/experimental').definePage
   const defineStore: typeof import('pinia').defineStore
   const eagerComputed: typeof import('@vueuse/core').eagerComputed
   const effectScope: typeof import('vue').effectScope
+  const elapsedMs: typeof import('./core/libs/jobFormat').elapsedMs
   const extendRef: typeof import('@vueuse/core').extendRef
+  const formatBytes: typeof import('./core/libs/jobFormat').formatBytes
+  const formatPercent: typeof import('./core/libs/jobFormat').formatPercent
+  const formatSpan: typeof import('./core/libs/jobFormat').formatSpan
+  const formatSpeed: typeof import('./core/libs/jobFormat').formatSpeed
   const formatTimecode: typeof import('./core/libs/format').formatTimecode
   const getActivePinia: typeof import('pinia').getActivePinia
   const getCurrentInstance: typeof import('vue').getCurrentInstance
@@ -69,6 +80,7 @@ declare global {
   const isReadonly: typeof import('vue').isReadonly
   const isRef: typeof import('vue').isRef
   const isShallow: typeof import('vue').isShallow
+  const isTerminal: typeof import('./core/libs/jobQueue').isTerminal
   const makeDestructurable: typeof import('@vueuse/core').makeDestructurable
   const mapActions: typeof import('pinia').mapActions
   const mapGetters: typeof import('pinia').mapGetters
@@ -76,6 +88,7 @@ declare global {
   const mapStores: typeof import('pinia').mapStores
   const mapWritableState: typeof import('pinia').mapWritableState
   const markRaw: typeof import('vue').markRaw
+  const mergeLog: typeof import('./core/libs/jobQueue').mergeLog
   const navNameForPath: typeof import('./core/libs/navigation').navNameForPath
   const nextTick: typeof import('vue').nextTick
   const onActivated: typeof import('vue').onActivated
@@ -102,6 +115,7 @@ declare global {
   const pausableWatch: typeof import('@vueuse/core').pausableWatch
   const provide: typeof import('vue').provide
   const provideLocal: typeof import('@vueuse/core').provideLocal
+  const queueEventId: typeof import('./core/libs/jobQueue').queueEventId
   const reactify: typeof import('@vueuse/core').reactify
   const reactifyObject: typeof import('@vueuse/core').reactifyObject
   const reactive: typeof import('vue').reactive
@@ -123,6 +137,7 @@ declare global {
   const shallowReactive: typeof import('vue').shallowReactive
   const shallowReadonly: typeof import('vue').shallowReadonly
   const shallowRef: typeof import('vue').shallowRef
+  const sortJobs: typeof import('./core/libs/jobQueue').sortJobs
   const storeToRefs: typeof import('pinia').storeToRefs
   const syncRef: typeof import('@vueuse/core').syncRef
   const syncRefs: typeof import('@vueuse/core').syncRefs
@@ -135,6 +150,7 @@ declare global {
   const toRefs: typeof import('vue').toRefs
   const toValue: typeof import('vue').toValue
   const triggerRef: typeof import('vue').triggerRef
+  const trimLog: typeof import('./core/libs/jobQueue').trimLog
   const tryOnBeforeMount: typeof import('@vueuse/core').tryOnBeforeMount
   const tryOnBeforeUnmount: typeof import('@vueuse/core').tryOnBeforeUnmount
   const tryOnMounted: typeof import('@vueuse/core').tryOnMounted
@@ -169,6 +185,7 @@ declare global {
   const useCached: typeof import('@vueuse/core').useCached
   const useClipboard: typeof import('@vueuse/core').useClipboard
   const useClipboardItems: typeof import('@vueuse/core').useClipboardItems
+  const useClock: typeof import('./core/composables/useClock').useClock
   const useCloned: typeof import('@vueuse/core').useCloned
   const useColorMode: typeof import('@vueuse/core').useColorMode
   const useConfirmDialog: typeof import('@vueuse/core').useConfirmDialog
@@ -223,6 +240,7 @@ declare global {
   const useIntersectionObserver: typeof import('@vueuse/core').useIntersectionObserver
   const useInterval: typeof import('@vueuse/core').useInterval
   const useIntervalFn: typeof import('@vueuse/core').useIntervalFn
+  const useJobQueue: typeof import('./core/composables/useJobQueue').useJobQueue
   const useJobsStore: typeof import('./core/stores/jobs').useJobsStore
   const useKeyModifier: typeof import('@vueuse/core').useKeyModifier
   const useLastChanged: typeof import('@vueuse/core').useLastChanged
@@ -334,6 +352,7 @@ declare global {
   const watchOnce: typeof import('@vueuse/core').watchOnce
   const watchPausable: typeof import('@vueuse/core').watchPausable
   const watchPostEffect: typeof import('vue').watchPostEffect
+  const watchStream: typeof import('./core/libs/watchStream').watchStream
   const watchSyncEffect: typeof import('vue').watchSyncEffect
   const watchThrottled: typeof import('@vueuse/core').watchThrottled
   const watchTriggerable: typeof import('@vueuse/core').watchTriggerable
@@ -345,6 +364,9 @@ declare global {
   // @ts-ignore
   export type { Component, Slot, Slots, ComponentPublicInstance, ComputedRef, DirectiveBinding, ExtractDefaultPropTypes, ExtractPropTypes, ExtractPublicPropTypes, InjectionKey, PropType, Ref, ShallowRef, MaybeRef, MaybeRefOrGetter, VNode, WritableComputedRef } from 'vue'
   import('vue')
+  // @ts-ignore
+  export type { QueueConnection, JobQueueOptions } from './core/composables/useJobQueue'
+  import('./core/composables/useJobQueue')
   // @ts-ignore
   export type { BackendState } from './core/composables/useSystemStatus'
   import('./core/composables/useSystemStatus')
@@ -358,11 +380,17 @@ declare global {
   export type { AppMode, PickFilesOptions, PickedFile, FilePicker, OpenFileBrowser } from './core/libs/filePicker'
   import('./core/libs/filePicker')
   // @ts-ignore
+  export type { QueueJobs } from './core/libs/jobQueue'
+  import('./core/libs/jobQueue')
+  // @ts-ignore
   export type { NavName } from './core/libs/navigation'
   import('./core/libs/navigation')
   // @ts-ignore
   export type { RpcTransportOptions } from './core/libs/rpc'
   import('./core/libs/rpc')
+  // @ts-ignore
+  export type { WatchStatus, WatchStreamOptions, WatchHandle } from './core/libs/watchStream'
+  import('./core/libs/watchStream')
 }
 
 // for vue template auto import
@@ -371,10 +399,14 @@ declare module 'vue' {
   interface GlobalComponents {}
   interface ComponentCustomProperties {
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
+    readonly JOB_LOG_LIMIT: UnwrapRef<typeof import('./core/libs/jobQueue')['JOB_LOG_LIMIT']>
     readonly NAV_ENTRIES: UnwrapRef<typeof import('./core/libs/navigation')['NAV_ENTRIES']>
     readonly RAW_OUTPUT_FIELDS: UnwrapRef<typeof import('./core/libs/errors')['RAW_OUTPUT_FIELDS']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
     readonly appMode: UnwrapRef<typeof import('./core/libs/filePicker')['appMode']>
+    readonly applyEvent: UnwrapRef<typeof import('./core/libs/jobQueue')['applyEvent']>
+    readonly applyFetchedJob: UnwrapRef<typeof import('./core/libs/jobQueue')['applyFetchedJob']>
+    readonly applySnapshot: UnwrapRef<typeof import('./core/libs/jobQueue')['applySnapshot']>
     readonly asyncComputed: UnwrapRef<typeof import('@vueuse/core')['asyncComputed']>
     readonly autoResetRef: UnwrapRef<typeof import('@vueuse/core')['autoResetRef']>
     readonly baseName: UnwrapRef<typeof import('./core/libs/filePicker')['baseName']>
@@ -386,6 +418,7 @@ declare module 'vue' {
     readonly computedWithControl: UnwrapRef<typeof import('@vueuse/core')['computedWithControl']>
     readonly controlledComputed: UnwrapRef<typeof import('@vueuse/core')['controlledComputed']>
     readonly controlledRef: UnwrapRef<typeof import('@vueuse/core')['controlledRef']>
+    readonly countJobs: UnwrapRef<typeof import('./core/libs/jobQueue')['countJobs']>
     readonly createApp: UnwrapRef<typeof import('vue')['createApp']>
     readonly createContainerFilePicker: UnwrapRef<typeof import('./core/libs/filePicker')['createContainerFilePicker']>
     readonly createDesktopFilePicker: UnwrapRef<typeof import('./core/libs/filePicker')['createDesktopFilePicker']>
@@ -405,13 +438,19 @@ declare module 'vue' {
     readonly customRef: UnwrapRef<typeof import('vue')['customRef']>
     readonly debouncedRef: UnwrapRef<typeof import('@vueuse/core')['debouncedRef']>
     readonly debouncedWatch: UnwrapRef<typeof import('@vueuse/core')['debouncedWatch']>
+    readonly defaultRetryDelay: UnwrapRef<typeof import('./core/libs/watchStream')['defaultRetryDelay']>
     readonly defineAsyncComponent: UnwrapRef<typeof import('vue')['defineAsyncComponent']>
     readonly defineComponent: UnwrapRef<typeof import('vue')['defineComponent']>
     readonly definePage: UnwrapRef<typeof import('vue-router/experimental')['definePage']>
     readonly defineStore: UnwrapRef<typeof import('pinia')['defineStore']>
     readonly eagerComputed: UnwrapRef<typeof import('@vueuse/core')['eagerComputed']>
     readonly effectScope: UnwrapRef<typeof import('vue')['effectScope']>
+    readonly elapsedMs: UnwrapRef<typeof import('./core/libs/jobFormat')['elapsedMs']>
     readonly extendRef: UnwrapRef<typeof import('@vueuse/core')['extendRef']>
+    readonly formatBytes: UnwrapRef<typeof import('./core/libs/jobFormat')['formatBytes']>
+    readonly formatPercent: UnwrapRef<typeof import('./core/libs/jobFormat')['formatPercent']>
+    readonly formatSpan: UnwrapRef<typeof import('./core/libs/jobFormat')['formatSpan']>
+    readonly formatSpeed: UnwrapRef<typeof import('./core/libs/jobFormat')['formatSpeed']>
     readonly formatTimecode: UnwrapRef<typeof import('./core/libs/format')['formatTimecode']>
     readonly getActivePinia: UnwrapRef<typeof import('pinia')['getActivePinia']>
     readonly getCurrentInstance: UnwrapRef<typeof import('vue')['getCurrentInstance']>
@@ -430,6 +469,7 @@ declare module 'vue' {
     readonly isReadonly: UnwrapRef<typeof import('vue')['isReadonly']>
     readonly isRef: UnwrapRef<typeof import('vue')['isRef']>
     readonly isShallow: UnwrapRef<typeof import('vue')['isShallow']>
+    readonly isTerminal: UnwrapRef<typeof import('./core/libs/jobQueue')['isTerminal']>
     readonly makeDestructurable: UnwrapRef<typeof import('@vueuse/core')['makeDestructurable']>
     readonly mapActions: UnwrapRef<typeof import('pinia')['mapActions']>
     readonly mapGetters: UnwrapRef<typeof import('pinia')['mapGetters']>
@@ -437,6 +477,7 @@ declare module 'vue' {
     readonly mapStores: UnwrapRef<typeof import('pinia')['mapStores']>
     readonly mapWritableState: UnwrapRef<typeof import('pinia')['mapWritableState']>
     readonly markRaw: UnwrapRef<typeof import('vue')['markRaw']>
+    readonly mergeLog: UnwrapRef<typeof import('./core/libs/jobQueue')['mergeLog']>
     readonly navNameForPath: UnwrapRef<typeof import('./core/libs/navigation')['navNameForPath']>
     readonly nextTick: UnwrapRef<typeof import('vue')['nextTick']>
     readonly onActivated: UnwrapRef<typeof import('vue')['onActivated']>
@@ -463,6 +504,7 @@ declare module 'vue' {
     readonly pausableWatch: UnwrapRef<typeof import('@vueuse/core')['pausableWatch']>
     readonly provide: UnwrapRef<typeof import('vue')['provide']>
     readonly provideLocal: UnwrapRef<typeof import('@vueuse/core')['provideLocal']>
+    readonly queueEventId: UnwrapRef<typeof import('./core/libs/jobQueue')['queueEventId']>
     readonly reactify: UnwrapRef<typeof import('@vueuse/core')['reactify']>
     readonly reactifyObject: UnwrapRef<typeof import('@vueuse/core')['reactifyObject']>
     readonly reactive: UnwrapRef<typeof import('vue')['reactive']>
@@ -484,6 +526,7 @@ declare module 'vue' {
     readonly shallowReactive: UnwrapRef<typeof import('vue')['shallowReactive']>
     readonly shallowReadonly: UnwrapRef<typeof import('vue')['shallowReadonly']>
     readonly shallowRef: UnwrapRef<typeof import('vue')['shallowRef']>
+    readonly sortJobs: UnwrapRef<typeof import('./core/libs/jobQueue')['sortJobs']>
     readonly storeToRefs: UnwrapRef<typeof import('pinia')['storeToRefs']>
     readonly syncRef: UnwrapRef<typeof import('@vueuse/core')['syncRef']>
     readonly syncRefs: UnwrapRef<typeof import('@vueuse/core')['syncRefs']>
@@ -496,6 +539,7 @@ declare module 'vue' {
     readonly toRefs: UnwrapRef<typeof import('vue')['toRefs']>
     readonly toValue: UnwrapRef<typeof import('vue')['toValue']>
     readonly triggerRef: UnwrapRef<typeof import('vue')['triggerRef']>
+    readonly trimLog: UnwrapRef<typeof import('./core/libs/jobQueue')['trimLog']>
     readonly tryOnBeforeMount: UnwrapRef<typeof import('@vueuse/core')['tryOnBeforeMount']>
     readonly tryOnBeforeUnmount: UnwrapRef<typeof import('@vueuse/core')['tryOnBeforeUnmount']>
     readonly tryOnMounted: UnwrapRef<typeof import('@vueuse/core')['tryOnMounted']>
@@ -530,6 +574,7 @@ declare module 'vue' {
     readonly useCached: UnwrapRef<typeof import('@vueuse/core')['useCached']>
     readonly useClipboard: UnwrapRef<typeof import('@vueuse/core')['useClipboard']>
     readonly useClipboardItems: UnwrapRef<typeof import('@vueuse/core')['useClipboardItems']>
+    readonly useClock: UnwrapRef<typeof import('./core/composables/useClock')['useClock']>
     readonly useCloned: UnwrapRef<typeof import('@vueuse/core')['useCloned']>
     readonly useColorMode: UnwrapRef<typeof import('@vueuse/core')['useColorMode']>
     readonly useConfirmDialog: UnwrapRef<typeof import('@vueuse/core')['useConfirmDialog']>
@@ -584,6 +629,7 @@ declare module 'vue' {
     readonly useIntersectionObserver: UnwrapRef<typeof import('@vueuse/core')['useIntersectionObserver']>
     readonly useInterval: UnwrapRef<typeof import('@vueuse/core')['useInterval']>
     readonly useIntervalFn: UnwrapRef<typeof import('@vueuse/core')['useIntervalFn']>
+    readonly useJobQueue: UnwrapRef<typeof import('./core/composables/useJobQueue')['useJobQueue']>
     readonly useJobsStore: UnwrapRef<typeof import('./core/stores/jobs')['useJobsStore']>
     readonly useKeyModifier: UnwrapRef<typeof import('@vueuse/core')['useKeyModifier']>
     readonly useLastChanged: UnwrapRef<typeof import('@vueuse/core')['useLastChanged']>
@@ -695,6 +741,7 @@ declare module 'vue' {
     readonly watchOnce: UnwrapRef<typeof import('@vueuse/core')['watchOnce']>
     readonly watchPausable: UnwrapRef<typeof import('@vueuse/core')['watchPausable']>
     readonly watchPostEffect: UnwrapRef<typeof import('vue')['watchPostEffect']>
+    readonly watchStream: UnwrapRef<typeof import('./core/libs/watchStream')['watchStream']>
     readonly watchSyncEffect: UnwrapRef<typeof import('vue')['watchSyncEffect']>
     readonly watchThrottled: UnwrapRef<typeof import('@vueuse/core')['watchThrottled']>
     readonly watchTriggerable: UnwrapRef<typeof import('@vueuse/core')['watchTriggerable']>
