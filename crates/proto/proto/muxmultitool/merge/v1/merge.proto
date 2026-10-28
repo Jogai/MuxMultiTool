@@ -27,11 +27,12 @@ service MergeService {
 // submit fails with FAILED_PRECONDITION and the problems' messages when the
 // files are not compatible.
 message MergeOperation {
-  // Inputs are the files in output order, at least two. Paths must be inside
-  // a configured media root.
+  // Inputs are the files in output order, at least two: file ids from
+  // FilesService, or absolute paths inside a configured media root.
   repeated string inputs = 1;
   // Output is the file to write; it must not exist yet. The container
-  // follows its extension.
+  // follows its extension. An absolute path, a bare file name (next to the
+  // first input) or empty, which names "<first input>-merged.<extension>".
   string output = 2;
   // DropStreams lists streams to leave out, by their index in the first
   // file. A stream that differs between the files no longer blocks the merge

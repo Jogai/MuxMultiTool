@@ -14,7 +14,7 @@
 //! the user orders the files and picks which streams to leave out.
 
 use std::hash::{DefaultHasher, Hash, Hasher};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -60,11 +60,7 @@ impl MergeService for Merge {
 		};
 		let checked = self.jobs.merge_check(&operation).await?;
 		// The output is only shown in the command here; it need not exist.
-		let output = if operation.output.is_empty() {
-			default_output(&checked.parts[0].path)
-		} else {
-			PathBuf::from(&operation.output)
-		};
+		let output = merge_output(&checked.parts[0].path, &operation.output);
 		let command = checked.command(&Sidecars::for_output(&output), &output)?;
 		let argv = self.jobs.state.runner.ffmpeg_invocation(&command);
 		Ok(Response::new(CheckMergeResponse {
@@ -89,8 +85,10 @@ impl Jobs {
 		name: &str,
 		operation: &MergeOperation,
 	) -> Result<JobSpec, ConnectError> {
-		let output = self.checked_output(&operation.output)?;
 		let checked = self.merge_check(operation).await?;
+		let output = self.checked_output(
+			&merge_output(&checked.parts[0].path, &operation.output).to_string_lossy(),
+		)?;
 		if !checked.check.can_merge() {
 			return Err(ConnectError::failed_precondition(format!(
 				"the files cannot be merged as they are: {}",
@@ -126,7 +124,7 @@ impl Jobs {
 		}
 		let mut parts = Vec::with_capacity(operation.inputs.len());
 		for input in &operation.inputs {
-			let path = self.checked_input(input)?;
+			let path = self.cut_input(input)?;
 			let probe = self
 				.state
 				.runner
@@ -206,6 +204,21 @@ impl Sidecars {
 			tokio::fs::write(&self.chapters, text).await?;
 		}
 		Ok(())
+	}
+}
+
+/// The output as the operation names it: absolute, a bare file name next to
+/// the first part, or the default next to the first part when empty. A path
+/// the check rejects later comes back unchanged.
+fn merge_output(first: &Path, output: &str) -> PathBuf {
+	let path = Path::new(output);
+	if output.is_empty() {
+		return default_output(first);
+	}
+	let mut components = path.components();
+	match (components.next(), components.next()) {
+		(Some(Component::Normal(_)), None) => first.with_file_name(path),
+		_ => path.to_path_buf(),
 	}
 }
 

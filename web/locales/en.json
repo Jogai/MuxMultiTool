@@ -194,10 +194,6 @@
 			"open": "Open file…",
 			"empty": "Open a file to play its preview; the timeline and the segment list come with the editor."
 		},
-		"merge": {
-			"description": "Join files with identical codecs after a compatibility check.",
-			"task": "TASK-33"
-		},
 		"images": {
 			"description": "GIF, snapshots, cover art and lossless crop.",
 			"task": "TASK-40"
@@ -339,6 +335,47 @@
 			"merge": "Merge…",
 			"batch": "Batch…",
 			"clear": "Clear selection"
+		}
+	},
+	"merge": {
+		"description": "Join files with identical codecs without re-encoding, after a compatibility check.",
+		"needTwo": "Select at least two files to merge.",
+		"checking": "Checking…",
+		"resolve": "Resolve {n} problem first | Resolve {n} problems first",
+		"start": "Merge",
+		"submitted": "Merge queued: {name}.",
+		"viewJob": "View progress in Jobs",
+		"order": {
+			"title": "Order",
+			"empty": "No files yet. Select files on the Files screen, or add them here.",
+			"file": "File",
+			"duration": "Duration",
+			"layout": "Streams",
+			"actions": "Actions",
+			"drag": "Drag to reorder",
+			"up": "Move {name} up",
+			"down": "Move {name} down",
+			"remove": "Remove {name}",
+			"add": "Add files…"
+		},
+		"check": {
+			"title": "Compatibility check",
+			"stream": "Stream",
+			"result": "Result",
+			"identical": "identical",
+			"missing": "(missing)",
+			"leaveOut": "Leave out stream #{index}",
+			"droppedNote": "{n} stream left out of the merge. This stays lossless. | {n} streams left out of the merge. This stays lossless."
+		},
+		"output": {
+			"title": "Output",
+			"file": "Output file",
+			"placeholder": "first-file-merged",
+			"hint": "A full path, or a file name next to the first file. Empty uses the placeholder name. The file must not exist yet.",
+			"chapters": "Add a chapter per part"
+		},
+		"command": {
+			"title": "Command that will run"
 		}
 	},
 	"player": {

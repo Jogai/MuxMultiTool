@@ -387,3 +387,21 @@ async fn merge_requests_are_validated() {
 	}
 	assert!(!out("x.mp4").exists());
 }
+
+#[tokio::test]
+async fn the_output_may_be_a_bare_name_or_empty() {
+	let root = MediaRoot::new().await.unwrap();
+	let router = app(&root.config());
+
+	// A bare name lands next to the first part, an empty one gets the default name.
+	for (output, expected) in [("joined.mp4", "joined.mp4"), ("", "e01-merged.mp4")] {
+		let mut operation = root.merge(2, "ignored.mp4");
+		operation["output"] = serde_json::json!(output);
+		let job = run_job(&router, serde_json::json!({ "merge": operation }))
+			.await
+			.unwrap();
+		assert_eq!(job["state"], "JOB_STATE_SUCCEEDED", "{job}");
+		assert_eq!(job["name"], expected);
+		assert!(root.path().join(expected).is_file());
+	}
+}
