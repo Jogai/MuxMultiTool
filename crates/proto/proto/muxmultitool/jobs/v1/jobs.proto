@@ -1,0 +1,219 @@
+syntax = "proto3";
+
+package muxmultitool.jobs.v1;
+
+// JobsService runs ffmpeg operations as jobs: every operation that writes
+// output goes through here. Jobs keep running after the browser tab closes
+// (they live in the server, not in the request) but are lost on a server
+// restart. See docs/architecture.md, "ConnectRPC – Conventions".
+service JobsService {
+  // SubmitJob queues an operation and returns the job, including the exact
+  // ffmpeg command it will run. Jobs start in submission order, at most the
+  // configured number at once.
+  rpc SubmitJob(SubmitJobRequest) returns (SubmitJobResponse);
+
+  // ListJobs returns every job the server knows, oldest first.
+  rpc ListJobs(ListJobsRequest) returns (ListJobsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // GetJob returns one job.
+  rpc GetJob(GetJobRequest) returns (GetJobResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // CancelJob stops a running job or removes a queued one from the queue.
+  // A finished job cannot be cancelled (FAILED_PRECONDITION).
+  rpc CancelJob(CancelJobRequest) returns (CancelJobResponse);
+
+  // WatchJob streams one job: a snapshot first, then every progress report,
+  // log line and state change until the job finishes. A client that lost
+  // the stream resumes with the last event id it saw; the server then sends
+  // the events it missed instead of a snapshot, as long as they are still in
+  // the buffer, and a fresh snapshot otherwise.
+  rpc WatchJob(WatchJobRequest) returns (stream WatchJobResponse);
+
+  // WatchQueue streams the whole queue the same way: a snapshot of every
+  // job, then the events of all jobs. It ends only when the client stops
+  // reading or the server shuts down.
+  rpc WatchQueue(WatchQueueRequest) returns (stream WatchQueueResponse);
+}
+
+message SubmitJobRequest {
+  // Name is the label shown in the queue, e.g. the output file name. The
+  // server picks one from the operation when it is empty.
+  string name = 1;
+  // Operation is what the job does. Later features add their operations here.
+  oneof operation {
+    RemuxOperation remux = 2;
+  }
+}
+
+// RemuxOperation copies every stream of the input into a new container,
+// chosen by the output file's extension.
+message RemuxOperation {
+  // Input is the source file. Paths must be inside a configured media root.
+  string input = 1;
+  // Output is the file to write; it must not exist yet.
+  string output = 2;
+}
+
+message SubmitJobResponse {
+  Job job = 1;
+}
+
+message ListJobsRequest {}
+
+message ListJobsResponse {
+  repeated Job jobs = 1;
+}
+
+message GetJobRequest {
+  string job_id = 1;
+}
+
+message GetJobResponse {
+  Job job = 1;
+}
+
+message CancelJobRequest {
+  string job_id = 1;
+}
+
+message CancelJobResponse {
+  // Job is the job after the cancel request, already CANCELLED when it was
+  // still queued and RUNNING (about to stop) otherwise.
+  Job job = 1;
+}
+
+message WatchJobRequest {
+  string job_id = 1;
+  // AfterEventId is the id of the last event the client saw, or 0 for a
+  // fresh watch that starts with a snapshot.
+  uint64 after_event_id = 2;
+}
+
+message WatchJobResponse {
+  oneof message {
+    JobSnapshot snapshot = 1;
+    JobEvent event = 2;
+  }
+}
+
+message WatchQueueRequest {
+  // AfterEventId is the id of the last event the client saw, or 0 for a
+  // fresh watch that starts with a snapshot.
+  uint64 after_event_id = 1;
+}
+
+message WatchQueueResponse {
+  oneof message {
+    QueueSnapshot snapshot = 1;
+    JobEvent event = 2;
+  }
+}
+
+// JobSnapshot is the full state of one job. Events with an id at or below
+// event_id are already included.
+message JobSnapshot {
+  uint64 event_id = 1;
+  Job job = 2;
+}
+
+// QueueSnapshot is the full state of every job. Events with an id at or
+// below event_id are already included.
+message QueueSnapshot {
+  uint64 event_id = 1;
+  repeated Job jobs = 2;
+}
+
+// Job is one queued, running or finished operation.
+message Job {
+  // Id is opaque and unique for the lifetime of the server.
+  string id = 1;
+  string name = 2;
+  JobState state = 3;
+  // Command is the exact command line the job runs, quoted for a shell.
+  // It is known from submission on and never changes.
+  string command = 4;
+  // Argv is the same command as the program followed by its arguments, one
+  // element each, for clients that want to show them without parsing.
+  repeated string argv = 5;
+  // Progress is the latest report, absent until ffmpeg sent the first one.
+  Progress progress = 6;
+  // Log holds the last lines ffmpeg wrote to stderr. The full stream of
+  // lines comes through WatchJob.
+  repeated string log = 7;
+  // Error is set when the state is FAILED.
+  ErrorDetail error = 8;
+  // Timestamps in milliseconds since the Unix epoch; 0 when not reached.
+  int64 created_unix_ms = 9;
+  int64 started_unix_ms = 10;
+  int64 finished_unix_ms = 11;
+}
+
+enum JobState {
+  JOB_STATE_UNSPECIFIED = 0;
+  // Waiting for a free slot.
+  JOB_STATE_QUEUED = 1;
+  // ffmpeg is running.
+  JOB_STATE_RUNNING = 2;
+  // ffmpeg exited successfully.
+  JOB_STATE_SUCCEEDED = 3;
+  // ffmpeg failed or could not be started; see Job.error.
+  JOB_STATE_FAILED = 4;
+  // Cancelled by a client or by the server shutting down.
+  JOB_STATE_CANCELLED = 5;
+}
+
+// Progress is one of ffmpeg's progress reports, plus what the server derives
+// from it. Fields ffmpeg did not report are left at their default.
+message Progress {
+  // OutTimeMs is how much media has been written, in milliseconds.
+  int64 out_time_ms = 1;
+  // Speed relative to real time, e.g. 2.5 for 2.5x.
+  double speed = 2;
+  // Fps is the encoding rate in frames per second.
+  double fps = 3;
+  int64 frame = 4;
+  // TotalSize is the number of bytes written so far.
+  int64 total_size = 5;
+  double bitrate_kbps = 6;
+  // Percent is the share of the expected duration that is done, 0 to 100.
+  // Only set when the job knows its expected duration.
+  optional double percent = 7;
+  // EtaMs is the estimated time left in milliseconds, from the expected
+  // duration and the current speed.
+  optional int64 eta_ms = 8;
+}
+
+// JobEvent is one change to a job. Ids increase across all jobs, so a client
+// can resume any watch stream from the last id it saw.
+message JobEvent {
+  uint64 id = 1;
+  string job_id = 2;
+  oneof event {
+    StateChange state = 3;
+    Progress progress = 4;
+    // LogLine is one line ffmpeg wrote to stderr.
+    string log_line = 5;
+  }
+}
+
+// StateChange is a transition to a new state.
+message StateChange {
+  JobState state = 1;
+  // Error is set when the new state is FAILED.
+  ErrorDetail error = 2;
+  int64 at_unix_ms = 3;
+}
+
+// ErrorDetail explains a failure twice: in plain language for the user and
+// as ffmpeg's own output for the log.
+message ErrorDetail {
+  // Message is the plain-language explanation, e.g. "the input file was not
+  // found".
+  string message = 1;
+  // FfmpegOutput is the tail of what ffmpeg wrote to stderr.
+  string ffmpeg_output = 2;
+}
