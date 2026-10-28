@@ -10,8 +10,8 @@
 //!   JSON in development and binary protobuf in release builds, and `curl`
 //!   can always send JSON.
 //! - `/media/…`: the plain HTTP media routes (the HLS preview, module
-//!   `media`; thumbnail sprites, module `timeline`); `/files/…` follows
-//!   with the download feature.
+//!   `media`; thumbnail sprites, module `timeline`); `GET /files/{id}`:
+//!   downloads (module `download`).
 //! - everything else: the built frontend, with `index.html` for unknown paths
 //!   so the router's history mode works on a page reload.
 
@@ -36,6 +36,7 @@ use tower_http::trace::TraceLayer;
 use tracing::{info, warn};
 
 mod config;
+mod download;
 mod files;
 mod jobs;
 mod media;
@@ -125,6 +126,7 @@ fn app_with_state(state: Arc<AppState>) -> Router {
 		.nest_service(RPC_PREFIX, rpc.into_axum_service())
 		.merge(media::routes())
 		.merge(timeline::routes())
+		.merge(download::routes())
 		.fallback_service(frontend)
 		.layer(TraceLayer::new_for_http())
 		.with_state(state)

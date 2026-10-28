@@ -23,12 +23,14 @@ connectrpc = { version = "0.9", default-features = false, features = [
 futures-util = { version = "0.3.34", default-features = false }
 muxmultitool-core = { path = "../core", version = "0.1.0" }
 muxmultitool-proto = { path = "../proto", version = "0.1.0" }
+percent-encoding = "2.3.2"
 tokio = { version = "1.54.1", features = [
 	"rt-multi-thread",
 	"macros",
 	"net",
 	"signal",
 ] }
+tower = { version = "0.5.3", features = ["util"] }
 tower-http = { version = "0.7.1", features = ["fs", "trace"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = [

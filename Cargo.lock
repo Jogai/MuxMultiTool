@@ -783,6 +783,7 @@ dependencies = [
  "http-body-util",
  "muxmultitool-core",
  "muxmultitool-proto",
+ "percent-encoding",
  "serde_json",
  "tempfile",
  "tokio",
