@@ -21,6 +21,7 @@ fn quick(name: &str) -> JobSpec {
 		expected_duration: Some(Duration::from_secs(1)),
 		preparation: Vec::new(),
 		scratch_dir: None,
+		outputs: Vec::new(),
 	}
 }
 
@@ -39,6 +40,7 @@ fn endless(marker: &str) -> JobSpec {
 		expected_duration: Some(Duration::from_secs(600)),
 		preparation: Vec::new(),
 		scratch_dir: None,
+		outputs: Vec::new(),
 	}
 }
 
@@ -215,6 +217,7 @@ async fn a_job_of_several_commands_runs_them_in_order_and_cleans_up() {
 			expected_duration: Some(Duration::from_secs(1)),
 			preparation: vec![write.clone()],
 			scratch_dir: Some(scratch.clone()),
+			outputs: vec![output.clone()],
 		})
 		.unwrap();
 	assert!(
@@ -225,7 +228,7 @@ async fn a_job_of_several_commands_runs_them_in_order_and_cleans_up() {
 	assert_eq!(job.argv.iter().filter(|a| *a == "&&").count(), 1);
 	let done = wait_for_end(&queue, &job.id).await.unwrap();
 	assert_eq!(done.state, JobState::Succeeded, "{done:?}");
-	assert!(output.is_file());
+	assert!(output.is_file(), "a succeeded job keeps its output");
 	assert!(!scratch.exists(), "the scratch folder is removed");
 	// The first command's share of the percentage ended at 50.
 	let items = collect(queue.watch_job(&job.id, 0).unwrap()).await.unwrap();
@@ -248,6 +251,7 @@ async fn a_job_of_several_commands_runs_them_in_order_and_cleans_up() {
 					.output(&piece),
 			],
 			scratch_dir: Some(scratch.clone()),
+			outputs: Vec::new(),
 		})
 		.unwrap();
 	let done = wait_for_end(&queue, &job.id).await.unwrap();
@@ -270,6 +274,7 @@ async fn a_failed_job_explains_itself_and_keeps_the_ffmpeg_output() {
 			expected_duration: None,
 			preparation: Vec::new(),
 			scratch_dir: None,
+			outputs: Vec::new(),
 		})
 		.unwrap();
 
@@ -498,4 +503,139 @@ async fn shutdown_stops_every_job_and_ends_every_watch() {
 	tokio::time::timeout(Duration::from_secs(1), queue.closed())
 		.await
 		.expect("closed resolves after shutdown");
+}
+
+/// A job that writes `output` for ten minutes at real-time pace, so there
+/// is a partial file to find while it runs. `marker` ends up in its
+/// argument list.
+fn endless_to_file(marker: &str, output: &Path) -> JobSpec {
+	JobSpec {
+		name: marker.to_owned(),
+		command: FfmpegCommand::new()
+			.flag("-re")
+			.option("-f", "lavfi")
+			.input("testsrc2=duration=600:size=64x64:rate=10")
+			.option("-metadata", format!("comment={marker}"))
+			.option("-f", "mpegts")
+			.output(output),
+		expected_duration: Some(Duration::from_secs(600)),
+		preparation: Vec::new(),
+		scratch_dir: None,
+		outputs: vec![output.to_path_buf()],
+	}
+}
+
+#[tokio::test]
+async fn a_cancelled_job_removes_the_output_it_created() {
+	let dir = tempfile::tempdir().unwrap();
+	let output = dir.path().join("partial.ts");
+	let marker = format!("mmt-jobs-cancel-output-{}", std::process::id());
+	let queue = Queue::new(Runner::default(), QueueConfig::default());
+	let job = queue.submit(endless_to_file(&marker, &output)).unwrap();
+	wait_for_progress(queue.watch_job(&job.id, 0).unwrap())
+		.await
+		.unwrap();
+	assert!(output.exists(), "ffmpeg has started writing");
+
+	queue.cancel(&job.id).unwrap();
+	let done = wait_for_end(&queue, &job.id).await.unwrap();
+	assert_eq!(done.state, JobState::Cancelled);
+	assert!(!output.exists(), "the partial output is removed");
+}
+
+#[tokio::test]
+async fn shutdown_removes_the_outputs_of_the_jobs_it_cancels() {
+	let dir = tempfile::tempdir().unwrap();
+	let output = dir.path().join("partial.ts");
+	let marker = format!("mmt-jobs-shutdown-output-{}", std::process::id());
+	let queue = Queue::new(Runner::default(), QueueConfig::default());
+	let job = queue.submit(endless_to_file(&marker, &output)).unwrap();
+	wait_for_progress(queue.watch_job(&job.id, 0).unwrap())
+		.await
+		.unwrap();
+	assert!(output.exists());
+
+	tokio::time::timeout(Duration::from_secs(30), queue.shutdown())
+		.await
+		.expect("shutdown finishes");
+	assert_eq!(queue.get(&job.id).unwrap().state, JobState::Cancelled);
+	assert!(!output.exists(), "the partial output is removed");
+}
+
+#[tokio::test]
+async fn a_failed_job_removes_the_outputs_it_created_and_keeps_the_rest() {
+	let dir = tempfile::tempdir().unwrap();
+	let written = dir.path().join("written.mkv");
+	let never = dir.path().join("never.mkv");
+	let existing = dir.path().join("existing.mkv");
+	std::fs::write(&existing, "keep me").unwrap();
+	let input = dir.path().join("input.mkv");
+	let queue = Queue::new(Runner::default(), QueueConfig::default());
+	// The first step writes a file; the second fails on a missing input.
+	// Both outputs are listed, as is a file that was there before and an
+	// output the job never reached.
+	let job = queue
+		.submit(JobSpec {
+			name: "fails late".into(),
+			command: FfmpegCommand::new()
+				.input(dir.path().join("missing.mkv"))
+				.output(&never),
+			expected_duration: None,
+			preparation: vec![
+				FfmpegCommand::new()
+					.option("-f", "lavfi")
+					.input("testsrc2=duration=1:size=64x64:rate=10")
+					.output(&written),
+			],
+			scratch_dir: None,
+			outputs: vec![
+				written.clone(),
+				never.clone(),
+				existing.clone(),
+				input.clone(),
+			],
+		})
+		.unwrap();
+	let done = wait_for_end(&queue, &job.id).await.unwrap();
+	assert_eq!(done.state, JobState::Failed, "{done:?}");
+	assert!(
+		!written.exists(),
+		"the output of the finished step is removed"
+	);
+	assert!(!never.exists());
+	assert_eq!(
+		std::fs::read(&existing).unwrap(),
+		b"keep me",
+		"a file that existed before the job is left alone"
+	);
+	assert!(!input.exists());
+}
+
+#[tokio::test]
+async fn an_output_that_exists_before_the_job_is_never_removed() {
+	let dir = tempfile::tempdir().unwrap();
+	let output = dir.path().join("out.mkv");
+	std::fs::write(&output, "not a movie").unwrap();
+	let queue = Queue::new(Runner::default(), QueueConfig::default());
+	// ffmpeg refuses to overwrite without `-y`: the job fails at once.
+	let job = queue
+		.submit(JobSpec {
+			name: "refused".into(),
+			command: FfmpegCommand::new()
+				.option("-f", "lavfi")
+				.input("testsrc2=duration=1:size=64x64:rate=10")
+				.output(&output),
+			expected_duration: None,
+			preparation: Vec::new(),
+			scratch_dir: None,
+			outputs: vec![output.clone()],
+		})
+		.unwrap();
+	let done = wait_for_end(&queue, &job.id).await.unwrap();
+	assert_eq!(done.state, JobState::Failed, "{done:?}");
+	assert_eq!(
+		done.error.unwrap().message,
+		"the output file already exists"
+	);
+	assert_eq!(std::fs::read(&output).unwrap(), b"not a movie");
 }

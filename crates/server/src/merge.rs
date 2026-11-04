@@ -112,6 +112,7 @@ impl Jobs {
 			expected_duration: checked.check.total_duration,
 			preparation: Vec::new(),
 			scratch_dir: None,
+			outputs: vec![output],
 		})
 	}
 

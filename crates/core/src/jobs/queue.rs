@@ -8,9 +8,10 @@
 //!
 //! Each running job is a tokio task that drives [`Runner::run_with_log`]
 //! and forwards progress and log lines as events. Cancelling a job cancels
-//! its token; the runner then kills ffmpeg and the task reports the end.
-//! [`Queue::shutdown`] does that for every job and waits for the tasks, so
-//! no ffmpeg process outlives the server.
+//! its token; the runner then kills ffmpeg, the task removes the outputs
+//! the job had created and reports the end. [`Queue::shutdown`] does that
+//! for every job and waits for the tasks, so no ffmpeg process outlives
+//! the server.
 
 use std::collections::VecDeque;
 use std::path::PathBuf;
@@ -106,6 +107,7 @@ struct Record {
 	/// The commands in order: the preparation, then the command.
 	steps: Vec<FfmpegCommand>,
 	scratch_dir: Option<PathBuf>,
+	outputs: Vec<PathBuf>,
 	expected_duration: Option<Duration>,
 	cancel: CancellationToken,
 	buffer: EventBuffer,
@@ -187,6 +189,7 @@ impl Queue {
 			job: job.clone(),
 			steps,
 			scratch_dir: spec.scratch_dir,
+			outputs: spec.outputs,
 			expected_duration: spec.expected_duration,
 			cancel: CancellationToken::new(),
 			buffer: EventBuffer::new(EVENT_BUFFER),
@@ -327,7 +330,10 @@ impl Shared {
 			record.job.started = Some(now);
 			let id = record.job.id.clone();
 			let steps = record.steps.clone();
-			let scratch_dir = record.scratch_dir.clone();
+			let files = Files {
+				scratch_dir: record.scratch_dir.clone(),
+				outputs: record.outputs.clone(),
+			};
 			let cancel = record.cancel.clone();
 			inner.running += 1;
 			inner.emit(
@@ -340,20 +346,22 @@ impl Shared {
 			);
 			tracing::info!(job = %id, "job started");
 			self.tasks
-				.spawn(Arc::clone(self).run_job(id, steps, scratch_dir, cancel));
+				.spawn(Arc::clone(self).run_job(id, steps, files, cancel));
 		}
 	}
 
 	/// Runs one job to its end and reports it: every step in order until
-	/// one fails, then the scratch folder is removed.
+	/// one fails, then the scratch folder is removed, and after a failure
+	/// or a cancellation the outputs the job created as well.
 	async fn run_job(
 		self: Arc<Self>,
 		id: JobId,
 		steps: Vec<FfmpegCommand>,
-		scratch_dir: Option<PathBuf>,
+		files: Files,
 		cancel: CancellationToken,
 	) {
 		let limits = Limits::cancellable(cancel);
+		let created = files.new_outputs().await;
 		let count = steps.len();
 		let mut result = Ok(());
 		for (step, command) in steps.into_iter().enumerate() {
@@ -365,11 +373,14 @@ impl Shared {
 				break;
 			}
 		}
-		if let Some(dir) = scratch_dir
+		if let Some(dir) = files.scratch_dir
 			&& let Err(error) = tokio::fs::remove_dir_all(&dir).await
 			&& error.kind() != std::io::ErrorKind::NotFound
 		{
 			tracing::warn!(job = %id, dir = %dir.display(), %error, "scratch folder not removed");
+		}
+		if result.is_err() {
+			remove_outputs(&id, created).await;
 		}
 		let (state, error) = match result {
 			Ok(()) => (JobState::Succeeded, None),
@@ -471,6 +482,42 @@ impl Shared {
 		Snapshot {
 			event_id: inner.latest_event(),
 			jobs,
+		}
+	}
+}
+
+/// The files of one job besides its inputs.
+#[derive(Debug)]
+struct Files {
+	scratch_dir: Option<PathBuf>,
+	outputs: Vec<PathBuf>,
+}
+
+impl Files {
+	/// The outputs that do not exist yet: what the job is about to create,
+	/// and therefore what may be removed when it does not succeed. A file
+	/// whose state cannot be told (a permission problem, say) counts as
+	/// existing, so it is left alone.
+	async fn new_outputs(&self) -> Vec<PathBuf> {
+		let mut new = Vec::new();
+		for output in &self.outputs {
+			if matches!(tokio::fs::try_exists(output).await, Ok(false)) {
+				new.push(output.clone());
+			}
+		}
+		new
+	}
+}
+
+/// Removes the files in `created` that a job left behind.
+async fn remove_outputs(id: &JobId, created: Vec<PathBuf>) {
+	for path in created {
+		match tokio::fs::remove_file(&path).await {
+			Ok(()) => tracing::info!(job = %id, path = %path.display(), "partial output removed"),
+			Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+			Err(error) => {
+				tracing::warn!(job = %id, path = %path.display(), %error, "partial output not removed");
+			}
 		}
 	}
 }

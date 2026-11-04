@@ -170,6 +170,7 @@ impl Jobs {
 			expected_duration: source.duration,
 			preparation: Vec::new(),
 			scratch_dir: None,
+			outputs: vec![output],
 		})
 	}
 

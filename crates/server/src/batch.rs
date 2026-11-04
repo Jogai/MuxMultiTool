@@ -115,6 +115,7 @@ impl BatchService for Batches {
 				expected_duration: ready.expected_duration,
 				preparation: Vec::new(),
 				scratch_dir: None,
+				outputs: vec![output.to_path_buf()],
 			};
 			let job = self
 				.jobs

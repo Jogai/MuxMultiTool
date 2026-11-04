@@ -132,6 +132,12 @@ impl Jobs {
 			expected_duration: resolved.duration,
 			preparation: Vec::new(),
 			scratch_dir: None,
+			outputs: resolved
+				.plan
+				.items
+				.iter()
+				.map(|item| resolved.folder.join(&item.file_name))
+				.collect(),
 		})
 	}
 

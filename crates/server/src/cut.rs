@@ -305,6 +305,7 @@ impl Jobs {
 			expected_duration: plan.expected_duration(),
 			preparation: commands,
 			scratch_dir,
+			outputs: plan.outputs(),
 		})
 	}
 

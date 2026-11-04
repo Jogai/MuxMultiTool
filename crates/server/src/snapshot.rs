@@ -151,6 +151,7 @@ impl Jobs {
 			expected_duration: None,
 			preparation: Vec::new(),
 			scratch_dir: None,
+			outputs: vec![output],
 		})
 	}
 
@@ -185,6 +186,7 @@ impl Jobs {
 				.and_then(|secs| Duration::try_from_secs_f64(secs).ok()),
 			preparation: Vec::new(),
 			scratch_dir: None,
+			outputs: vec![output],
 		};
 		Ok((spec, picture))
 	}

@@ -12,6 +12,10 @@
 //!               └─ cancel ──┴─────▶ Cancelled
 //! ```
 //!
+//! A job that fails or is cancelled leaves nothing behind: its scratch
+//! folder goes, and so do the output files it created (see
+//! [`JobSpec::outputs`]).
+//!
 //! Clients follow a job or the whole queue through a [`Watch`]: a snapshot
 //! first, then every change as an [`Event`]. Event ids increase across all
 //! jobs, and each job keeps a short buffer of its events, so a client that
@@ -123,6 +127,12 @@ pub struct JobSpec {
 	/// when the job starts. It is removed with everything in it when the
 	/// job ends, however it ends.
 	pub scratch_dir: Option<PathBuf>,
+	/// The files the job writes. When the job fails or is cancelled, the
+	/// queue removes the ones the job created, so no partial output stays
+	/// behind. A file that already existed when the job started is never
+	/// removed: an operation that overwrites on purpose keeps what ffmpeg
+	/// left of it, and an input listed by mistake is safe.
+	pub outputs: Vec<PathBuf>,
 }
 
 /// Why a job failed, told twice: in plain language for the user and as

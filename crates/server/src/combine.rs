@@ -164,6 +164,7 @@ impl Jobs {
 			expected_duration: resolved.plan.expected_duration(),
 			preparation: Vec::new(),
 			scratch_dir: None,
+			outputs: vec![output],
 		})
 	}
 
