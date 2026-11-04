@@ -604,26 +604,20 @@ fn parse(bytes: &[u8]) -> Result<State, String> {
 	}
 }
 
+/// Serialises `state` and writes it with [`crate::fs::write_atomically`],
+/// so a crash mid-write leaves the old file intact.
 async fn write_atomically(path: &Path, state: &State) -> Result<(), Error> {
 	let io = |source| Error::Io {
 		path: path.to_path_buf(),
 		source,
 	};
-	if let Some(dir) = path.parent() {
-		tokio::fs::create_dir_all(dir).await.map_err(io)?;
-	}
 	let file = StoredFile {
 		version: FORMAT_VERSION,
 		next_id: state.next_id,
 		presets: state.presets.iter().map(StoredPreset::from).collect(),
 	};
-	let json = serde_json::to_vec_pretty(&file).map_err(|e| Error::Io {
-		path: path.to_path_buf(),
-		source: io::Error::other(e),
-	})?;
-	let temp = path.with_extension("json.tmp");
-	tokio::fs::write(&temp, json).await.map_err(io)?;
-	tokio::fs::rename(&temp, path).await.map_err(io)
+	let json = serde_json::to_vec_pretty(&file).map_err(|e| io(io::Error::other(e)))?;
+	crate::fs::write_atomically(path, json).await.map_err(io)
 }
 
 /// Resolution errors of the rules, for callers that apply a preset.
@@ -633,6 +627,16 @@ pub use rules::Error as RulesError;
 mod tests {
 	use super::*;
 	use crate::batch::{self, Input};
+
+	/// The names of the entries in `dir`, sorted.
+	fn entries(dir: &Path) -> Vec<String> {
+		let mut names: Vec<String> = std::fs::read_dir(dir)
+			.unwrap()
+			.map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+			.collect();
+		names.sort();
+		names
+	}
 	use crate::ffmpeg::probe::parse as parse_probe;
 	use crate::streams::rules::plan as rules_plan;
 
@@ -764,7 +768,11 @@ mod tests {
 			.push(Rule::drop(None, Matcher::Stream(3)));
 		let saved = store.create("English only", settings).await.unwrap();
 		assert!(data.join(PRESETS_FILE).is_file());
-		assert!(!data.join("presets.json.tmp").exists());
+		assert_eq!(
+			entries(&data),
+			[PRESETS_FILE],
+			"no temp file is left behind"
+		);
 
 		let reopened = PresetStore::in_dir(&data);
 		assert_eq!(reopened.list().await.unwrap(), vec![saved]);
@@ -830,9 +838,9 @@ mod tests {
 	#[tokio::test]
 	async fn a_failed_write_changes_nothing() {
 		let dir = tempfile::tempdir().unwrap();
-		// A folder where the temporary file goes: the write fails.
-		std::fs::create_dir(dir.path().join("presets.json.tmp")).unwrap();
 		let store = PresetStore::in_dir(dir.path());
+		// A folder where the file goes: the rename over it fails.
+		std::fs::create_dir(dir.path().join(PRESETS_FILE)).unwrap();
 		assert!(matches!(
 			store.create("x", english_only()).await,
 			Err(Error::Io { .. })

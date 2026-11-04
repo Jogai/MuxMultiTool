@@ -179,23 +179,19 @@ impl SettingsStore {
 	}
 }
 
-/// Writes `settings` to a temporary file next to `path` and renames it, so a
-/// crash mid-write leaves the old file intact.
+/// Serialises `settings` and writes it with [`crate::fs::write_atomically`],
+/// so a crash mid-write leaves the old file intact.
 async fn write_atomically(path: &Path, settings: &Settings) -> Result<(), Error> {
-	let io = |source| Error::Io {
-		path: path.to_path_buf(),
-		source,
-	};
-	if let Some(dir) = path.parent() {
-		tokio::fs::create_dir_all(dir).await.map_err(io)?;
-	}
 	let json = serde_json::to_vec_pretty(settings).map_err(|source| Error::Format {
 		path: path.to_path_buf(),
 		source,
 	})?;
-	let temp = path.with_extension("json.tmp");
-	tokio::fs::write(&temp, json).await.map_err(io)?;
-	tokio::fs::rename(&temp, path).await.map_err(io)
+	crate::fs::write_atomically(path, json)
+		.await
+		.map_err(|source| Error::Io {
+			path: path.to_path_buf(),
+			source,
+		})
 }
 
 #[cfg(test)]
@@ -254,7 +250,11 @@ mod tests {
 			.await
 			.unwrap();
 		assert!(data_dir.join(SETTINGS_FILE).is_file());
-		assert!(!data_dir.join("settings.json.tmp").exists());
+		let entries: Vec<_> = std::fs::read_dir(&data_dir)
+			.unwrap()
+			.map(|e| e.unwrap().file_name())
+			.collect();
+		assert_eq!(entries, [SETTINGS_FILE], "no temp file is left behind");
 
 		let reopened = SettingsStore::in_dir(&data_dir).unwrap();
 		assert_eq!(reopened.get().await.theme, Some(theme("dracula")));

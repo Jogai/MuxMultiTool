@@ -495,23 +495,19 @@ fn fnv1a(bytes: &[u8]) -> u64 {
 	})
 }
 
-/// Writes `stored` to a temporary file next to `path` and renames it, so
-/// a crash mid-write leaves the old file intact.
+/// Serialises `stored` and writes it with [`crate::fs::write_atomically`],
+/// so a crash mid-write leaves the old file intact.
 async fn write_atomically(path: &Path, stored: &StoredProject) -> Result<(), Error> {
-	let io = |source| Error::Io {
-		path: path.to_path_buf(),
-		source,
-	};
-	if let Some(dir) = path.parent() {
-		tokio::fs::create_dir_all(dir).await.map_err(io)?;
-	}
 	let json = serde_json::to_vec_pretty(stored).map_err(|source| Error::Format {
 		path: path.to_path_buf(),
 		source,
 	})?;
-	let temp = path.with_extension("json.tmp");
-	tokio::fs::write(&temp, json).await.map_err(io)?;
-	tokio::fs::rename(&temp, path).await.map_err(io)
+	crate::fs::write_atomically(path, json)
+		.await
+		.map_err(|source| Error::Io {
+			path: path.to_path_buf(),
+			source,
+		})
 }
 
 /// The project file.
@@ -871,7 +867,15 @@ mod tests {
 		assert_eq!(saved.source_status, SourceStatus::Unchanged);
 		let file = store.project_file(&source).unwrap();
 		assert!(file.is_file());
-		assert!(!file.with_extension("json.tmp").exists());
+		let entries: Vec<_> = std::fs::read_dir(&projects)
+			.unwrap()
+			.map(|e| e.unwrap().path())
+			.collect();
+		assert_eq!(
+			entries,
+			std::slice::from_ref(&file),
+			"no temp file is left behind"
+		);
 
 		// What a server restart does: a new store over the same folder.
 		let reopened = ProjectStore::in_dir(&projects);

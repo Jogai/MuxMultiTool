@@ -1,10 +1,46 @@
 //! File helpers shared by the modules that keep files on disk.
 
-use std::io;
-use std::path::PathBuf;
+use std::io::{self, Write};
+use std::path::{Path, PathBuf};
 use std::sync::{Mutex, PoisonError};
 
 use tempfile::TempDir;
+
+/// Writes `contents` to `path` so that readers see either the old file or
+/// the whole new one, never a partial write: the bytes go to a temporary
+/// file in the same folder (made with a random name, so two writers cannot
+/// trip over each other's temp file), are flushed to disk and the file is
+/// then renamed over `path`. Missing parent folders are created.
+///
+/// # Errors
+/// Any error of making the folder, writing, syncing or renaming, as an
+/// [`io::Error`].
+pub async fn write_atomically(path: &Path, contents: Vec<u8>) -> io::Result<()> {
+	let path = path.to_path_buf();
+	tokio::task::spawn_blocking(move || write_atomically_blocking(&path, &contents))
+		.await
+		.map_err(io::Error::other)?
+}
+
+fn write_atomically_blocking(path: &Path, contents: &[u8]) -> io::Result<()> {
+	let dir = match path.parent() {
+		Some(dir) if !dir.as_os_str().is_empty() => dir.to_path_buf(),
+		_ => PathBuf::from("."),
+	};
+	std::fs::create_dir_all(&dir)?;
+	let name = path
+		.file_name()
+		.map(|n| n.to_string_lossy().into_owned())
+		.unwrap_or_default();
+	let mut temp = tempfile::Builder::new()
+		.prefix(&format!(".{name}."))
+		.suffix(".tmp")
+		.tempfile_in(&dir)?;
+	temp.write_all(contents)?;
+	temp.as_file().sync_all()?;
+	temp.persist(path).map_err(|error| error.error)?;
+	Ok(())
+}
 
 /// The folder a manager keeps its per-item subfolders in: one the caller
 /// chose, or one made under the system temporary folder with a random
@@ -86,6 +122,35 @@ impl From<PathBuf> for ScratchRoot {
 #[cfg(test)]
 mod tests {
 	use super::*;
+
+	#[tokio::test]
+	async fn writes_the_file_and_leaves_no_temp_file_behind() {
+		let dir = tempfile::tempdir().unwrap();
+		let path = dir.path().join("nested/state.json");
+		write_atomically(&path, b"first".to_vec()).await.unwrap();
+		assert_eq!(std::fs::read(&path).unwrap(), b"first");
+		write_atomically(&path, b"second".to_vec()).await.unwrap();
+		assert_eq!(std::fs::read(&path).unwrap(), b"second");
+		let names: Vec<String> = std::fs::read_dir(dir.path().join("nested"))
+			.unwrap()
+			.map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+			.collect();
+		assert_eq!(names, ["state.json"]);
+	}
+
+	#[tokio::test]
+	async fn a_folder_in_the_way_is_an_error_and_keeps_the_old_file() {
+		let dir = tempfile::tempdir().unwrap();
+		let path = dir.path().join("state.json");
+		write_atomically(&path, b"old".to_vec()).await.unwrap();
+		let blocked = dir.path().join("blocked");
+		std::fs::create_dir(&blocked).unwrap();
+		let error = write_atomically(&blocked, b"new".to_vec())
+			.await
+			.unwrap_err();
+		assert!(blocked.is_dir(), "{error}");
+		assert_eq!(std::fs::read(&path).unwrap(), b"old");
+	}
 
 	#[test]
 	fn a_temporary_root_is_made_once_with_a_random_name_and_removed_on_drop() {
