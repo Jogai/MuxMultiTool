@@ -17,6 +17,7 @@ use http::{Request, StatusCode, header};
 use http_body_util::BodyExt;
 use muxmultitool_core::ffmpeg::probe::CodecType;
 use muxmultitool_core::ffmpeg::{FfmpegCommand, Limits, ProbeResult, Runner};
+use muxmultitool_core::files::Location;
 use muxmultitool_server::{Config, app};
 use tower::ServiceExt;
 
@@ -87,6 +88,17 @@ impl MediaRoot {
 	}
 }
 
+/// The id `FilesService` issues for `name` in the media root.
+fn id_of(name: &str) -> String {
+	Location::InRoot {
+		root: 0,
+		relative: PathBuf::from(name),
+	}
+	.id()
+	.as_str()
+	.to_owned()
+}
+
 async fn send(router: &Router, request: Request<Body>) -> Result<(http::response::Parts, Vec<u8>)> {
 	let response = router.clone().oneshot(request).await?;
 	let (parts, body) = response.into_parts();
@@ -155,9 +167,13 @@ async fn picture_size(root: &MediaRoot, name: &str, bytes: &[u8]) -> (u32, u32) 
 async fn the_frame_route_serves_the_original_at_full_resolution() {
 	let root = MediaRoot::new().await.unwrap();
 	let router = root.router();
-	let (status, json) = post_json(&router, START, serde_json::json!({ "fileId": root.mpeg4 }))
-		.await
-		.unwrap();
+	let (status, json) = post_json(
+		&router,
+		START,
+		serde_json::json!({ "fileId": id_of("old.mkv") }),
+	)
+	.await
+	.unwrap();
 	assert_eq!(status, StatusCode::OK, "{json}");
 	let media_id = json["mediaId"].as_str().unwrap();
 
@@ -194,7 +210,7 @@ async fn the_frame_route_serves_the_original_at_full_resolution() {
 	assert_eq!(decoded, jpeg);
 
 	// A file id works without a preview session
-	let file_id = root.h264.display().to_string().replace('/', "%2F");
+	let file_id = id_of("new.mp4");
 	let (parts, _) = get(&router, &format!("/media/{file_id}/frame?t=0"))
 		.await
 		.unwrap();
@@ -205,7 +221,7 @@ async fn the_frame_route_serves_the_original_at_full_resolution() {
 async fn the_frame_route_refuses_bad_requests() {
 	let root = MediaRoot::new().await.unwrap();
 	let router = root.router();
-	let file_id = root.h264.display().to_string().replace('/', "%2F");
+	let file_id = id_of("new.mp4");
 	for (uri, expected) in [
 		(format!("/media/{file_id}/frame"), StatusCode::BAD_REQUEST),
 		(
@@ -237,15 +253,12 @@ async fn the_frame_route_refuses_bad_requests() {
 			String::from_utf8_lossy(&body)
 		);
 	}
-	// Outside the roots
-	let (parts, _) = get(&router, "/media/%2Fetc%2Fhostname/frame?t=0")
+	// A native-dialog id is refused outside desktop mode
+	let outside = Location::Absolute(PathBuf::from("/etc/hostname")).id();
+	let (parts, _) = get(&router, &format!("/media/{outside}/frame?t=0"))
 		.await
 		.unwrap();
-	assert!(
-		matches!(parts.status, StatusCode::FORBIDDEN | StatusCode::NOT_FOUND),
-		"{}",
-		parts.status
-	);
+	assert_eq!(parts.status, StatusCode::FORBIDDEN);
 }
 
 #[tokio::test]

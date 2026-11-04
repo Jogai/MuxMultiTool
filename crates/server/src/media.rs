@@ -14,13 +14,9 @@
 //!
 //! The timeline methods of the service (thumbnails, waveform, subtitle
 //! cues) and the sprite route are in [`crate::timeline`]; the trait
-//! implementation here only delegates to them.
-//!
-//! File ids: until `FilesService` issues ids, a file id is the absolute path
-//! of a file inside one of the configured media roots. [`resolve_file`] is
-//! the seam where real ids plug in.
+//! implementation here only delegates to them. File ids are the opaque ids
+//! from `FilesService`, resolved by [`timeline::resolve`].
 
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use axum::Router;
@@ -57,7 +53,6 @@ impl MediaService for Media {
 		_ctx: RequestContext,
 		request: ServiceRequest<'_, StartPreviewRequest>,
 	) -> ServiceResult<StartPreviewResponse> {
-		// An opaque id from FilesService, or the absolute-path form (see resolve_file)
 		let source = timeline::resolve(&self.state, request.file_id).await?;
 		let info = self
 			.state
@@ -126,44 +121,6 @@ impl MediaService for Media {
 /// The playlist path of session `id`, relative to the server origin.
 fn playlist_path(id: &str) -> String {
 	format!("/media/{id}/hls/index.m3u8")
-}
-
-/// Turns a file id into a path the preview may read.
-///
-/// For now the id is the absolute path of a file under a media root; the
-/// path is canonicalized before the check, so `..` and symlinks cannot
-/// leave the roots. Desktop mode, where native dialogs hand out paths
-/// outside any root, is not covered yet; it needs the ids from
-/// `FilesService`.
-pub(crate) async fn resolve_file(
-	media_roots: &[PathBuf],
-	file_id: &str,
-) -> Result<PathBuf, ConnectError> {
-	if media_roots.is_empty() {
-		return Err(ConnectError::failed_precondition(
-			"no media roots are configured",
-		));
-	}
-	let path = Path::new(file_id);
-	if file_id.is_empty() || !path.is_absolute() {
-		return Err(ConnectError::invalid_argument(
-			"file_id must be the absolute path of a file inside a media root",
-		));
-	}
-	let canonical = tokio::fs::canonicalize(path)
-		.await
-		.map_err(|error| ConnectError::not_found(format!("{file_id}: {error}")))?;
-	for root in media_roots {
-		let Ok(root) = tokio::fs::canonicalize(root).await else {
-			continue;
-		};
-		if canonical.starts_with(&root) {
-			return Ok(canonical);
-		}
-	}
-	Err(ConnectError::permission_denied(format!(
-		"{file_id} is outside the media roots"
-	)))
 }
 
 /// The media routes, to merge into the app router.

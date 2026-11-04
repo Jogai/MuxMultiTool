@@ -226,10 +226,13 @@ The player never gets a source file: `MediaService/StartPreview` starts a previe
 - Transcoded segments are 2 s on a fixed grid; copied segments start at the source's keyframes (at least 2 s, at most 30 s apart, else the video is transcoded). The playlist is fixed when the session starts.
 - Seek target: playback resumes within about 3 s after a seek on a typical machine (a 1080p source; 4K sources are scaled to 1080p). Measured here with a 720p HEVC/DTS MKV in headless Chromium: first frame after 1.0 s, a seek into unencoded video resumed after 0.55 s.
 - ffmpeg stops after 30 s without segment requests and restarts where the player continues; a session and its segments are removed after 30 min without requests, on `StopPreview`, or when the server stops. Segments live under the system temporary folder (`TMPDIR`), in a `muxmultitool-preview-*` folder with a random name, made with the first session.
-- `file_id` is an id from `FilesService`, or the absolute path of a file inside a media root (`--media-root`), the form the example below uses.
+- `file_id` is an id from `FilesService` (see "Media folders and file ids"); it goes through the same media-roots check as every other file access, so a path is refused. The example takes the id from the listing of the first media folder (`ListFolder` without a `folderId` lists the folders themselves).
 
 ```sh
-curl -X POST -H 'content-type: application/json' -d '{"fileId":"/media/movie.mkv"}' \
+curl -X POST -H 'content-type: application/json' -d '{"folderId":"cjA6"}' \
+  http://127.0.0.1:8080/rpc/muxmultitool.files.v1.FilesService/ListFolder
+# {"folder":{"id":"cjA6",…},"entries":[{"id":"cjA6bW92aWUubWt2","name":"movie.mkv",…}]}
+curl -X POST -H 'content-type: application/json' -d '{"fileId":"cjA6bW92aWUubWt2"}' \
   http://127.0.0.1:8080/rpc/muxmultitool.media.v1.MediaService/StartPreview
 # {"mediaId":"…","playlistUrl":"/media/…/hls/index.m3u8","durationSeconds":5400.0,"mode":"PREVIEW_MODE_TRANSCODE","segmentCount":2700}
 ```

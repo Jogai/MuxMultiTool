@@ -52,6 +52,17 @@ async fn make_clip(dir: &Path) -> Result<PathBuf> {
 	Ok(clip)
 }
 
+/// The id `FilesService` issues for `name` in the first media root.
+fn id_of(name: &str) -> String {
+	Location::InRoot {
+		root: 0,
+		relative: PathBuf::from(name),
+	}
+	.id()
+	.as_str()
+	.to_owned()
+}
+
 fn router(media_root: &Path) -> Router {
 	app(&Config {
 		address: IpAddr::V4(Ipv4Addr::LOCALHOST),
@@ -121,7 +132,8 @@ async fn get(router: &Router, path: &str) -> Result<(http::response::Parts, Vec<
 #[tokio::test]
 async fn thumbnails_are_streamed_and_served_as_sprites() {
 	let dir = tempfile::tempdir().unwrap();
-	let clip = make_clip(dir.path()).await.unwrap();
+	make_clip(dir.path()).await.unwrap();
+	let clip = id_of("clip.mkv");
 	let router = router(dir.path());
 
 	let frames = stream(&router, THUMBNAILS, serde_json::json!({ "fileId": clip }))
@@ -179,19 +191,10 @@ async fn thumbnails_are_streamed_and_served_as_sprites() {
 		assert_eq!(parts.status, StatusCode::NOT_FOUND, "{path}");
 	}
 
-	// The same file by its opaque id: the same cached result, in one message.
-	let opaque = Location::InRoot {
-		root: 0,
-		relative: PathBuf::from("clip.mkv"),
-	}
-	.id();
-	let frames = stream(
-		&router,
-		THUMBNAILS,
-		serde_json::json!({ "fileId": opaque.as_str() }),
-	)
-	.await
-	.unwrap();
+	// The same file again: the same cached result, in one message.
+	let frames = stream(&router, THUMBNAILS, serde_json::json!({ "fileId": clip }))
+		.await
+		.unwrap();
 	let (data, error) = split(&frames);
 	assert_eq!(error, None);
 	assert_eq!(data.len(), 1, "{data:?}");
@@ -202,7 +205,8 @@ async fn thumbnails_are_streamed_and_served_as_sprites() {
 #[tokio::test]
 async fn waveform_peaks_arrive_in_order_for_the_requested_window() {
 	let dir = tempfile::tempdir().unwrap();
-	let clip = make_clip(dir.path()).await.unwrap();
+	make_clip(dir.path()).await.unwrap();
+	let clip = id_of("clip.mkv");
 	let router = router(dir.path());
 
 	let frames = stream(
@@ -270,7 +274,7 @@ async fn waveform_peaks_arrive_in_order_for_the_requested_window() {
 			"not_found",
 		),
 		(
-			serde_json::json!({ "fileId": dir.path().join("missing.mkv"), "streamIndex": 1, "peakCount": 10 }),
+			serde_json::json!({ "fileId": id_of("missing.mkv"), "streamIndex": 1, "peakCount": 10 }),
 			"not_found",
 		),
 	] {
@@ -284,7 +288,8 @@ async fn waveform_peaks_arrive_in_order_for_the_requested_window() {
 #[tokio::test]
 async fn subtitle_cues_are_streamed_and_other_streams_refused() {
 	let dir = tempfile::tempdir().unwrap();
-	let clip = make_clip(dir.path()).await.unwrap();
+	make_clip(dir.path()).await.unwrap();
+	let clip = id_of("clip.mkv");
 	let router = router(dir.path());
 
 	let frames = stream(
@@ -318,13 +323,13 @@ async fn subtitle_cues_are_streamed_and_other_streams_refused() {
 	assert_eq!(data.len(), 0, "{frames:?}");
 	assert_eq!(error.as_deref(), Some("failed_precondition"), "{frames:?}");
 
-	// Outside the media roots, and a relative path.
+	// A native-dialog id (refused outside desktop mode), and a path.
 	let other = tempfile::tempdir().unwrap();
-	let outside = make_clip(other.path()).await.unwrap();
+	let outside = Location::Absolute(make_clip(other.path()).await.unwrap()).id();
 	let frames = stream(
 		&router,
 		CUES,
-		serde_json::json!({ "fileId": outside, "streamIndex": 2 }),
+		serde_json::json!({ "fileId": outside.as_str(), "streamIndex": 2 }),
 	)
 	.await
 	.unwrap();

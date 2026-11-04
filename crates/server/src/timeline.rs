@@ -13,8 +13,9 @@
 //!   changed file gets a new id. `404` for a sprite that is not ready, or
 //!   an unknown id.
 //!
-//! File ids: an opaque id from `FilesService`, or the absolute path that
-//! `StartPreview` accepts for now (see [`crate::media`]).
+//! File ids are the opaque ids from `FilesService`; [`resolve`] turns one
+//! into a path through the same media-roots check as every other file
+//! access.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -38,7 +39,6 @@ use tower_http::services::ServeFile;
 use tracing::warn;
 
 use crate::AppState;
-use crate::media::resolve_file;
 
 pub(crate) async fn get_thumbnails(
 	state: &Arc<AppState>,
@@ -169,13 +169,11 @@ fn cues_message(update: CueUpdate) -> GetSubtitleCuesResponse {
 	}
 }
 
-/// Turns a file id into a path: an opaque id through the media roots, or
-/// the absolute-path form `StartPreview` also takes.
+/// Turns a file id into a path, through the media roots (`MediaRoots::path`
+/// on the blocking pool): an id under a configured root, or an absolute
+/// path from a native dialog in desktop mode.
 pub(crate) async fn resolve(state: &Arc<AppState>, file_id: &str) -> Result<PathBuf, ConnectError> {
 	let id = FileId::new(file_id);
-	if id.decode().is_err() {
-		return resolve_file(&state.media_roots, file_id).await;
-	}
 	let state = Arc::clone(state);
 	tokio::task::spawn_blocking(move || state.files.path(&id))
 		.await

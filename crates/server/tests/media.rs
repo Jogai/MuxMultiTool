@@ -48,6 +48,25 @@ fn router(media_root: &Path) -> Router {
 	})
 }
 
+/// The id `FilesService` issues for `name` in the first media root.
+fn id_of(name: &str) -> String {
+	Location::InRoot {
+		root: 0,
+		relative: PathBuf::from(name),
+	}
+	.id()
+	.as_str()
+	.to_owned()
+}
+
+/// The id `OpenPaths` issues for a native-dialog path in desktop mode.
+fn absolute_id(path: &Path) -> String {
+	Location::Absolute(path.to_path_buf())
+		.id()
+		.as_str()
+		.to_owned()
+}
+
 async fn send(router: &Router, request: Request<Body>) -> Result<(http::response::Parts, Vec<u8>)> {
 	let response = router.clone().oneshot(request).await?;
 	let (parts, body) = response.into_parts();
@@ -74,7 +93,8 @@ async fn get(router: &Router, path: &str) -> Result<(http::response::Parts, Vec<
 #[tokio::test]
 async fn start_preview_then_fetch_playlist_and_segments() {
 	let dir = tempfile::tempdir().unwrap();
-	let clip = make_clip(dir.path()).await.unwrap();
+	make_clip(dir.path()).await.unwrap();
+	let clip = id_of("clip.mkv");
 	let router = router(dir.path());
 
 	let (status, json) = rpc(&router, START, serde_json::json!({ "fileId": clip }))
@@ -156,35 +176,50 @@ async fn files_outside_the_media_roots_are_refused() {
 	let clip = make_clip(other.path()).await.unwrap();
 	let router = router(dir.path());
 
-	let (status, json) = rpc(&router, START, serde_json::json!({ "fileId": clip }))
-		.await
-		.unwrap();
+	// A native-dialog id is not accepted outside desktop mode
+	let (status, json) = rpc(
+		&router,
+		START,
+		serde_json::json!({ "fileId": absolute_id(&clip) }),
+	)
+	.await
+	.unwrap();
 	assert_eq!(status, StatusCode::FORBIDDEN, "{json}");
 	assert_eq!(json["code"], "permission_denied");
 
-	let (status, json) = rpc(&router, START, serde_json::json!({ "fileId": "clip.mkv" }))
-		.await
-		.unwrap();
-	assert_eq!(status, StatusCode::BAD_REQUEST, "{json}");
-	assert_eq!(json["code"], "invalid_argument");
+	// A path is not an id, inside a root or not
+	for not_an_id in [clip.display().to_string(), "clip.mkv".to_owned()] {
+		let (status, json) = rpc(&router, START, serde_json::json!({ "fileId": not_an_id }))
+			.await
+			.unwrap();
+		assert_eq!(status, StatusCode::BAD_REQUEST, "{json}");
+		assert_eq!(json["code"], "invalid_argument");
+	}
 
-	let missing = dir.path().join("missing.mkv");
-	let (status, json) = rpc(&router, START, serde_json::json!({ "fileId": missing }))
-		.await
-		.unwrap();
+	let (status, json) = rpc(
+		&router,
+		START,
+		serde_json::json!({ "fileId": id_of("missing.mkv") }),
+	)
+	.await
+	.unwrap();
 	assert_eq!(status, StatusCode::NOT_FOUND, "{json}");
 	assert_eq!(json["code"], "not_found");
 
-	// No media roots at all.
+	// No media roots at all: the id names a root that is not configured.
 	let bare = app(&Config {
 		port: 0,
 		..Config::default()
 	});
-	let (status, json) = rpc(&bare, START, serde_json::json!({ "fileId": clip }))
-		.await
-		.unwrap();
-	assert_eq!(status, StatusCode::BAD_REQUEST, "{json}");
-	assert_eq!(json["code"], "failed_precondition");
+	let (status, json) = rpc(
+		&bare,
+		START,
+		serde_json::json!({ "fileId": id_of("clip.mkv") }),
+	)
+	.await
+	.unwrap();
+	assert_eq!(status, StatusCode::NOT_FOUND, "{json}");
+	assert_eq!(json["code"], "not_found");
 
 	let (parts, _) = get(&router, "/media/nope/hls/index.m3u8").await.unwrap();
 	assert_eq!(parts.status, StatusCode::NOT_FOUND);
@@ -193,46 +228,57 @@ async fn files_outside_the_media_roots_are_refused() {
 #[tokio::test]
 async fn text_files_are_not_media() {
 	let dir = tempfile::tempdir().unwrap();
-	let text = dir.path().join("notes.txt");
-	std::fs::write(&text, "not media").unwrap();
+	std::fs::write(dir.path().join("notes.txt"), "not media").unwrap();
 	let router = router(dir.path());
-	let (status, json) = rpc(&router, START, serde_json::json!({ "fileId": text }))
-		.await
-		.unwrap();
+	let (status, json) = rpc(
+		&router,
+		START,
+		serde_json::json!({ "fileId": id_of("notes.txt") }),
+	)
+	.await
+	.unwrap();
 	assert_eq!(status, StatusCode::BAD_REQUEST, "{json}");
 	assert_eq!(json["code"], "failed_precondition");
 }
 
 #[tokio::test]
-async fn start_preview_takes_an_opaque_file_id_too() {
+async fn native_dialog_ids_are_accepted_in_desktop_mode_only() {
 	let dir = tempfile::tempdir().unwrap();
 	let clip = make_clip(dir.path()).await.unwrap();
-	let router = router(dir.path());
+	let desktop = app(&Config {
+		address: IpAddr::V4(Ipv4Addr::LOCALHOST),
+		port: 0,
+		media_roots: vec![dir.path().to_path_buf()],
+		desktop: true,
+		..Config::default()
+	});
 
-	// The id FilesService would issue for the clip: in root 0, relative path "clip.mkv".
-	let id = Location::InRoot {
-		root: 0,
-		relative: PathBuf::from("clip.mkv"),
-	}
-	.id();
-	let (status, json) = rpc(&router, START, serde_json::json!({ "fileId": id.as_str() }))
-		.await
-		.unwrap();
-	assert_eq!(status, StatusCode::OK, "{json}");
-
-	// The same session as the absolute-path form resolves to.
-	let (status, by_path) = rpc(&router, START, serde_json::json!({ "fileId": clip }))
-		.await
-		.unwrap();
-	assert_eq!(status, StatusCode::OK, "{by_path}");
-	assert_eq!(json["mediaId"], by_path["mediaId"]);
-
-	// An id that points outside the roots is refused like a path would be.
-	let outside = Location::Absolute(clip.clone()).id();
-	let (status, json) = rpc(
-		&router,
+	let (status, by_path) = rpc(
+		&desktop,
 		START,
-		serde_json::json!({ "fileId": outside.as_str() }),
+		serde_json::json!({ "fileId": absolute_id(&clip) }),
+	)
+	.await
+	.unwrap();
+	assert_eq!(status, StatusCode::OK, "{by_path}");
+
+	// The same file: the same session as its in-root id resolves to.
+	let (status, by_id) = rpc(
+		&desktop,
+		START,
+		serde_json::json!({ "fileId": id_of("clip.mkv") }),
+	)
+	.await
+	.unwrap();
+	assert_eq!(status, StatusCode::OK, "{by_id}");
+	assert_eq!(by_id["mediaId"], by_path["mediaId"]);
+
+	// The container refuses the native-dialog id even inside a root.
+	let container = router(dir.path());
+	let (status, json) = rpc(
+		&container,
+		START,
+		serde_json::json!({ "fileId": absolute_id(&clip) }),
 	)
 	.await
 	.unwrap();
