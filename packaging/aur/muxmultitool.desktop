@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=MuxMultiTool
+GenericName=Video Editor
+Comment=Cut, remux and select streams of media files without re-encoding
+Exec=muxmultitool
+Icon=muxmultitool
+Terminal=false
+Categories=AudioVideo;Video;AudioVideoEditing;
+Keywords=ffmpeg;cut;remux;mkv;mp4;subtitles;

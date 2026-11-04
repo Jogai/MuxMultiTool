@@ -1,0 +1,171 @@
+# The Arch User Repository package `muxmultitool-bin` (development.md, "AUR
+# package"): the Linux desktop app on the Tauri CEF runtime, built here with
+# cargo rather than the Tauri bundler (whose deb and AppImage steps fail with
+# the current alpha, see the desktop job in ci.yml), packed as a tarball in
+# the layout of the app's Debian package and attached to the GitHub release.
+# The PKGBUILD is rendered from packaging/aur/PKGBUILD.in with that tarball's
+# checksum, test-built with makepkg in an Arch container and pushed to the AUR.
+#
+# Runs when a release is published (a draft release starts nothing until it is
+# published) and by hand for an existing release tag. Pre-releases stay off the
+# AUR. Needs the `AUR_SSH_PRIVATE_KEY` secret (the private half of a key added
+# to the AUR account) and the `AUR_USERNAME` and `AUR_EMAIL` variables for the
+# AUR commit.
+name: AUR
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to package (for example v1.2.0)
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aur
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  NODE_VERSION: 26
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
+jobs:
+  build:
+    name: Build the Linux app
+    if: ${{ !github.event.release.prerelease }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      sha256: ${{ steps.pack.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+      - name: Version
+        id: version
+        run: |
+          version="${TAG#v}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::$TAG is not a release version (vX.Y.Z)"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/rust-toolchain
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: aur
+      - name: Install the build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libgtk-4-dev
+      - name: Cache the CEF binary distribution
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/tauri-cef
+          key: cef-x86_64-unknown-linux-gnu-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cef-x86_64-unknown-linux-gnu-
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install the web dependencies (protoc-gen-es)
+        run: npm ci --no-audit --no-fund
+        working-directory: web
+      - uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+      - uses: taiki-e/cache-cargo-install-action@v3
+        with:
+          tool: protoc-gen-buffa@0.9.2
+      - uses: taiki-e/cache-cargo-install-action@v3
+        with:
+          tool: protoc-gen-buffa-packaging@0.9.2
+      - uses: taiki-e/cache-cargo-install-action@v3
+        with:
+          tool: connectrpc-codegen@0.9.0
+      - name: Generate the Rust and TypeScript code
+        run: buf generate
+        working-directory: crates/proto
+      - name: Build the frontend
+        run: npm run build
+        working-directory: web
+      # cef-dll-sys copies the CEF runtime (libcef.so, its resources and
+      # locales) next to the binary in target/release. `tauri/custom-protocol`
+      # is what `tauri build` adds for a production (non-dev) build.
+      - name: Build the desktop app
+        run: CEF_PATH="$HOME/.cache/tauri-cef" cargo build --release --locked -p muxmultitool-desktop --features cef,tauri/custom-protocol
+      - name: Pack the tarball
+        id: pack
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          root="$RUNNER_TEMP/pkg"
+          app="$root/usr/share/MuxMultiTool"
+          mkdir -p "$app" "$root/usr/lib/MuxMultiTool" "$root/usr/share/applications"
+          # Everything cargo and cef-dll-sys left at the top of target/release
+          # except cargo's own build state.
+          find target/release -mindepth 1 -maxdepth 1 \
+            ! -name build ! -name deps ! -name incremental ! -name examples \
+            ! -name .fingerprint ! -name .cargo-lock ! -name '*.d' ! -name '*.rlib' \
+            -exec cp -a {} "$app/" \;
+          test -x "$app/muxmultitool-desktop"
+          test -f "$app/libcef.so"
+          strip "$app/muxmultitool-desktop"
+          cp -a web/dist "$root/usr/lib/MuxMultiTool/web"
+          install -m 644 packaging/aur/muxmultitool.desktop "$root/usr/share/applications/muxmultitool.desktop"
+          for size in 32 128 256 512; do
+            case $size in
+              32) icon=32x32.png ;;
+              128) icon=128x128.png ;;
+              256) icon=128x128@2x.png ;;
+              512) icon=icon.png ;;
+            esac
+            install -Dm 644 "crates/desktop/icons/$icon" \
+              "$root/usr/share/icons/hicolor/${size}x${size}/apps/muxmultitool.png"
+          done
+          tarball="muxmultitool-$VERSION-linux-x86_64.tar.zst"
+          tar --owner=0 --group=0 --numeric-owner -C "$root" -cf - usr | zstd -19 -T0 -o "$tarball"
+          echo "sha256=$(sha256sum "$tarball" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "TARBALL=$tarball" >> "$GITHUB_ENV"
+          du -h "$tarball" >> "$GITHUB_STEP_SUMMARY"
+      - name: Attach it to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" "$TARBALL" --clobber
+
+  aur:
+    name: Publish to the AUR
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+      - name: Render the PKGBUILD
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+          SHA256: ${{ needs.build.outputs.sha256 }}
+        run: |
+          sed -e "s/@PKGVER@/$VERSION/" -e "s/@SHA256@/$SHA256/" packaging/aur/PKGBUILD.in > PKGBUILD
+          if grep -n '@[A-Z0-9]*@' PKGBUILD; then exit 1; fi
+          cat PKGBUILD >> "$GITHUB_STEP_SUMMARY"
+      # Test-builds the package with makepkg in an Arch container, then
+      # commits the PKGBUILD and .SRCINFO to the AUR repository.
+      - uses: KSXGitHub/github-actions-deploy-aur@v4
+        with:
+          pkgname: muxmultitool-bin
+          pkgbuild: ./PKGBUILD
+          commit_username: ${{ vars.AUR_USERNAME }}
+          commit_email: ${{ vars.AUR_EMAIL }}
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: Update to ${{ needs.build.outputs.version }}
+          test: true

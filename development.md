@@ -332,6 +332,16 @@ CI (the `desktop` job) builds the installers for the four targets on every chang
 - **Preview playback in WebView2, WKWebView and CEF** still needs the manual test from the HLS spike on real machines (architecture doc, "HLS playback spike"). The Linux app has not been started on a desktop at all yet: the CEF alpha, the portal dialogs and the deb and AppImage layouts are built and documented, not run (architecture doc, "Linux desktop app as built").
 - **Linux bundling fails with this Tauri alpha:** the deb and AppImage bundlers copy ANGLE libraries that the Linux CEF distribution does not contain, so `tauri build` stops after the compile (architecture doc, "Linux desktop app as built", issue 1). Needs a bundler fix upstream and a version bump.
 
+### AUR package
+
+Arch Linux gets the Linux app as [`muxmultitool-bin`](https://aur.archlinux.org/packages/muxmultitool-bin) on the AUR, published by `.github/workflows/aur.yml`. It does not use the Tauri bundler (which fails, see above): it builds the app with `cargo build --release -p muxmultitool-desktop --features cef,tauri/custom-protocol`, packs it in the layout of the Debian package and attaches that tarball (`muxmultitool-<version>-linux-x86_64.tar.zst`) to the GitHub release:
+
+- `/usr/share/MuxMultiTool/`: the executable next to `libcef.so` and the rest of the CEF runtime, with `/usr/bin/muxmultitool` as a symlink;
+- `/usr/lib/MuxMultiTool/web/`: the frontend, where Tauri looks for resources;
+- the desktop entry and the icons. ffmpeg and ffprobe are not bundled: the package depends on Arch's `ffmpeg`, which `backend::sidecar_dir` finds in `/usr/bin/`.
+
+The workflow then renders `packaging/aur/PKGBUILD.in` with the version and the tarball's SHA-256, test-builds it with makepkg in an Arch container and pushes the PKGBUILD and `.SRCINFO` to the AUR. It runs when a GitHub release is published (a draft starts nothing until it is published; pre-releases are skipped) and by hand (`gh workflow run aur.yml -f tag=v1.2.0`) for an existing release. Setup, once: an AUR account with an SSH key, the private key as the `AUR_SSH_PRIVATE_KEY` repository secret, and the `AUR_USERNAME` and `AUR_EMAIL` repository variables for the AUR commits. The first push creates the package. Like the other Linux bundles, the package is built and checked for its layout but has not been run on a desktop yet.
+
 ## Container
 
 The container is the self-hosted way to run MuxMultiTool: the static musl `server` binary next to a static GPL ffmpeg, published for `linux/amd64` and `linux/arm64` as `ghcr.io/jogai/muxmultitool`. There is no authentication; keep the port on a trusted network.
