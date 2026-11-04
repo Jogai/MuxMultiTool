@@ -70,4 +70,6 @@ MuxMultiTool is licensed under the [GNU General Public License v3.0 or later](ht
 
 SPDX-License-Identifier: GPL-3.0-or-later
 
+The app icon is the director's chair from [Streamline](https://github.com/webalys-hq/streamline-vectors)'s Pixel icons, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), recoloured with the Gruvbox palette.
+
 The screenshots show [Big Buck Bunny](https://peach.blender.org/), © 2008 Blender Foundation, licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
