@@ -38,7 +38,7 @@ async fn get(
 	id: &str,
 	range: Option<&str>,
 ) -> Result<(http::response::Parts, Vec<u8>)> {
-	let mut request = Request::get(format!("/files/{id}"));
+	let mut request = Request::get(format!("/files/{id}")).header(header::HOST, "127.0.0.1");
 	if let Some(range) = range {
 		request = request.header(header::RANGE, range);
 	}

@@ -16,13 +16,16 @@
 //!   check, a client of the health RPC.
 //! - everything else: the built frontend, with `index.html` for unknown paths
 //!   so the router's history mode works on a page reload.
+//!
+//! In desktop mode every route sits behind the `Host` check of module
+//! `host`: only requests addressed to the local server are answered.
 
 use std::future::Future;
 use std::io;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use axum::Router;
+use axum::{Router, middleware};
 use connectrpc::Router as ConnectRouter;
 use files::Files;
 use jobs::Jobs;
@@ -50,6 +53,7 @@ mod extract;
 mod files;
 mod gif;
 pub mod health;
+mod host;
 mod jobs;
 mod media;
 mod merge;
@@ -132,11 +136,16 @@ impl AppState {
 /// The queue in the router's state is never shut down this way; drop the
 /// router to kill its jobs, or use [`Server`] for a clean stop.
 pub fn app(config: &Config) -> Router {
-	app_with_state(Arc::new(AppState::new(config)))
+	app_with_state(
+		Arc::new(AppState::new(config)),
+		config.desktop.then_some(config.port),
+	)
 }
 
-/// Builds the full router around an existing `state`.
-fn app_with_state(state: Arc<AppState>) -> Router {
+/// Builds the full router around an existing `state`. `local_port` is the
+/// bound port in desktop mode, which puts the router behind the `Host`
+/// check; `None` answers any host (the container).
+fn app_with_state(state: Arc<AppState>, local_port: Option<u16>) -> Router {
 	let rpc = ConnectRouter::new()
 		.add_service(Arc::new(System::new(Arc::clone(&state))))
 		.add_service(Arc::new(Files::new(Arc::clone(&state))))
@@ -160,15 +169,17 @@ fn app_with_state(state: Arc<AppState>) -> Router {
 	let index = state.frontend_dir.join("index.html");
 	let frontend = ServeDir::new(&state.frontend_dir).fallback(ServeFile::new(index));
 
-	Router::new()
+	let mut router = Router::new()
 		.nest_service(RPC_PREFIX, rpc.into_axum_service())
 		.merge(media::routes())
 		.merge(timeline::routes())
 		.merge(snapshot::routes())
 		.merge(download::routes())
-		.fallback_service(frontend)
-		.layer(TraceLayer::new_for_http())
-		.with_state(state)
+		.fallback_service(frontend);
+	if let Some(port) = local_port {
+		router = router.layer(middleware::from_fn_with_state(port, host::local_only));
+	}
+	router.layer(TraceLayer::new_for_http()).with_state(state)
 }
 
 /// A bound listener and the router that serves it.
@@ -190,11 +201,12 @@ impl Server {
 	pub async fn bind(config: &Config) -> io::Result<Self> {
 		warn_about_missing_folders(config);
 		let listener = TcpListener::bind(config.socket_addr()).await?;
+		let local_port = config.desktop.then_some(listener.local_addr()?.port());
 		let state = Arc::new(AppState::new(config));
 		tokio::spawn(detect_at_startup(Arc::clone(&state)));
 		Ok(Self {
 			listener,
-			app: app_with_state(Arc::clone(&state)),
+			app: app_with_state(Arc::clone(&state), local_port),
 			state,
 		})
 	}

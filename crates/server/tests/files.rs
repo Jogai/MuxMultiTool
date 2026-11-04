@@ -73,6 +73,7 @@ impl Fixture {
 /// Calls `method` with a JSON body and returns the status and the JSON answer.
 async fn call(config: &Config, method: &str, body: Value) -> Result<(StatusCode, Value)> {
 	let request = Request::post(format!("{SERVICE}/{method}"))
+		.header(header::HOST, "127.0.0.1")
 		.header(header::CONTENT_TYPE, "application/json")
 		.body(Body::from(body.to_string()))?;
 	let response = app(config).oneshot(request).await?;

@@ -80,6 +80,7 @@ async fn rpc(
 	json: serde_json::Value,
 ) -> Result<(StatusCode, serde_json::Value)> {
 	let request = Request::post(path)
+		.header(header::HOST, "127.0.0.1")
 		.header(header::CONTENT_TYPE, "application/json")
 		.body(Body::from(json.to_string()))?;
 	let (parts, body) = send(router, request).await?;
