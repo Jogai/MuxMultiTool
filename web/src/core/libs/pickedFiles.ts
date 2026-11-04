@@ -22,6 +22,22 @@ export async function entriesForPicked(
 	return response.entries.filter((entry) => entry.kind === EntryKind.FILE);
 }
 
+/**
+ * The folder the picker returned as a files-service entry, the same way `entriesForPicked` resolves
+ * files; `undefined` when nothing was picked or the pick is not a folder.
+ */
+export async function folderForPicked(
+	client: Client<typeof FilesService>,
+	mode: AppMode,
+	picked: PickedFile | undefined
+): Promise<Entry | undefined> {
+	if (!picked) {
+		return undefined;
+	}
+	const response = mode === "desktop" ? await client.openPaths({ paths: [picked.path] }) : await client.getEntries({ ids: [picked.path] });
+	return response.entries.find((entry) => entry.kind === EntryKind.FOLDER);
+}
+
 /** What the container browser returns for a chosen entry: the id is the path as the backend knows it. */
 export function pickedFromEntry(entry: Entry): PickedFile {
 	return { path: entry.id, name: entry.name };

@@ -1,14 +1,8 @@
 <script setup lang="ts">
-import { type SelectionRow, totals } from "../lib/streams";
+import { type TableRow, totals } from "../lib/streams";
 import { formatGb, formatStreamSize, streamTypeName } from "~/core/libs/reportFormat";
 
-/** A row of the table: the selection row plus what the issues and the extraction say about it. */
-export interface TableRow extends SelectionRow {
-	/** The file the stream is written to, when extracting. */
-	output?: string;
-	/** Problems the target container has with the stream, or why it has no file of its own. */
-	issues: readonly { blocking: boolean; message: string }[];
-}
+export type { TableRow };
 
 /**
  * The per-file selection table of the sketch: a Keep tick per stream, the stream as the report shows it,
@@ -20,8 +14,17 @@ const {
 	fileName,
 	loading = false,
 	hasOverrides = false,
-	extracting = false
-} = defineProps<{ rows: readonly TableRow[]; fileName: string; loading?: boolean; hasOverrides?: boolean; extracting?: boolean }>();
+	extracting = false,
+	readonly = false
+} = defineProps<{
+	rows: readonly TableRow[];
+	fileName: string;
+	loading?: boolean;
+	hasOverrides?: boolean;
+	extracting?: boolean;
+	/** Show the ticks without letting them change: the dry run of a batch. */
+	readonly?: boolean;
+}>();
 const emit = defineEmits<{ toggle: [index: number]; reset: [] }>();
 const { t } = useI18n();
 
@@ -59,6 +62,7 @@ const cell = "py-1 pr-3 align-middle";
 								type="checkbox"
 								class="accent-accent"
 								:checked="row.kept"
+								:disabled="readonly"
 								:aria-label="t('streams.table.keepStream', { index: row.stream.index })"
 								@change="emit('toggle', row.stream.index)"
 							/>

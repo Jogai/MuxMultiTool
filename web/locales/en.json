@@ -197,14 +197,6 @@
 			"description": "GIF, snapshots, cover art and lossless crop.",
 			"task": "TASK-40"
 		},
-		"batch": {
-			"description": "Apply an operation to every matching file in a folder, with a filename template and a preview.",
-			"task": "TASK-41"
-		},
-		"presets": {
-			"description": "Saved operations, reusable from every screen.",
-			"task": "TASK-41"
-		},
 		"settings": {
 			"description": "Appearance, shortcuts, paths and the ffmpeg capability check.",
 			"task": "TASK-42",
@@ -635,7 +627,7 @@
 			"sameAsSource": "Same as source",
 			"folderHint": "An absolute folder inside a media root. Empty puts the output next to its input.",
 			"template": "Filename template",
-			"templateHint": "{'{name}'} is the input's name without extension, {'{ext}'} the container's extension. The file must not exist yet.",
+			"templateHint": "{'{name}'} is the input's name without extension, {'{ext}'} the container's extension; {'{lang}'}, {'{date}'}, {'{n}'} and {'{parent}'} work too. The file must not exist yet.",
 			"extractNames": "The files are named after the input, the stream and its codec, e.g. clip.s1.audio.eng.aac; existing files are never overwritten."
 		},
 		"command": {
@@ -663,7 +655,8 @@
 				"queue": "Queue the jobs",
 				"showShortcuts": "Show this list"
 			}
-		}
+		},
+		"savePreset": "Save as preset…"
 	},
 	"combine": {
 		"description": "Build one file from streams of several sources: add English subtitles from another file, or video from one release with audio from another. Streams are copied, never re-encoded.",
@@ -872,6 +865,160 @@
 				"end": "Move its end by a frame",
 				"select": "Previous / next segment"
 			}
+		}
+	},
+	"batch": {
+		"description": "Apply one stream operation to every file of a folder that matches a wildcard, each file as its own job. Check the dry run first: it names every output and says which files would be skipped.",
+		"steps": {
+			"input": "Input",
+			"operation": "Operation",
+			"output": "Output"
+		},
+		"folder": {
+			"choose": "Choose…",
+			"clear": "Clear",
+			"none": "No folder chosen"
+		},
+		"input": {
+			"folder": "Folder",
+			"pattern": "Pattern",
+			"patternHint": "Wildcards against file names, separated by commas: *.mp4, *.mkv",
+			"recursive": "Subfolders",
+			"checking": "Looking for files…",
+			"matches": "{n} file matches | {n} files match",
+			"noMatches": "No file matches.",
+			"showList": "Show list",
+			"hideList": "Hide list"
+		},
+		"operation": {
+			"source": "Operation",
+			"rules": "Stream rules",
+			"preset": "Preset",
+			"choosePreset": "Choose a preset",
+			"noPresets": "No presets yet. Save one on the Streams screen or create one on the Presets screen.",
+			"manage": "Manage presets",
+			"remuxNote": "Without rules every stream is copied: a remux into the container the template's extension picks."
+		},
+		"output": {
+			"folder": "Output folder",
+			"sameAsSource": "Next to each input",
+			"template": "Filename template",
+			"templateHint": "{'{name}'} is the input's name without extension, {'{ext}'} its own extension, {'{lang}'} the kept audio languages, {'{date}'} today, {'{n}'} the file's number and {'{parent}'} its folder. The extension picks the container.",
+			"presetTemplate": "The preset names the outputs: {template}",
+			"existing": "If the file exists:",
+			"skip": "Skip",
+			"overwrite": "Overwrite",
+			"preview": "Preview",
+			"previewInput": "Input",
+			"previewOutput": "Output",
+			"more": "… {n} more",
+			"noFiles": "The names of the matching files appear here.",
+			"target": {
+				"container": "Outputs are written as {container}.",
+				"input": "Every output keeps its input's container.",
+				"unknown": "The extension does not pick a container (MKV, MP4, MOV or WebM); the dry run reports what happens."
+			},
+			"problems": {
+				"folder": "Choose a folder to search.",
+				"patterns": "Enter at least one pattern.",
+				"preset": "Choose a preset.",
+				"template": {
+					"empty": "Enter a filename template.",
+					"separator": "The template may not contain a path separator; choose the output folder above.",
+					"unclosed": "The template has an unclosed brace.",
+					"unknown": "Unknown placeholder {'{'}{placeholder}{'}'}; use {'{name}'}, {'{ext}'}, {'{lang}'}, {'{date}'}, {'{n}'} or {'{parent}'}."
+				}
+			},
+			"langNote": "{'{lang}'} is und here: the dry run fills it in from the audio streams each file keeps."
+		},
+		"plan": {
+			"dryRun": "Dry run",
+			"running": "Planning…",
+			"title": "Dry run · {ready} of {total} ready | Dry run · {ready} of {total} ready",
+			"stale": "The settings changed since this dry run; run it again before queueing.",
+			"columns": {
+				"input": "Input",
+				"output": "Output",
+				"result": "Result"
+			},
+			"streams": "{kept} → {total} streams",
+			"streamsKept": "{kept} of {total} streams",
+			"skipped": "skipped",
+			"overwrites": "replaces the existing file",
+			"warnings": "{n} warning | {n} warnings",
+			"show": "Show the streams of {name}",
+			"hide": "Hide the streams of {name}",
+			"command": "Command · {name}",
+			"noFiles": "No file matches; nothing to do.",
+			"date": "Names dated {date}"
+		},
+		"queue": "Queue {n} job | Queue {n} jobs",
+		"queueing": "Queueing…",
+		"progress": {
+			"title": "Batch progress",
+			"summary": "{done} of {total} done",
+			"failed": "{n} failed | {n} failed",
+			"columns": {
+				"status": "Status",
+				"file": "File",
+				"progress": "Progress"
+			},
+			"failures": "Failed files",
+			"view": "Open in Jobs",
+			"another": "New batch",
+			"skipped": "{n} file was skipped: | {n} files were skipped:"
+		}
+	},
+	"presets": {
+		"description": "Saved operations: a target container, stream rules and an output name, applied to a file on the Streams screen or to a whole folder as a batch.",
+		"empty": "No presets yet. Save one from the Streams screen with ‘Save as preset…’, or create one here.",
+		"new": "New preset",
+		"loading": "Loading…",
+		"card": {
+			"template": "Output: {template}",
+			"rules": "{n} rule | {n} rules",
+			"noRules": "every stream copied",
+			"untaggedDrop": "untagged streams dropped"
+		},
+		"actions": {
+			"applyFiles": "Apply to files | Apply to {n} file | Apply to {n} files",
+			"applyFilesHint": "Select files on the Files screen first.",
+			"applyBatch": "Apply to a batch",
+			"edit": "Edit",
+			"delete": "Delete"
+		},
+		"edit": {
+			"titleNew": "New preset",
+			"titleEdit": "Edit {name}",
+			"name": "Name",
+			"container": "Container",
+			"template": "Output name",
+			"templateHint": "Without the extension: the container adds it. {'{name}'} is the input's name, {'{lang}'} the kept audio languages, {'{date}'} the day, {'{n}'} the file's number in a batch and {'{parent}'} its folder.",
+			"example": "{input} → {output}",
+			"create": "Create",
+			"save": "Save",
+			"cancel": "Cancel"
+		},
+		"delete": {
+			"title": "Delete {name}?",
+			"body": "Jobs already queued keep running. This cannot be undone.",
+			"confirm": "Delete",
+			"cancel": "Keep it"
+		},
+		"save": {
+			"title": "Save as preset",
+			"body": "The rules, the container and the output name of this screen, reusable on any file and in batches.",
+			"name": "Name",
+			"namePlaceholder": "English only, drop DTS, MKV",
+			"reason": {
+				"extract": "Extraction cannot be saved as a preset; presets copy streams to a container.",
+				"videoOnly": "Video only is a mode, not a rule, and presets hold rules: add a drop rule per stream type instead.",
+				"container": "Presets can write MKV, MP4, MOV or WebM only."
+			},
+			"saved": "Saved as preset {name}.",
+			"open": "Open Presets",
+			"create": "Save",
+			"cancel": "Cancel"
 		}
 	}
 }

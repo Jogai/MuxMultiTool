@@ -119,15 +119,41 @@ export function applyEvent(jobs: QueueJobs, event: JobEvent): { unknown: boolean
 	return { unknown };
 }
 
+/** How far along a state is: a job only ever moves up. */
+function stateRank(state: JobState): number {
+	if (isTerminal(state)) {
+		return 3;
+	}
+	return state === JobState.RUNNING ? 2 : state === JobState.QUEUED ? 1 : 0;
+}
+
 /**
  * Fills in a job that a unary call returned (`GetJob` for a job an event named first, or the answer to a
  * cancel). The fetched job carries the command and name; its log tail is ignored when the job is known,
  * because the stream delivers every line of a known job as an event: a line in the tail is either
- * already here or still on its way, and taking it now would show it twice.
+ * already here or still on its way, and taking it now would show it twice. The same goes for its
+ * state when the stream has moved the job further meanwhile (a short job of a batch is queued, run and
+ * finished before the fetch answers): the answer never sets a job back.
  */
 export function applyFetchedJob(jobs: QueueJobs, fetched: Job): void {
 	const known = jobs.get(fetched.id);
-	jobs.set(fetched.id, known ? { ...fetched, log: known.log } : fetched);
+	if (!known) {
+		jobs.set(fetched.id, fetched);
+		return;
+	}
+	if (stateRank(fetched.state) >= stateRank(known.state)) {
+		jobs.set(fetched.id, { ...fetched, log: known.log });
+		return;
+	}
+	jobs.set(fetched.id, {
+		...fetched,
+		state: known.state,
+		error: known.error ?? fetched.error,
+		progress: known.progress ?? fetched.progress,
+		startedUnixMs: known.startedUnixMs || fetched.startedUnixMs,
+		finishedUnixMs: known.finishedUnixMs || fetched.finishedUnixMs,
+		log: known.log
+	});
 }
 
 const STATE_ORDER: Record<JobState, number> = {

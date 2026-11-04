@@ -1,7 +1,7 @@
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it, vi } from "vitest";
 
-import { entriesForPicked, pickedFromEntry } from "./pickedFiles";
+import { entriesForPicked, folderForPicked, pickedFromEntry } from "./pickedFiles";
 import { EntryKind, EntrySchema, GetEntriesResponseSchema, OpenPathsResponseSchema } from "~/generated/muxmultitool/files/v1/files_pb";
 import { fakeFilesClient } from "~/test/fakeFilesClient";
 
@@ -48,5 +48,31 @@ describe("pickedFromEntry", () => {
 			path: "abc",
 			name: "a.mkv"
 		});
+	});
+});
+
+describe("folderForPicked", () => {
+	it("answers with the folder entry of a container pick", async () => {
+		const client = fakeFilesClient({
+			getEntries: vi
+				.fn()
+				.mockResolvedValue(create(GetEntriesResponseSchema, { entries: [{ id: "movies", name: "Movies", kind: EntryKind.FOLDER }] }))
+		});
+		await expect(folderForPicked(client, "container", { path: "movies", name: "Movies" })).resolves.toMatchObject({ id: "movies" });
+		expect(client.getEntries).toHaveBeenCalledWith({ ids: ["movies"] });
+	});
+
+	it("opens a native path on desktop and refuses a file", async () => {
+		const client = fakeFilesClient({
+			openPaths: vi.fn().mockResolvedValue(create(OpenPathsResponseSchema, { entries: [{ id: "x", name: "x.mp4", kind: EntryKind.FILE }] }))
+		});
+		await expect(folderForPicked(client, "desktop", { path: "/home/me/x.mp4", name: "x.mp4" })).resolves.toBeUndefined();
+		expect(client.openPaths).toHaveBeenCalledWith({ paths: ["/home/me/x.mp4"] });
+	});
+
+	it("asks nothing for a cancelled pick", async () => {
+		const client = fakeFilesClient();
+		await expect(folderForPicked(client, "container", undefined)).resolves.toBeUndefined();
+		expect(client.getEntries).not.toHaveBeenCalled();
 	});
 });

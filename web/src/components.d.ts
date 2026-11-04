@@ -12,6 +12,12 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AboutDialog: typeof import('./core/components/AboutDialog.vue')['default']
+    BatchFolderField: typeof import('./features/batch/components/BatchFolderField.vue')['default']
+    BatchInput: typeof import('./features/batch/components/BatchInput.vue')['default']
+    BatchOperation: typeof import('./features/batch/components/BatchOperation.vue')['default']
+    BatchOutput: typeof import('./features/batch/components/BatchOutput.vue')['default']
+    BatchPlan: typeof import('./features/batch/components/BatchPlan.vue')['default']
+    BatchProgress: typeof import('./features/batch/components/BatchProgress.vue')['default']
     CutSegmentTable: typeof import('./features/cut/components/CutSegmentTable.vue')['default']
     CutSettings: typeof import('./features/cut/components/CutSettings.vue')['default']
     CutShortcutsDialog: typeof import('./features/cut/components/CutShortcutsDialog.vue')['default']
@@ -46,6 +52,10 @@ declare module 'vue' {
     PlayerSubtitleOverlay: typeof import('./features/player/components/PlayerSubtitleOverlay.vue')['default']
     PlayerTransport: typeof import('./features/player/components/PlayerTransport.vue')['default']
     PlayerView: typeof import('./features/player/components/PlayerView.vue')['default']
+    PresetsCard: typeof import('./features/presets/components/PresetsCard.vue')['default']
+    PresetsDeleteDialog: typeof import('./features/presets/components/PresetsDeleteDialog.vue')['default']
+    PresetsEditDialog: typeof import('./features/presets/components/PresetsEditDialog.vue')['default']
+    PresetsSaveDialog: typeof import('./features/presets/components/PresetsSaveDialog.vue')['default']
     RekaAlertDialogCancel: typeof import('reka-ui')['AlertDialogCancel']
     RekaAlertDialogContent: typeof import('reka-ui')['AlertDialogContent']
     RekaAlertDialogDescription: typeof import('reka-ui')['AlertDialogDescription']

@@ -11,7 +11,9 @@ import {
 	emptyForm,
 	extractOperation,
 	isRuleComplete,
+	keptLanguages,
 	move,
+	nameFields,
 	outputPath,
 	pruneOverrides,
 	renderTemplate,
@@ -85,6 +87,29 @@ describe("output names", () => {
 		expect(renderTemplate("{name}.eng.{ext}", "Movie (2024).mkv", "mkv")).toBe("Movie (2024).eng.mkv");
 		expect(outputPath("", "a.mkv")).toBe("a.mkv");
 		expect(outputPath("/media/out/", "a.mkv")).toBe("/media/out/a.mkv");
+	});
+
+	it("renders the batch placeholders with the file's fields, und for the languages until known", () => {
+		expect(renderTemplate("{n}-{parent}-{name}.{lang}.{ext}", "Movie.mp4", "mkv")).toBe("1--Movie.und.mkv");
+		expect(renderTemplate("{n}-{parent}-{name}.{lang}.{ext}", "Movie.mp4", "mkv", { n: "03", parent: "Films", lang: "eng" })).toBe(
+			"03-Films-Movie.eng.mkv"
+		);
+		expect(renderTemplate("{name}.{date}.{ext}", "Movie.mp4", "mkv", { date: "2026-11-04" })).toBe("Movie.2026-11-04.mkv");
+	});
+
+	it("takes the languages from the kept audio streams and the number from the selection", () => {
+		const preview = create(PreviewStreamsResponseSchema, {
+			streams: [
+				{ stream: { index: 0, type: StreamType.VIDEO, language: "jpn" }, kept: true },
+				{ stream: { index: 1, type: StreamType.AUDIO, language: "eng" }, kept: true },
+				{ stream: { index: 2, type: StreamType.AUDIO, language: "fre" }, kept: false },
+				{ stream: { index: 3, type: StreamType.AUDIO, language: "ger" }, kept: true }
+			]
+		});
+		expect(keptLanguages(preview)).toBe("eng-ger");
+		expect(keptLanguages(create(PreviewStreamsResponseSchema))).toBe("und");
+		expect(nameFields({ path: "Films/2024/Movie.mp4" }, 2, 12, preview)).toEqual({ lang: "eng-ger", n: "03", parent: "2024" });
+		expect(nameFields({ path: "Movie.mp4" }, 0, 1)).toEqual({ lang: undefined, n: "1", parent: "" });
 	});
 });
 

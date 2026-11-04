@@ -1,7 +1,16 @@
 import type { Client } from "@connectrpc/connect";
 import { computed, type Ref, shallowRef, watch } from "vue";
 
-import { baseOperation, effectiveOperation, extractOperation, needsEffectivePreview, overridesOf, type StreamsForm } from "../lib/streams";
+import {
+	baseOperation,
+	effectiveOperation,
+	extractOperation,
+	type NameFields,
+	nameFields,
+	needsEffectivePreview,
+	overridesOf,
+	type StreamsForm
+} from "../lib/streams";
 import { type AppError, toAppError } from "~/core/libs/errors";
 import { useRpcClient } from "~/core/libs/rpc";
 import { ExtractService, type PreviewExtractResponse } from "~/generated/muxmultitool/extract/v1/extract_pb";
@@ -47,11 +56,23 @@ export function useStreamPreviews(
 		previews.value = next;
 	}
 
+	/**
+	 * The output name's fields of a file: its place in the selection and, once a preview is in, the
+	 * languages it keeps. A template with `{lang}` is previewed again when they become known (see
+	 * `run`), which changes the name, never the streams, so it settles after one more round.
+	 */
+	function fieldsOf(file: Entry): NameFields {
+		const preview = previews.value.get(file.id);
+		const index = files.value.findIndex((entry) => entry.id === file.id);
+		return nameFields(file, Math.max(index, 0), files.value.length, preview?.effective ?? preview?.base);
+	}
+
 	/** What the file's previews depend on; the same key means the same answer. */
 	function keyOf(file: Entry): string {
 		const current = form.value;
 		const overrides = [...overridesOf(current.overrides, file.id)].toSorted((a, b) => a - b);
-		const operation = current.action === "copy" ? baseOperation(current, file.id, file.name) : extractOperation(current, file.id);
+		const operation =
+			current.action === "copy" ? baseOperation(current, file.id, file.name, fieldsOf(file)) : extractOperation(current, file.id);
 		return JSON.stringify([current.action, operation, overrides]);
 	}
 
@@ -68,18 +89,25 @@ export function useStreamPreviews(
 				}
 				return;
 			}
-			const base = await clients.streams.previewStreams({ operation: baseOperation(current, file.id, file.name) });
+			const fields = fieldsOf(file);
+			const base = await clients.streams.previewStreams({ operation: baseOperation(current, file.id, file.name, fields) });
 			if (latest.get(file.id) !== call) {
 				return;
 			}
 			let effective = base;
 			if (needsEffectivePreview(current, file.id, base)) {
-				effective = await clients.streams.previewStreams({ operation: effectiveOperation(current, file.id, file.name, base) });
+				effective = await clients.streams.previewStreams({ operation: effectiveOperation(current, file.id, file.name, base, fields) });
 				if (latest.get(file.id) !== call) {
 					return;
 				}
 			}
 			set(file.id, { base, effective, extract: undefined, error: undefined, loading: false });
+			// The languages are known now; a name that uses them is previewed once more
+			const settled = keyOf(file);
+			if (keys.get(file.id) !== settled) {
+				keys.set(file.id, settled);
+				void run(file);
+			}
 		} catch (cause) {
 			if (latest.get(file.id) === call) {
 				set(file.id, { base: undefined, effective: undefined, extract: undefined, error: toAppError(cause), loading: false });
@@ -125,6 +153,8 @@ export function useStreamPreviews(
 	);
 
 	const previewOf = (fileId: string): FilePreview | undefined => previews.value.get(fileId);
+	/** The name fields a submit must use, so the job writes the name the preview showed. */
+	const fieldsFor = (file: Entry): NameFields => fieldsOf(file);
 	const loading = computed(() => [...previews.value.values()].some((preview) => preview.loading));
 
 	/** Forgets what was previewed, so every file is asked again (after a submit, for instance). */
@@ -134,5 +164,5 @@ export function useStreamPreviews(
 		timer = setTimeout(refresh, 0);
 	}
 
-	return { previews, previewOf, loading, reset };
+	return { previews, previewOf, fieldsFor, loading, reset };
 }

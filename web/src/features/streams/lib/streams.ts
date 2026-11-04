@@ -1,7 +1,7 @@
 import { create } from "@bufbuild/protobuf";
 
 import { type ExtractStreamsOperation, ExtractStreamsOperationSchema } from "~/generated/muxmultitool/extract/v1/extract_pb";
-import { type StreamSummary, StreamType } from "~/generated/muxmultitool/files/v1/files_pb";
+import { type Entry, type StreamSummary, StreamType } from "~/generated/muxmultitool/files/v1/files_pb";
 import {
 	type PreviewStreamsResponse,
 	RuleAction,
@@ -14,6 +14,9 @@ import {
 	StreamRulesSchema,
 	UntaggedLanguage
 } from "~/generated/muxmultitool/streams/v1/streams_pb";
+import { languagesOf, padNumber, parentName, renderTemplate as renderFields, stem, utcDate } from "~/features/batch/lib/template";
+
+export { stem };
 
 /**
  * The state of the Streams screen (sketch 02) and the operations it turns into. Rules apply to every
@@ -168,15 +171,50 @@ export function toStreamRules(form: Pick<StreamsForm, "rules" | "untagged">): St
 	});
 }
 
-/** The file name without its last extension; a name that is all extension (`.hidden`) stays whole. */
-export function stem(fileName: string): string {
-	const dot = fileName.lastIndexOf(".");
-	return dot > 0 ? fileName.slice(0, dot) : fileName;
+/**
+ * The fields of the output name besides `{name}` and `{ext}`, which the screen knows per file: the
+ * kept audio languages once the preview is in, the file's number in the selection and its folder.
+ */
+export interface NameFields {
+	lang?: string;
+	n?: string;
+	parent?: string;
+	date?: string;
 }
 
-/** The output file name of the template for an input, e.g. `{name}.eng.{ext}` → `Movie.eng.mkv`. */
-export function renderTemplate(template: string, inputName: string, extension: string): string {
-	return template.replaceAll("{name}", stem(inputName)).replaceAll("{ext}", extension).trim();
+/**
+ * The output file name of the template for an input, e.g. `{name}.eng.{ext}` → `Movie.eng.mkv`. Here
+ * `{ext}` is the container's extension (a batch keeps the input's); `{lang}` is `und` until the
+ * preview says which audio streams stay.
+ */
+export function renderTemplate(template: string, inputName: string, extension: string, fields: NameFields = {}): string {
+	return renderFields(template.trim(), {
+		name: stem(inputName),
+		ext: extension,
+		lang: fields.lang ?? "und",
+		date: fields.date ?? utcDate(new Date()),
+		n: fields.n ?? "1",
+		parent: fields.parent ?? ""
+	}).trim();
+}
+
+/** `{lang}` of a previewed file: the languages of the audio streams it keeps, `und` when none is tagged. */
+export function keptLanguages(preview: Pick<PreviewStreamsResponse, "streams">): string {
+	return languagesOf(
+		preview.streams.flatMap((result) =>
+			result.stream ? [{ kept: result.kept, isAudio: result.stream.type === StreamType.AUDIO, language: result.stream.language }] : []
+		)
+	);
+}
+
+/** The name fields of the file at `index` of `count` in the selection, with its languages once previewed. */
+export function nameFields(
+	file: Pick<Entry, "path">,
+	index: number,
+	count: number,
+	preview?: Pick<PreviewStreamsResponse, "streams">
+): NameFields {
+	return { lang: preview ? keptLanguages(preview) : undefined, n: padNumber(index, count), parent: parentName(file.path) };
 }
 
 /** The output the operation names: the bare name next to the input, or the name inside `folder`. */
@@ -197,11 +235,11 @@ export function baseMode(form: Pick<StreamsForm, "videoOnly" | "rules">): Select
 }
 
 /** The copy operation of the rules and switches alone: what the preview resolves per file. */
-export function baseOperation(form: StreamsForm, fileId: string, fileName: string): SelectStreamsOperation {
+export function baseOperation(form: StreamsForm, fileId: string, fileName: string, fields?: NameFields): SelectStreamsOperation {
 	const mode = baseMode(form);
 	return create(SelectStreamsOperationSchema, {
 		input: fileId,
-		output: outputPath(form.folder, renderTemplate(form.template, fileName, form.container)),
+		output: outputPath(form.folder, renderTemplate(form.template, fileName, form.container, fields)),
 		mode,
 		rules: mode === SelectionMode.RULES ? toStreamRules(form) : undefined
 	});
@@ -250,6 +288,14 @@ export interface SelectionRow {
 	overridden: boolean;
 }
 
+/** A row of the selection table: the selection row plus what the issues and the extraction say about it. */
+export interface TableRow extends SelectionRow {
+	/** The file the stream is written to, when extracting. */
+	output?: string;
+	/** Problems the target container has with the stream, or why it has no file of its own. */
+	issues: readonly { blocking: boolean; message: string }[];
+}
+
 /** The rows of a file: the base preview's decisions with the file's overrides applied. */
 export function selectionRows(preview: PreviewStreamsResponse, overrides: ReadonlySet<number>): SelectionRow[] {
 	return preview.streams.flatMap((result) => {
@@ -276,9 +322,10 @@ export function effectiveOperation(
 	form: StreamsForm,
 	fileId: string,
 	fileName: string,
-	preview: PreviewStreamsResponse | undefined
+	preview: PreviewStreamsResponse | undefined,
+	fields?: NameFields
 ): SelectStreamsOperation {
-	const base = baseOperation(form, fileId, fileName);
+	const base = baseOperation(form, fileId, fileName, fields);
 	const overrides = overridesOf(form.overrides, fileId);
 	if (overrides.size === 0 || !preview) {
 		return base;

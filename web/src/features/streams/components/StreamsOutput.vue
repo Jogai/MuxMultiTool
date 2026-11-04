@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CONTAINERS, renderTemplate } from "../lib/streams";
+import { CONTAINERS, type NameFields, renderTemplate } from "../lib/streams";
 
 /**
  * The output options of the sketch: the target container (its extension picks it), the output folder
@@ -7,13 +7,13 @@ import { CONTAINERS, renderTemplate } from "../lib/streams";
  * would get. When extracting there is no container and the backend names the files, so only the
  * folder applies.
  */
-const { exampleName, extracting = false } = defineProps<{ exampleName?: string; extracting?: boolean }>();
+const { exampleName, fields, extracting = false } = defineProps<{ exampleName?: string; fields?: NameFields; extracting?: boolean }>();
 const container = defineModel<string>("container", { required: true });
 const folder = defineModel<string>("folder", { required: true });
 const template = defineModel<string>("template", { required: true });
 const { t } = useI18n();
 
-const example = computed(() => (exampleName ? renderTemplate(template.value, exampleName, container.value) : undefined));
+const example = computed(() => (exampleName ? renderTemplate(template.value, exampleName, container.value, fields) : undefined));
 const field = "rounded-md border border-border bg-surface px-2 py-1 text-sm";
 </script>
 

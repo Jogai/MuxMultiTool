@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import IconKeyboard from "~icons/lucide/keyboard";
+import IconStar from "~icons/lucide/star";
 
 import { useStreamReport } from "~/core/composables/useStreamReport";
 import { type AppError, toAppError } from "~/core/libs/errors";
@@ -12,13 +13,11 @@ import { isTypingTarget, matchShortcut, STREAMS_SHORTCUTS, type StreamsShortcutA
 import {
 	clearOverrides,
 	effectiveOperation,
-	emptyForm,
 	extractOperation,
 	jobLink,
 	overridesOf,
 	pruneOverrides,
 	selectionRows,
-	type StreamsForm,
 	toggleOverride,
 	totals
 } from "~/features/streams/lib/streams";
@@ -29,7 +28,8 @@ import { JobsService } from "~/generated/muxmultitool/jobs/v1/jobs_pb";
  * The Streams screen (sketch 02): rules on top that apply to every file of the selection, the table
  * of the active file with a Keep tick per stream and the rule that decided it, the output options,
  * the per-file results, the exact command, and "Queue N jobs". The same screen extracts tracks to
- * one file each (mvp-features.md, "Extract all tracks"): the ticks then say which.
+ * one file each (mvp-features.md, "Extract all tracks"): the ticks then say which. The form lives in
+ * its store, so it survives a detour to another screen and a preset can be applied into it.
  */
 const { t } = useI18n();
 const selection = useFileSelectionStore();
@@ -38,10 +38,10 @@ const filesClient = useRpcClient(FilesService);
 const jobsClient = useRpcClient(JobsService);
 const report = useStreamReport(filesClient);
 
-const form = ref<StreamsForm>(emptyForm());
+const { form } = storeToRefs(useStreamsFormStore());
 const files = computed(() => selection.files);
 const extracting = computed(() => form.value.action === "extract");
-const { previewOf, loading } = useStreamPreviews(form, files);
+const { previewOf, fieldsFor, loading } = useStreamPreviews(form, files);
 
 // The active file: the first one until the user picks another; ticks of files that left are dropped
 const activeId = ref<string>();
@@ -162,7 +162,7 @@ async function queue() {
 			const response = await jobsClient.submitJob({
 				operation: extracting.value
 					? { case: "extractStreams", value: extractOperation(form.value, file.id) }
-					: { case: "selectStreams", value: effectiveOperation(form.value, file.id, file.name, preview?.base) }
+					: { case: "selectStreams", value: effectiveOperation(form.value, file.id, file.name, preview?.base, fieldsFor(file)) }
 			});
 			if (response.job) {
 				submitted.value = [...submitted.value, { id: response.job.id, name: response.job.name }];
@@ -184,6 +184,8 @@ async function addFiles() {
 		error.value = toAppError(cause);
 	}
 }
+
+const savePresetOpen = ref(false);
 
 // Keyboard shortcuts, listed in the dialog
 const shortcutsOpen = ref(false);
@@ -254,6 +256,14 @@ const segment =
 			</div>
 			<button
 				type="button"
+				class="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent"
+				@click="savePresetOpen = true"
+			>
+				<IconStar class="size-4" aria-hidden="true" />
+				{{ t("streams.savePreset") }}
+			</button>
+			<button
+				type="button"
 				class="rounded-md border border-border p-1.5 hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent"
 				:aria-label="t('streams.shortcuts.open')"
 				:title="t('streams.shortcuts.open')"
@@ -318,6 +328,7 @@ const segment =
 				v-model:folder="form.folder"
 				v-model:template="form.template"
 				:example-name="activeFile?.name"
+				:fields="activeFile ? fieldsFor(activeFile) : undefined"
 				:extracting="extracting"
 			/>
 
@@ -347,5 +358,6 @@ const segment =
 		</template>
 
 		<StreamsShortcutsDialog v-model:open="shortcutsOpen" :shortcuts="STREAMS_SHORTCUTS" prefix="streams.shortcuts" />
+		<PresetsSaveDialog v-model:open="savePresetOpen" :form="form" />
 	</section>
 </template>

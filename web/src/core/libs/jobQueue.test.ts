@@ -132,6 +132,22 @@ describe("applyEvent", () => {
 		expect(jobs.get("new")).toMatchObject({ command: "ffmpeg -i new", state: JobState.RUNNING, log: ["early line", "later"] });
 	});
 
+	it("never sets a job back to a state the stream has already left", () => {
+		const jobs = new Map<string, Job>();
+		applyEvent(jobs, stateEvent(1, "fast", JobState.QUEUED, 10));
+		applyEvent(jobs, stateEvent(2, "fast", JobState.RUNNING, 11));
+		applyEvent(jobs, stateEvent(3, "fast", JobState.FAILED, 12, "permission denied"));
+		// The fetch for the unknown job was answered while it still ran
+		applyFetchedJob(jobs, job("fast", JobState.RUNNING, { startedUnixMs: 11n }));
+		expect(jobs.get("fast")).toMatchObject({
+			command: "ffmpeg -i fast",
+			state: JobState.FAILED,
+			error: { message: "permission denied" },
+			startedUnixMs: 11n,
+			finishedUnixMs: 12n
+		});
+	});
+
 	it("takes a fetched job as is when nothing was known", () => {
 		const jobs = new Map<string, Job>();
 		applyFetchedJob(jobs, job("a", JobState.QUEUED, { log: ["tail"] }));

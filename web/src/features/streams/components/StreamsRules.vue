@@ -22,7 +22,12 @@ import { StreamType } from "~/generated/muxmultitool/files/v1/files_pb";
  * quick chips for the MVP's common cases, and the untagged-language switch of the backend's rules.
  * "Video only" is a mode rather than a rule, because a rule always needs something to match.
  */
-const { fileCount } = defineProps<{ fileCount: number }>();
+const { fileCount, videoOnlySwitch = true } = defineProps<{
+	/** How many files the rules apply to; absent where there are none yet (a preset's rules). */
+	fileCount?: number;
+	/** Whether the "Video only" chip is offered; a preset holds rules only. */
+	videoOnlySwitch?: boolean;
+}>();
 const rules = defineModel<readonly RuleDraft[]>("rules", { required: true });
 const untagged = defineModel<"keep" | "drop">("untagged", { required: true });
 const videoOnly = defineModel<boolean>("videoOnly", { required: true });
@@ -74,7 +79,9 @@ const iconButton =
 	<section class="flex flex-col gap-3" :aria-label="t('streams.rules.title')">
 		<h3 class="font-bold">
 			{{ t("streams.rules.title") }}
-			<span class="font-normal text-muted">· {{ t("streams.rules.applyTo", { n: fileCount }, fileCount) }}</span>
+			<span v-if="fileCount !== undefined" class="font-normal text-muted"
+				>· {{ t("streams.rules.applyTo", { n: fileCount }, fileCount) }}</span
+			>
 		</h3>
 
 		<ul v-if="rules.length > 0" class="flex flex-col gap-1" :class="{ 'opacity-50': videoOnly }">
@@ -146,7 +153,7 @@ const iconButton =
 
 		<div class="flex flex-wrap items-center gap-2">
 			<span class="text-sm text-muted">{{ t("streams.rules.quick") }}</span>
-			<button type="button" :class="chip" :aria-pressed="videoOnly" @click="videoOnly = !videoOnly">
+			<button v-if="videoOnlySwitch" type="button" :class="chip" :aria-pressed="videoOnly" @click="videoOnly = !videoOnly">
 				{{ t("streams.rules.quickChips.videoOnly") }}
 			</button>
 			<button v-for="quick in QUICK_RULES" :key="quick.name" type="button" :class="chip" @click="addQuick(quick.rules)">

@@ -70,6 +70,7 @@ declare global {
   const elapsedMs: typeof import('./core/libs/jobFormat').elapsedMs
   const entriesForPicked: typeof import('./core/libs/pickedFiles').entriesForPicked
   const extendRef: typeof import('@vueuse/core').extendRef
+  const folderForPicked: typeof import('./core/libs/pickedFiles').folderForPicked
   const formatBitRate: typeof import('./core/libs/reportFormat').formatBitRate
   const formatBuildInfo: typeof import('./core/libs/buildInfo').formatBuildInfo
   const formatBytes: typeof import('./core/libs/jobFormat').formatBytes
@@ -211,6 +212,7 @@ declare global {
   const useAsyncState: typeof import('@vueuse/core').useAsyncState
   const useAttrs: typeof import('vue').useAttrs
   const useBase64: typeof import('@vueuse/core').useBase64
+  const useBatchStore: typeof import('./core/stores/batch').useBatchStore
   const useBattery: typeof import('@vueuse/core').useBattery
   const useBluetooth: typeof import('@vueuse/core').useBluetooth
   const useBreakpoints: typeof import('@vueuse/core').useBreakpoints
@@ -338,6 +340,7 @@ declare global {
   const useStorage: typeof import('@vueuse/core').useStorage
   const useStorageAsync: typeof import('@vueuse/core').useStorageAsync
   const useStreamReport: typeof import('./core/composables/useStreamReport').useStreamReport
+  const useStreamsFormStore: typeof import('./core/stores/streamsForm').useStreamsFormStore
   const useStyleTag: typeof import('@vueuse/core').useStyleTag
   const useSupported: typeof import('@vueuse/core').useSupported
   const useSwipe: typeof import('@vueuse/core').useSwipe
@@ -515,6 +518,7 @@ declare module 'vue' {
     readonly elapsedMs: UnwrapRef<typeof import('./core/libs/jobFormat')['elapsedMs']>
     readonly entriesForPicked: UnwrapRef<typeof import('./core/libs/pickedFiles')['entriesForPicked']>
     readonly extendRef: UnwrapRef<typeof import('@vueuse/core')['extendRef']>
+    readonly folderForPicked: UnwrapRef<typeof import('./core/libs/pickedFiles')['folderForPicked']>
     readonly formatBitRate: UnwrapRef<typeof import('./core/libs/reportFormat')['formatBitRate']>
     readonly formatBuildInfo: UnwrapRef<typeof import('./core/libs/buildInfo')['formatBuildInfo']>
     readonly formatBytes: UnwrapRef<typeof import('./core/libs/jobFormat')['formatBytes']>
@@ -656,6 +660,7 @@ declare module 'vue' {
     readonly useAsyncState: UnwrapRef<typeof import('@vueuse/core')['useAsyncState']>
     readonly useAttrs: UnwrapRef<typeof import('vue')['useAttrs']>
     readonly useBase64: UnwrapRef<typeof import('@vueuse/core')['useBase64']>
+    readonly useBatchStore: UnwrapRef<typeof import('./core/stores/batch')['useBatchStore']>
     readonly useBattery: UnwrapRef<typeof import('@vueuse/core')['useBattery']>
     readonly useBluetooth: UnwrapRef<typeof import('@vueuse/core')['useBluetooth']>
     readonly useBreakpoints: UnwrapRef<typeof import('@vueuse/core')['useBreakpoints']>
@@ -783,6 +788,7 @@ declare module 'vue' {
     readonly useStorage: UnwrapRef<typeof import('@vueuse/core')['useStorage']>
     readonly useStorageAsync: UnwrapRef<typeof import('@vueuse/core')['useStorageAsync']>
     readonly useStreamReport: UnwrapRef<typeof import('./core/composables/useStreamReport')['useStreamReport']>
+    readonly useStreamsFormStore: UnwrapRef<typeof import('./core/stores/streamsForm')['useStreamsFormStore']>
     readonly useStyleTag: UnwrapRef<typeof import('@vueuse/core')['useStyleTag']>
     readonly useSupported: UnwrapRef<typeof import('@vueuse/core')['useSupported']>
     readonly useSwipe: UnwrapRef<typeof import('@vueuse/core')['useSwipe']>
