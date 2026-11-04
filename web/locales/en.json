@@ -62,7 +62,11 @@
 			"ok": "Backend {version}",
 			"error": "Backend not reachable"
 		},
-		"ffmpeg": "ffmpeg build: not detected yet",
+		"ffmpeg": {
+			"loading": "Detecting ffmpeg…",
+			"ok": "ffmpeg {version}",
+			"missing": "ffmpeg not available"
+		},
 		"mode": {
 			"container": "Container mode",
 			"desktop": "Desktop mode"
