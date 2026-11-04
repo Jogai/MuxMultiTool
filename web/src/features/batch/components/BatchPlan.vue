@@ -3,6 +3,7 @@ import IconChevronDown from "~icons/lucide/chevron-down";
 import IconChevronRight from "~icons/lucide/chevron-right";
 
 import type { PlanRow } from "../lib/batch";
+import { toggled } from "~/core/libs/collections";
 
 /**
  * The dry run's table of the sketch: every matching file with its output name and result (the
@@ -24,13 +25,7 @@ const {
 const { t } = useI18n();
 const open = ref(new Set<string>());
 
-function toggle(id: string) {
-	const next = new Set(open.value);
-	if (!next.delete(id)) {
-		next.add(id);
-	}
-	open.value = next;
-}
+const toggle = (id: string) => (open.value = toggled(open.value, id));
 
 const cell = "py-1 pr-3 align-top";
 </script>

@@ -2,7 +2,7 @@
 import { progressCounts, type ProgressRow } from "../lib/batch";
 import type { BatchItem } from "~/generated/muxmultitool/batch/v1/batch_pb";
 import { JobState } from "~/generated/muxmultitool/jobs/v1/jobs_pb";
-import { jobLink } from "~/features/streams/lib/streams";
+import { jobLink } from "~/core/libs/navigation";
 
 /**
  * A queued batch as it runs: a bar for the whole batch, every file with its job's state and share

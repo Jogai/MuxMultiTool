@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import IconChevronRight from "~icons/lucide/chevron-right";
 
+import { toggled } from "~/core/libs/collections";
 import type { AppError } from "~/core/libs/errors";
 import { formatGb, formatStreamSize, streamTypeName } from "~/core/libs/reportFormat";
 import { type ReportLayout, containerLine, reportAsText, reportName } from "~/core/libs/reportText";
@@ -39,22 +40,10 @@ const { t } = useI18n();
 
 const count = computed(() => reports.length + pendingIds.length);
 const collapsed = ref(new Set<string>());
-function toggleCollapsed(fileId: string) {
-	const next = new Set(collapsed.value);
-	if (!next.delete(fileId)) {
-		next.add(fileId);
-	}
-	collapsed.value = next;
-}
+const toggleCollapsed = (fileId: string) => (collapsed.value = toggled(collapsed.value, fileId));
 
 const outputOpen = ref(new Set<string>());
-function toggleOutput(fileId: string) {
-	const next = new Set(outputOpen.value);
-	if (!next.delete(fileId)) {
-		next.add(fileId);
-	}
-	outputOpen.value = next;
-}
+const toggleOutput = (fileId: string) => (outputOpen.value = toggled(outputOpen.value, fileId));
 
 const isSelected = (fileId: string, stream: StreamSummary) => selected?.fileId === fileId && selected.index === stream.index;
 

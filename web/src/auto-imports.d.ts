@@ -8,6 +8,7 @@
 // biome-ignore lint: disable
 export {}
 declare global {
+  const DIGITS: typeof import('./core/libs/shortcuts').DIGITS
   const EffectScope: typeof import('vue').EffectScope
   const JOB_LOG_LIMIT: typeof import('./core/libs/jobQueue').JOB_LOG_LIMIT
   const LICENSE_ID: typeof import('./core/libs/externalLink').LICENSE_ID
@@ -28,6 +29,7 @@ declare global {
   const autoResetRef: typeof import('@vueuse/core').autoResetRef
   const baseName: typeof import('./core/libs/filePicker').baseName
   const canShowInFolder: typeof import('./core/libs/showInFolder').canShowInFolder
+  const clampTime: typeof import('./core/libs/time').clampTime
   const codeName: typeof import('./core/libs/errors').codeName
   const computed: typeof import('vue').computed
   const computedAsync: typeof import('@vueuse/core').computedAsync
@@ -70,13 +72,16 @@ declare global {
   const elapsedMs: typeof import('./core/libs/jobFormat').elapsedMs
   const entriesForPicked: typeof import('./core/libs/pickedFiles').entriesForPicked
   const extendRef: typeof import('@vueuse/core').extendRef
+  const extensionOf: typeof import('./core/libs/fileNames').extensionOf
   const folderForPicked: typeof import('./core/libs/pickedFiles').folderForPicked
   const formatBitRate: typeof import('./core/libs/reportFormat').formatBitRate
   const formatBuildInfo: typeof import('./core/libs/buildInfo').formatBuildInfo
   const formatBytes: typeof import('./core/libs/jobFormat').formatBytes
+  const formatClock: typeof import('./core/libs/format').formatClock
   const formatDuration: typeof import('./core/libs/reportFormat').formatDuration
   const formatGb: typeof import('./core/libs/reportFormat').formatGb
   const formatPercent: typeof import('./core/libs/jobFormat').formatPercent
+  const formatShortcut: typeof import('./core/libs/shortcuts').formatShortcut
   const formatSpan: typeof import('./core/libs/jobFormat').formatSpan
   const formatSpeed: typeof import('./core/libs/jobFormat').formatSpeed
   const formatStreamSize: typeof import('./core/libs/reportFormat').formatStreamSize
@@ -101,7 +106,10 @@ declare global {
   const isRef: typeof import('vue').isRef
   const isShallow: typeof import('vue').isShallow
   const isTerminal: typeof import('./core/libs/jobQueue').isTerminal
+  const isTypingTarget: typeof import('./core/libs/shortcuts').isTypingTarget
+  const jobLink: typeof import('./core/libs/navigation').jobLink
   const joinPath: typeof import('./core/libs/filePicker').joinPath
+  const lowerBound: typeof import('./core/libs/collections').lowerBound
   const makeDestructurable: typeof import('@vueuse/core').makeDestructurable
   const mapActions: typeof import('pinia').mapActions
   const mapGetters: typeof import('pinia').mapGetters
@@ -109,7 +117,9 @@ declare global {
   const mapStores: typeof import('pinia').mapStores
   const mapWritableState: typeof import('pinia').mapWritableState
   const markRaw: typeof import('vue').markRaw
+  const matchShortcut: typeof import('./core/libs/shortcuts').matchShortcut
   const mergeLog: typeof import('./core/libs/jobQueue').mergeLog
+  const move: typeof import('./core/libs/collections').move
   const navNameForPath: typeof import('./core/libs/navigation').navNameForPath
   const nextTick: typeof import('vue').nextTick
   const normalizeThemeSetting: typeof import('./core/libs/theme').normalizeThemeSetting
@@ -169,6 +179,7 @@ declare global {
   const showInFolder: typeof import('./core/libs/showInFolder').showInFolder
   const sortJobs: typeof import('./core/libs/jobQueue').sortJobs
   const splitPatterns: typeof import('./core/composables/useFolderBrowser').splitPatterns
+  const stem: typeof import('./core/libs/fileNames').stem
   const storeToRefs: typeof import('pinia').storeToRefs
   const streamCells: typeof import('./core/libs/reportText').streamCells
   const streamTypeName: typeof import('./core/libs/reportFormat').streamTypeName
@@ -184,6 +195,7 @@ declare global {
   const toRef: typeof import('vue').toRef
   const toRefs: typeof import('vue').toRefs
   const toValue: typeof import('vue').toValue
+  const toggled: typeof import('./core/libs/collections').toggled
   const toggledThemeSetting: typeof import('./core/libs/theme').toggledThemeSetting
   const triggerRef: typeof import('vue').triggerRef
   const trimLog: typeof import('./core/libs/jobQueue').trimLog
@@ -195,6 +207,7 @@ declare global {
   const unref: typeof import('vue').unref
   const unrefElement: typeof import('@vueuse/core').unrefElement
   const until: typeof import('@vueuse/core').until
+  const upperBound: typeof import('./core/libs/collections').upperBound
   const useActiveElement: typeof import('@vueuse/core').useActiveElement
   const useAnimate: typeof import('@vueuse/core').useAnimate
   const useArrayDifference: typeof import('@vueuse/core').useArrayDifference
@@ -238,6 +251,7 @@ declare global {
   const useDateFormat: typeof import('@vueuse/core').useDateFormat
   const useDebounce: typeof import('@vueuse/core').useDebounce
   const useDebounceFn: typeof import('@vueuse/core').useDebounceFn
+  const useDebouncedCall: typeof import('./core/composables/useDebouncedCall').useDebouncedCall
   const useDebouncedRefHistory: typeof import('@vueuse/core').useDebouncedRefHistory
   const useDeviceMotion: typeof import('@vueuse/core').useDeviceMotion
   const useDeviceOrientation: typeof import('@vueuse/core').useDeviceOrientation
@@ -434,6 +448,9 @@ declare global {
   export type { AppMode, PickFilesOptions, PickSavePathOptions, PickedFile, FilePicker, OpenFileBrowser } from './core/libs/filePicker'
   import('./core/libs/filePicker')
   // @ts-ignore
+  export type { ClockHours } from './core/libs/format'
+  import('./core/libs/format')
+  // @ts-ignore
   export type { QueueJobs } from './core/libs/jobQueue'
   import('./core/libs/jobQueue')
   // @ts-ignore
@@ -445,6 +462,9 @@ declare global {
   // @ts-ignore
   export type { RpcTransportOptions } from './core/libs/rpc'
   import('./core/libs/rpc')
+  // @ts-ignore
+  export type { Shortcut, ShortcutMatch, KeyInput } from './core/libs/shortcuts'
+  import('./core/libs/shortcuts')
   // @ts-ignore
   export type { ThemeMode, ThemeSetting, ResolvedTheme, ThemeRoot } from './core/libs/theme'
   import('./core/libs/theme')
@@ -458,6 +478,7 @@ import { UnwrapRef } from 'vue'
 declare module 'vue' {
   interface GlobalComponents {}
   interface ComponentCustomProperties {
+    readonly DIGITS: UnwrapRef<typeof import('./core/libs/shortcuts')['DIGITS']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
     readonly JOB_LOG_LIMIT: UnwrapRef<typeof import('./core/libs/jobQueue')['JOB_LOG_LIMIT']>
     readonly LICENSE_ID: UnwrapRef<typeof import('./core/libs/externalLink')['LICENSE_ID']>
@@ -478,6 +499,7 @@ declare module 'vue' {
     readonly autoResetRef: UnwrapRef<typeof import('@vueuse/core')['autoResetRef']>
     readonly baseName: UnwrapRef<typeof import('./core/libs/filePicker')['baseName']>
     readonly canShowInFolder: UnwrapRef<typeof import('./core/libs/showInFolder')['canShowInFolder']>
+    readonly clampTime: UnwrapRef<typeof import('./core/libs/time')['clampTime']>
     readonly codeName: UnwrapRef<typeof import('./core/libs/errors')['codeName']>
     readonly computed: UnwrapRef<typeof import('vue')['computed']>
     readonly computedAsync: UnwrapRef<typeof import('@vueuse/core')['computedAsync']>
@@ -519,13 +541,16 @@ declare module 'vue' {
     readonly elapsedMs: UnwrapRef<typeof import('./core/libs/jobFormat')['elapsedMs']>
     readonly entriesForPicked: UnwrapRef<typeof import('./core/libs/pickedFiles')['entriesForPicked']>
     readonly extendRef: UnwrapRef<typeof import('@vueuse/core')['extendRef']>
+    readonly extensionOf: UnwrapRef<typeof import('./core/libs/fileNames')['extensionOf']>
     readonly folderForPicked: UnwrapRef<typeof import('./core/libs/pickedFiles')['folderForPicked']>
     readonly formatBitRate: UnwrapRef<typeof import('./core/libs/reportFormat')['formatBitRate']>
     readonly formatBuildInfo: UnwrapRef<typeof import('./core/libs/buildInfo')['formatBuildInfo']>
     readonly formatBytes: UnwrapRef<typeof import('./core/libs/jobFormat')['formatBytes']>
+    readonly formatClock: UnwrapRef<typeof import('./core/libs/format')['formatClock']>
     readonly formatDuration: UnwrapRef<typeof import('./core/libs/reportFormat')['formatDuration']>
     readonly formatGb: UnwrapRef<typeof import('./core/libs/reportFormat')['formatGb']>
     readonly formatPercent: UnwrapRef<typeof import('./core/libs/jobFormat')['formatPercent']>
+    readonly formatShortcut: UnwrapRef<typeof import('./core/libs/shortcuts')['formatShortcut']>
     readonly formatSpan: UnwrapRef<typeof import('./core/libs/jobFormat')['formatSpan']>
     readonly formatSpeed: UnwrapRef<typeof import('./core/libs/jobFormat')['formatSpeed']>
     readonly formatStreamSize: UnwrapRef<typeof import('./core/libs/reportFormat')['formatStreamSize']>
@@ -550,7 +575,10 @@ declare module 'vue' {
     readonly isRef: UnwrapRef<typeof import('vue')['isRef']>
     readonly isShallow: UnwrapRef<typeof import('vue')['isShallow']>
     readonly isTerminal: UnwrapRef<typeof import('./core/libs/jobQueue')['isTerminal']>
+    readonly isTypingTarget: UnwrapRef<typeof import('./core/libs/shortcuts')['isTypingTarget']>
+    readonly jobLink: UnwrapRef<typeof import('./core/libs/navigation')['jobLink']>
     readonly joinPath: UnwrapRef<typeof import('./core/libs/filePicker')['joinPath']>
+    readonly lowerBound: UnwrapRef<typeof import('./core/libs/collections')['lowerBound']>
     readonly makeDestructurable: UnwrapRef<typeof import('@vueuse/core')['makeDestructurable']>
     readonly mapActions: UnwrapRef<typeof import('pinia')['mapActions']>
     readonly mapGetters: UnwrapRef<typeof import('pinia')['mapGetters']>
@@ -558,7 +586,9 @@ declare module 'vue' {
     readonly mapStores: UnwrapRef<typeof import('pinia')['mapStores']>
     readonly mapWritableState: UnwrapRef<typeof import('pinia')['mapWritableState']>
     readonly markRaw: UnwrapRef<typeof import('vue')['markRaw']>
+    readonly matchShortcut: UnwrapRef<typeof import('./core/libs/shortcuts')['matchShortcut']>
     readonly mergeLog: UnwrapRef<typeof import('./core/libs/jobQueue')['mergeLog']>
+    readonly move: UnwrapRef<typeof import('./core/libs/collections')['move']>
     readonly navNameForPath: UnwrapRef<typeof import('./core/libs/navigation')['navNameForPath']>
     readonly nextTick: UnwrapRef<typeof import('vue')['nextTick']>
     readonly normalizeThemeSetting: UnwrapRef<typeof import('./core/libs/theme')['normalizeThemeSetting']>
@@ -618,6 +648,7 @@ declare module 'vue' {
     readonly showInFolder: UnwrapRef<typeof import('./core/libs/showInFolder')['showInFolder']>
     readonly sortJobs: UnwrapRef<typeof import('./core/libs/jobQueue')['sortJobs']>
     readonly splitPatterns: UnwrapRef<typeof import('./core/composables/useFolderBrowser')['splitPatterns']>
+    readonly stem: UnwrapRef<typeof import('./core/libs/fileNames')['stem']>
     readonly storeToRefs: UnwrapRef<typeof import('pinia')['storeToRefs']>
     readonly streamCells: UnwrapRef<typeof import('./core/libs/reportText')['streamCells']>
     readonly streamTypeName: UnwrapRef<typeof import('./core/libs/reportFormat')['streamTypeName']>
@@ -633,6 +664,7 @@ declare module 'vue' {
     readonly toRef: UnwrapRef<typeof import('vue')['toRef']>
     readonly toRefs: UnwrapRef<typeof import('vue')['toRefs']>
     readonly toValue: UnwrapRef<typeof import('vue')['toValue']>
+    readonly toggled: UnwrapRef<typeof import('./core/libs/collections')['toggled']>
     readonly toggledThemeSetting: UnwrapRef<typeof import('./core/libs/theme')['toggledThemeSetting']>
     readonly triggerRef: UnwrapRef<typeof import('vue')['triggerRef']>
     readonly trimLog: UnwrapRef<typeof import('./core/libs/jobQueue')['trimLog']>
@@ -644,6 +676,7 @@ declare module 'vue' {
     readonly unref: UnwrapRef<typeof import('vue')['unref']>
     readonly unrefElement: UnwrapRef<typeof import('@vueuse/core')['unrefElement']>
     readonly until: UnwrapRef<typeof import('@vueuse/core')['until']>
+    readonly upperBound: UnwrapRef<typeof import('./core/libs/collections')['upperBound']>
     readonly useActiveElement: UnwrapRef<typeof import('@vueuse/core')['useActiveElement']>
     readonly useAnimate: UnwrapRef<typeof import('@vueuse/core')['useAnimate']>
     readonly useArrayDifference: UnwrapRef<typeof import('@vueuse/core')['useArrayDifference']>
@@ -687,6 +720,7 @@ declare module 'vue' {
     readonly useDateFormat: UnwrapRef<typeof import('@vueuse/core')['useDateFormat']>
     readonly useDebounce: UnwrapRef<typeof import('@vueuse/core')['useDebounce']>
     readonly useDebounceFn: UnwrapRef<typeof import('@vueuse/core')['useDebounceFn']>
+    readonly useDebouncedCall: UnwrapRef<typeof import('./core/composables/useDebouncedCall')['useDebouncedCall']>
     readonly useDebouncedRefHistory: UnwrapRef<typeof import('@vueuse/core')['useDebouncedRefHistory']>
     readonly useDeviceMotion: UnwrapRef<typeof import('@vueuse/core')['useDeviceMotion']>
     readonly useDeviceOrientation: UnwrapRef<typeof import('@vueuse/core')['useDeviceOrientation']>

@@ -5,8 +5,8 @@ import IconGripVertical from "~icons/lucide/grip-vertical";
 import IconX from "~icons/lucide/x";
 
 import { originOf, type SourceDraft, type TrackDraft } from "../lib/combine";
-import { move } from "../lib/streams";
 import type { CachedReport } from "~/core/composables/useStreamReport";
+import { move } from "~/core/libs/collections";
 import { streamTypeName } from "~/core/libs/reportFormat";
 import type { OutputTrack, TrackIssue } from "~/generated/muxmultitool/combine/v1/combine_pb";
 import type { StreamSummary } from "~/generated/muxmultitool/files/v1/files_pb";

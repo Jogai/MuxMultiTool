@@ -4,6 +4,8 @@ import IconKeyboard from "~icons/lucide/keyboard";
 import { useStreamReport } from "~/core/composables/useStreamReport";
 import { type AppError, toAppError } from "~/core/libs/errors";
 import { entriesForPicked } from "~/core/libs/pickedFiles";
+import { move } from "~/core/libs/collections";
+import { jobLink } from "~/core/libs/navigation";
 import { useRpcClient } from "~/core/libs/rpc";
 import { useCombinePreview } from "~/features/streams/composables/useCombinePreview";
 import {
@@ -18,7 +20,7 @@ import {
 } from "~/features/streams/lib/combine";
 import { isTypingTarget, matchShortcut } from "~/core/libs/shortcuts";
 import { COMBINE_SHORTCUTS, type CombineShortcutAction } from "~/features/streams/lib/shortcuts";
-import { CONTAINERS, jobLink, move, renderTemplate } from "~/features/streams/lib/streams";
+import { CONTAINERS, renderTemplate } from "~/features/streams/lib/streams";
 import { FilesService } from "~/generated/muxmultitool/files/v1/files_pb";
 import { JobsService } from "~/generated/muxmultitool/jobs/v1/jobs_pb";
 

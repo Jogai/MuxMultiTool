@@ -3,16 +3,8 @@ import IconArrowDown from "~icons/lucide/arrow-down";
 import IconArrowUp from "~icons/lucide/arrow-up";
 import IconX from "~icons/lucide/x";
 
-import {
-	addRule,
-	isRuleComplete,
-	move,
-	QUICK_RULES,
-	RULE_STREAM_TYPES,
-	type RuleDraft,
-	type RuleMatchKind,
-	ruleName
-} from "../lib/streams";
+import { addRule, isRuleComplete, QUICK_RULES, RULE_STREAM_TYPES, type RuleDraft, type RuleMatchKind, ruleName } from "../lib/streams";
+import { move } from "~/core/libs/collections";
 import { streamTypeName } from "~/core/libs/reportFormat";
 import { StreamType } from "~/generated/muxmultitool/files/v1/files_pb";
 

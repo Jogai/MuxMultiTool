@@ -13,8 +13,9 @@ import { activeCues, isTextSubtitle } from "../lib/cues";
 import { type AttachedSource, attachPreview, detectPlaybackEngine, type PlaybackEngine } from "../lib/engine";
 import { crossedEnd, type PlayerRange, rangeBounds, withRangeEnd, withRangeStart } from "../lib/range";
 import { isDialogTarget, isTypingTarget } from "~/core/libs/shortcuts";
+import { clampTime } from "~/core/libs/time";
 import { type PlayerAction, SEEK_STEP_SECONDS, shortcutAction } from "../lib/shortcuts";
-import { clampTime, nextKeyframe, previousKeyframe, stepFrame } from "../lib/stepping";
+import { nextKeyframe, previousKeyframe, stepFrame } from "../lib/stepping";
 import { frameIndex, frameStart } from "../lib/timecode";
 
 /**

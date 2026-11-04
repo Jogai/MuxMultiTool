@@ -1,5 +1,7 @@
 import { create } from "@bufbuild/protobuf";
 
+import { lowerBound } from "~/core/libs/collections";
+import { clampTime } from "~/core/libs/time";
 import { CutExport, CutMode, type ProjectState, ProjectStateSchema, SegmentMode } from "~/generated/muxmultitool/cut/v1/cut_pb";
 
 /**
@@ -107,7 +109,7 @@ export function addSegment(
 ): { segments: Segment[]; id: number } | undefined {
 	const id = nextId(segments);
 	const [from, to] = start <= end ? [start, end] : [end, start];
-	const segment = { id, start: clamp(from, duration), end: clamp(to, duration) };
+	const segment = { id, start: clampTime(from, duration), end: clampTime(to, duration) };
 	if (segment.end <= segment.start) {
 		return undefined;
 	}
@@ -127,8 +129,8 @@ export function moveSegment(segments: readonly Segment[], id: number, start: num
 			}
 			const length = segment.end - segment.start;
 			const latest = duration > 0 ? Math.max(0, duration - length) : Number.POSITIVE_INFINITY;
-			const from = Math.min(clamp(start, duration), latest);
-			return { ...segment, start: from, end: clamp(from + length, duration) };
+			const from = Math.min(clampTime(start, duration), latest);
+			return { ...segment, start: from, end: clampTime(from + length, duration) };
 		})
 	);
 }
@@ -151,9 +153,9 @@ export function resizeSegment(
 				return segment;
 			}
 			if (edge === "start") {
-				return { ...segment, start: Math.max(0, Math.min(clamp(seconds, duration), segment.end - minLength)) };
+				return { ...segment, start: Math.max(0, Math.min(clampTime(seconds, duration), segment.end - minLength)) };
 			}
-			return { ...segment, end: clamp(Math.max(clamp(seconds, duration), segment.start + minLength), duration) };
+			return { ...segment, end: clampTime(Math.max(clampTime(seconds, duration), segment.start + minLength), duration) };
 		})
 	);
 }
@@ -188,16 +190,7 @@ export function snapToKeyframe(seconds: number, keyframes: readonly number[], th
 	if (keyframes.length === 0 || !(threshold > 0)) {
 		return seconds;
 	}
-	let low = 0;
-	let high = keyframes.length;
-	while (low < high) {
-		const mid = (low + high) >>> 1;
-		if (keyframes[mid]! < seconds) {
-			low = mid + 1;
-		} else {
-			high = mid;
-		}
-	}
+	const low = lowerBound(keyframes, seconds);
 	let best: number | undefined;
 	for (const candidate of [keyframes[low - 1], keyframes[low]]) {
 		if (candidate !== undefined && Math.abs(candidate - seconds) <= threshold) {
@@ -246,11 +239,4 @@ export function invertSegments(segments: readonly Segment[], duration: number): 
 
 function near(a: number, b: number): boolean {
 	return Math.abs(a - b) < EPSILON;
-}
-
-function clamp(seconds: number, duration: number): number {
-	if (!Number.isFinite(seconds) || seconds < 0) {
-		return 0;
-	}
-	return duration > 0 ? Math.min(seconds, duration) : seconds;
 }

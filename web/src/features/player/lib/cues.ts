@@ -1,3 +1,4 @@
+import { upperBound } from "~/core/libs/collections";
 import type { SubtitleCue } from "~/generated/muxmultitool/media/v1/media_pb";
 import { StreamType, type StreamSummary } from "~/generated/muxmultitool/files/v1/files_pb";
 
@@ -23,17 +24,8 @@ const MAX_CUE_SECONDS = 60;
 
 /** The cues that show at `seconds`, in start order. `cues` must be sorted by start. */
 export function activeCues(cues: readonly SubtitleCue[], seconds: number): SubtitleCue[] {
-	// Last cue that has started
-	let low = 0;
-	let high = cues.length;
-	while (low < high) {
-		const mid = (low + high) >>> 1;
-		if (cues[mid]!.startSeconds <= seconds) {
-			low = mid + 1;
-		} else {
-			high = mid;
-		}
-	}
+	// Past the last cue that has started
+	const low = upperBound(cues, seconds, (cue) => cue.startSeconds);
 	const active: SubtitleCue[] = [];
 	for (let index = low - 1; index >= 0; index -= 1) {
 		const cue = cues[index]!;

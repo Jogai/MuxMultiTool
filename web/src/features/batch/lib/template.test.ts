@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
 	checkTemplate,
 	containerOf,
-	extensionOf,
 	languagesOf,
 	padNumber,
 	parentName,
@@ -13,7 +12,6 @@ import {
 	previewNames,
 	renderTemplate,
 	safeValue,
-	stem,
 	templateTarget,
 	utcDate
 } from "./template";
@@ -101,15 +99,6 @@ describe("renderTemplate", () => {
 });
 
 describe("file name helpers", () => {
-	it("splits the stem and the extension", () => {
-		expect(stem("Film.1.mp4")).toBe("Film.1");
-		expect(extensionOf("Film.1.mp4")).toBe("mp4");
-		expect(stem("noext")).toBe("noext");
-		expect(extensionOf("noext")).toBe("");
-		expect(stem(".hidden")).toBe(".hidden");
-		expect(extensionOf(".hidden")).toBe("");
-	});
-
 	it("pads the number to the count's width", () => {
 		expect(padNumber(0, 1)).toBe("1");
 		expect(padNumber(0, 9)).toBe("1");

@@ -3,7 +3,8 @@ import { entriesForPicked } from "~/core/libs/pickedFiles";
 import { type AppError, toAppError } from "~/core/libs/errors";
 import { useRpcClient } from "~/core/libs/rpc";
 import { useMergeCheck } from "~/features/merge/composables/useMergeCheck";
-import { canStart, jobLink, type MergeForm, toOperation, toggleDrop } from "~/features/merge/lib/merge";
+import { jobLink } from "~/core/libs/navigation";
+import { canStart, type MergeForm, toOperation, toggleDrop } from "~/features/merge/lib/merge";
 import { FilesService, type Entry } from "~/generated/muxmultitool/files/v1/files_pb";
 import { JobsService } from "~/generated/muxmultitool/jobs/v1/jobs_pb";
 

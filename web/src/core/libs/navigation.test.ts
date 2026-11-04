@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { NAV_ENTRIES, navNameForPath } from "./navigation";
+import { jobLink, NAV_ENTRIES, navNameForPath } from "./navigation";
 
 describe("NAV_ENTRIES", () => {
 	it("lists the rail entries from the sketches in order", () => {
@@ -25,5 +25,11 @@ describe("navNameForPath", () => {
 		expect(navNameForPath("/settings/about")).toBe("settings");
 		expect(navNameForPath("/")).toBeUndefined();
 		expect(navNameForPath("/filesystem")).toBeUndefined();
+	});
+});
+
+describe("jobLink", () => {
+	it("links to the job on the Jobs screen", () => {
+		expect(jobLink("j1")).toEqual({ path: "/jobs", query: { job: "j1" } });
 	});
 });

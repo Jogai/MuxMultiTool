@@ -1,3 +1,5 @@
+import { extensionOf, stem } from "~/core/libs/fileNames";
+
 /**
  * The output name template of a batch, as `core::batch::template` renders it on the server, so the
  * Batch screen can show the names a template gives before the dry run and flag a template the server
@@ -120,18 +122,6 @@ export function renderTemplate(template: string, fields: TemplateFields): string
 		return template;
 	}
 	return safeName(parsed.map((part) => ("text" in part ? part.text : safeValue(fields[part.field]))).join(""));
-}
-
-/** The file name without its last extension; a name that is all extension (`.hidden`) stays whole. */
-export function stem(fileName: string): string {
-	const dot = fileName.lastIndexOf(".");
-	return dot > 0 ? fileName.slice(0, dot) : fileName;
-}
-
-/** The extension without the dot, empty when the name has none. */
-export function extensionOf(fileName: string): string {
-	const dot = fileName.lastIndexOf(".");
-	return dot > 0 ? fileName.slice(dot + 1) : "";
 }
 
 /** The file's number in the batch, 1-based and zero-padded to the count's width. */

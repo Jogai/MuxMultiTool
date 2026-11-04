@@ -2,7 +2,8 @@
 import IconDownload from "~icons/lucide/download";
 import IconFolderOpen from "~icons/lucide/folder-open";
 
-import { downloadUrl, jobLink, jobOutputPath, siblingFileId } from "../lib/outputs";
+import { downloadUrl, jobOutputPath, siblingFileId } from "../lib/outputs";
+import { jobLink } from "~/core/libs/navigation";
 import { Code } from "@connectrpc/connect";
 import { codeName } from "~/core/libs/errors";
 import { appMode } from "~/core/libs/filePicker";

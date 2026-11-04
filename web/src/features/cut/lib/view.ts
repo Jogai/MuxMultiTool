@@ -1,3 +1,6 @@
+import { formatClock } from "~/core/libs/format";
+import { clampTime } from "~/core/libs/time";
+
 /**
  * The time/pixel mapping of the timeline: a viewport of `width` pixels over a file of `duration` seconds,
  * zoomed to `pxPerSecond` and scrolled so that `scroll` seconds sit at its left edge. Every function
@@ -159,13 +162,6 @@ export function zoomAtFraction(view: TimelineView, fraction: number, frameRate?:
 	return min * Math.pow(max / min, Math.min(1, Math.max(0, fraction)));
 }
 
-function clampTime(seconds: number, duration: number): number {
-	if (!Number.isFinite(seconds) || seconds < 0) {
-		return 0;
-	}
-	return duration > 0 ? Math.min(seconds, duration) : seconds;
-}
-
 /** Candidate distances between ruler ticks, in seconds, from a frame-ish step up to an hour. */
 const TICK_STEPS = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600];
 
@@ -238,11 +234,7 @@ export function ticks(view: TimelineView, minSpacingPx = 90, frameRate?: number)
  */
 export function tickLabel(seconds: number, step: number): string {
 	const whole = Math.floor(seconds + 1e-9);
-	const h = Math.floor(whole / 3600);
-	const m = Math.floor((whole % 3600) / 60);
-	const s = whole % 60;
-	const pad = (n: number) => String(n).padStart(2, "0");
-	const clock = h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+	const clock = formatClock(whole, "auto");
 	if (step >= 1) {
 		return clock;
 	}

@@ -4,7 +4,7 @@ import IconArrowUp from "~icons/lucide/arrow-up";
 import IconGripVertical from "~icons/lucide/grip-vertical";
 import IconX from "~icons/lucide/x";
 
-import { move } from "../lib/merge";
+import { move } from "~/core/libs/collections";
 import { formatDuration } from "~/core/libs/reportFormat";
 import type { Entry } from "~/generated/muxmultitool/files/v1/files_pb";
 import type { MergePart } from "~/generated/muxmultitool/merge/v1/merge_pb";

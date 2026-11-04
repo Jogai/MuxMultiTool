@@ -1,5 +1,6 @@
 import { create } from "@bufbuild/protobuf";
 
+import { extensionOf, stem } from "~/core/libs/fileNames";
 import { CutExport, type CutOperation, CutOperationSchema } from "~/generated/muxmultitool/cut/v1/cut_pb";
 
 import type { EditorState } from "./segments";
@@ -26,8 +27,8 @@ export function splitName(path: string): { folder: string; stem: string; extensi
 	const slash = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
 	const folder = slash >= 0 ? path.slice(0, slash + 1) : "";
 	const name = path.slice(slash + 1);
-	const dot = name.lastIndexOf(".");
-	return dot > 0 ? { folder, stem: name.slice(0, dot), extension: name.slice(dot) } : { folder, stem: name, extension: "" };
+	const extension = extensionOf(name);
+	return { folder, stem: stem(name), extension: extension === "" ? "" : `.${extension}` };
 }
 
 /**
@@ -48,9 +49,4 @@ export function defaultOutput(sourcePath: string, mode: CutExport): string {
  */
 export function isDefaultOutput(output: string, sourcePath: string): boolean {
 	return output === defaultOutput(sourcePath, CutExport.MERGED) || output === defaultOutput(sourcePath, CutExport.SEPARATE_FILES);
-}
-
-/** The link to a job on the Jobs screen. */
-export function jobLink(jobId: string): { path: string; query: { job: string } } {
-	return { path: "/jobs", query: { job: jobId } };
 }

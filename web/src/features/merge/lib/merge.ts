@@ -27,17 +27,6 @@ export function toOperation(form: MergeForm): MergeOperation {
 	});
 }
 
-/** `items` with the element at `from` moved to `to`; out-of-range moves leave it as it is. */
-export function move<T>(items: readonly T[], from: number, to: number): T[] {
-	const next = [...items];
-	if (from === to || from < 0 || to < 0 || from >= next.length || to >= next.length) {
-		return next;
-	}
-	const [item] = next.splice(from, 1);
-	next.splice(to, 0, item as T);
-	return next;
-}
-
 /** `dropped` with the stream added or removed. */
 export function toggleDrop(dropped: readonly number[], index: number): number[] {
 	return dropped.includes(index) ? dropped.filter((value) => value !== index) : [...dropped, index].toSorted((a, b) => a - b);
@@ -51,9 +40,4 @@ export function mismatchesOfPart(mismatches: readonly MergeMismatch[], part: num
 /** Whether the merge may start: the check passed for exactly these inputs. */
 export function canStart(check: CheckMergeResponse | undefined, inputs: number): boolean {
 	return check !== undefined && check.canMerge && check.parts.length === inputs && inputs >= 2;
-}
-
-/** The link to a job on the Jobs screen. */
-export function jobLink(jobId: string): { path: string; query: { job: string } } {
-	return { path: "/jobs", query: { job: jobId } };
 }

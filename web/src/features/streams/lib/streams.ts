@@ -14,9 +14,8 @@ import {
 	StreamRulesSchema,
 	UntaggedLanguage
 } from "~/generated/muxmultitool/streams/v1/streams_pb";
-import { languagesOf, padNumber, parentName, renderTemplate as renderFields, stem, utcDate } from "~/features/batch/lib/template";
-
-export { stem };
+import { stem } from "~/core/libs/fileNames";
+import { languagesOf, padNumber, parentName, renderTemplate as renderFields, utcDate } from "~/features/batch/lib/template";
 
 /**
  * The state of the Streams screen (sketch 02) and the operations it turns into. Rules apply to every
@@ -122,17 +121,6 @@ export function addRule(rules: readonly RuleDraft[], rule: RuleDraft): RuleDraft
 
 export function sameRule(a: RuleDraft, b: RuleDraft): boolean {
 	return a.action === b.action && a.streamType === b.streamType && a.match === b.match && a.value.toLowerCase() === b.value.toLowerCase();
-}
-
-/** `items` with the element at `from` moved to `to`; out-of-range moves leave it as it is. */
-export function move<T>(items: readonly T[], from: number, to: number): T[] {
-	const next = [...items];
-	if (from === to || from < 0 || to < 0 || from >= next.length || to >= next.length) {
-		return next;
-	}
-	const [item] = next.splice(from, 1);
-	next.splice(to, 0, item as T);
-	return next;
 }
 
 /** The short name of a rule, as the backend's "why" column spells it: `drop audio fre`, `keep eng`, `drop stream 2`. */
@@ -380,9 +368,4 @@ export function totals(rows: readonly SelectionRow[]): Totals {
 		}
 	}
 	return { kept, total: rows.length, keptBytes, droppedBytes };
-}
-
-/** The link to a job on the Jobs screen. */
-export function jobLink(jobId: string): { path: string; query: { job: string } } {
-	return { path: "/jobs", query: { job: jobId } };
 }

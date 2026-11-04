@@ -1,12 +1,7 @@
-import { FRAME_EPSILON, frameIndex, seekTargetForFrame } from "./timecode";
+import { lowerBound, upperBound } from "~/core/libs/collections";
+import { clampTime } from "~/core/libs/time";
 
-/** Keeps a seek target inside the clip. */
-export function clampTime(seconds: number, duration: number): number {
-	if (!Number.isFinite(seconds) || seconds < 0) {
-		return 0;
-	}
-	return duration > 0 ? Math.min(seconds, duration) : seconds;
-}
+import { FRAME_EPSILON, frameIndex, seekTargetForFrame } from "./timecode";
 
 /**
  * The seek target `delta` frames away from `seconds` (negative for backwards), clamped to the first and
@@ -37,34 +32,4 @@ export function previousKeyframe(keyframes: readonly number[], seconds: number):
 export function keyframeAtOrBefore(keyframes: readonly number[], seconds: number): number | undefined {
 	const index = upperBound(keyframes, seconds + KEYFRAME_EPSILON) - 1;
 	return keyframes[index];
-}
-
-/** Index of the first element >= value. */
-function lowerBound(sorted: readonly number[], value: number): number {
-	let low = 0;
-	let high = sorted.length;
-	while (low < high) {
-		const mid = (low + high) >>> 1;
-		if (sorted[mid]! < value) {
-			low = mid + 1;
-		} else {
-			high = mid;
-		}
-	}
-	return low;
-}
-
-/** Index of the first element > value. */
-function upperBound(sorted: readonly number[], value: number): number {
-	let low = 0;
-	let high = sorted.length;
-	while (low < high) {
-		const mid = (low + high) >>> 1;
-		if (sorted[mid]! <= value) {
-			low = mid + 1;
-		} else {
-			high = mid;
-		}
-	}
-	return low;
 }

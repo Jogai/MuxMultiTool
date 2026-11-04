@@ -6,13 +6,11 @@ import {
 	decodeFileId,
 	downloadUrl,
 	encodeFileId,
-	extensionOf,
 	frameUrl,
 	isBareName,
 	jobOutputPath,
 	siblingFileId,
 	snapshotName,
-	stem,
 	toMs
 } from "./outputs";
 
@@ -64,13 +62,6 @@ describe("output naming", () => {
 		expect(isBareName("")).toBe(false);
 		expect(isBareName("a/out.gif")).toBe(false);
 		expect(isBareName("a\\out.gif")).toBe(false);
-	});
-
-	it("splits names", () => {
-		expect(stem("movie.mkv")).toBe("movie");
-		expect(stem(".hidden")).toBe(".hidden");
-		expect(extensionOf("movie.tar.gz")).toBe("gz");
-		expect(extensionOf("movie")).toBe("");
 	});
 
 	it("names the outputs after the input", () => {

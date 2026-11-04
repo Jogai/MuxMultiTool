@@ -3,7 +3,7 @@ import type { AppError } from "~/core/libs/errors";
 import { formatTimecode } from "~/core/libs/format";
 import { type CheckSmartCutResponse, CutExport, CutMode, type PlanCutResponse, SegmentMode } from "~/generated/muxmultitool/cut/v1/cut_pb";
 
-import { jobLink } from "../lib/export";
+import { jobLink } from "~/core/libs/navigation";
 import type { EditorState } from "../lib/segments";
 
 /**

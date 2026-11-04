@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useImageJob } from "../composables/useImageJob";
-import { coverName, extensionOf, toMs } from "../lib/outputs";
+import { coverName, toMs } from "../lib/outputs";
+import { extensionOf } from "~/core/libs/fileNames";
 import { formatTimecode } from "~/core/libs/format";
 import { formatBytes } from "~/core/libs/jobFormat";
 import { type FileReport, StreamType } from "~/generated/muxmultitool/files/v1/files_pb";

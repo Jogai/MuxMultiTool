@@ -1,3 +1,4 @@
+import { formatClock } from "~/core/libs/format";
 import { type ContainerInfo, SizeMethod, type StreamSummary, StreamType } from "~/generated/muxmultitool/files/v1/files_pb";
 
 /** The size in GB as the report shows it: decimal gigabytes with two decimals, `24.80`. */
@@ -28,12 +29,7 @@ export function formatDuration(seconds: number): string | undefined {
 	if (!Number.isFinite(seconds) || seconds <= 0) {
 		return undefined;
 	}
-	const total = Math.round(seconds);
-	const h = Math.floor(total / 3600);
-	const m = Math.floor((total % 3600) / 60);
-	const s = total % 60;
-	const pad = (n: number) => String(n).padStart(2, "0");
-	return `${h}:${pad(m)}:${pad(s)}`;
+	return formatClock(Math.round(seconds));
 }
 
 /** A bit rate as `4.9 Mb/s` or `192 kb/s`; `undefined` when unknown. */

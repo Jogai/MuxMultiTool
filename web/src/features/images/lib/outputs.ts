@@ -1,4 +1,5 @@
 import { baseName, joinPath } from "~/core/libs/filePicker";
+import { extensionOf, stem } from "~/core/libs/fileNames";
 import { formatTimecode } from "~/core/libs/format";
 
 /**
@@ -60,18 +61,6 @@ export function encodeFileId(location: FileLocation): string {
 /** True for a file name without a folder part. */
 export function isBareName(output: string): boolean {
 	return output !== "" && !output.includes("/") && !output.includes("\\");
-}
-
-/** `movie` for `movie.mkv`, the whole name when there is no extension. */
-export function stem(name: string): string {
-	const dot = name.lastIndexOf(".");
-	return dot > 0 ? name.slice(0, dot) : name;
-}
-
-/** `mkv` for `movie.mkv`, empty when there is no extension. */
-export function extensionOf(name: string): string {
-	const dot = name.lastIndexOf(".");
-	return dot > 0 ? name.slice(dot + 1) : "";
 }
 
 /**
@@ -142,9 +131,4 @@ export function croppedName(fileName: string): string {
 /** The position in whole milliseconds for the operations. */
 export function toMs(seconds: number): bigint {
 	return BigInt(Math.max(0, Math.round(seconds * 1000)));
-}
-
-/** The link to a job on the Jobs screen. */
-export function jobLink(jobId: string): { path: string; query: { job: string } } {
-	return { path: "/jobs", query: { job: jobId } };
 }

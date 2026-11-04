@@ -14,6 +14,11 @@ export const NAV_ENTRIES = [
 
 export type NavName = (typeof NAV_ENTRIES)[number]["name"];
 
+/** The link to a job on the Jobs screen. */
+export function jobLink(jobId: string): { path: string; query: { job: string } } {
+	return { path: "/jobs", query: { job: jobId } };
+}
+
 /** The nav entry a route path belongs to, e.g. `/settings/about` → `settings`. */
 export function navNameForPath(path: string): NavName | undefined {
 	return NAV_ENTRIES.find((entry) => path === entry.path || path.startsWith(`${entry.path}/`))?.name;

@@ -1,11 +1,8 @@
+import { formatClock } from "./format";
+
 /** Formats a span in milliseconds as `m:ss` or `h:mm:ss`, as the sketch shows ETAs (`1:12`, `6:40`). */
 export function formatSpan(ms: bigint | number): string {
-	const total = Math.max(0, Math.round(Number(ms) / 1000));
-	const h = Math.floor(total / 3600);
-	const m = Math.floor((total % 3600) / 60);
-	const s = total % 60;
-	const pad = (n: number) => String(n).padStart(2, "0");
-	return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+	return formatClock(Math.max(0, Math.round(Number(ms) / 1000)), "auto");
 }
 
 /** The speed relative to real time as `3.4×`; `undefined` while ffmpeg has not reported one. */

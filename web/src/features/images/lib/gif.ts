@@ -1,6 +1,8 @@
 import { create } from "@bufbuild/protobuf";
 
-import { extensionOf, stem, toMs } from "./outputs";
+import { extensionOf, stem } from "~/core/libs/fileNames";
+
+import { toMs } from "./outputs";
 import type { ImageSupport } from "./support";
 import type { PlayerRange } from "~/features/player/lib/range";
 import type { FileReport } from "~/generated/muxmultitool/files/v1/files_pb";

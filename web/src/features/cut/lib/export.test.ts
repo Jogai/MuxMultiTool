@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { CutExport, CutMode, SegmentMode } from "~/generated/muxmultitool/cut/v1/cut_pb";
 
-import { canExport, defaultOutput, isDefaultOutput, jobLink, splitName, toCutOperation } from "./export";
+import { canExport, defaultOutput, isDefaultOutput, splitName, toCutOperation } from "./export";
 import type { EditorState } from "./segments";
 
 const state: EditorState = {
@@ -48,9 +48,5 @@ describe("cut export", () => {
 		expect(isDefaultOutput("/media/a-cut.mkv", "/media/a.mkv")).toBe(true);
 		expect(isDefaultOutput("/media/a-cut-{n}.mkv", "/media/a.mkv")).toBe(true);
 		expect(isDefaultOutput("/media/mine.mkv", "/media/a.mkv")).toBe(false);
-	});
-
-	it("links to the job on the Jobs screen", () => {
-		expect(jobLink("j1")).toEqual({ path: "/jobs", query: { job: "j1" } });
 	});
 });

@@ -1,3 +1,5 @@
+import { formatClock } from "~/core/libs/format";
+
 /**
  * Timecode arithmetic for the player: frame numbers from times and back, and the typed-in forms a user
  * may enter to seek. The display string itself is `formatTimecode` in `core/libs/format.ts`.
@@ -41,11 +43,7 @@ export function formatFrameTimecode(seconds: number, frameRate: number): string 
 	const frame = frameIndex(seconds, frameRate);
 	const whole = rate > 0 ? Math.floor(frame / rate) : 0;
 	const ff = rate > 0 ? frame % rate : 0;
-	const h = Math.floor(whole / 3600);
-	const m = Math.floor((whole % 3600) / 60);
-	const s = whole % 60;
-	const pad = (n: number) => String(n).padStart(2, "0");
-	return `${pad(h)}:${pad(m)}:${pad(s)}:${pad(ff)}`;
+	return `${formatClock(whole, "padded")}:${String(ff).padStart(2, "0")}`;
 }
 
 const TIMECODE = /^\s*(?:(\d+):)?(?:(\d{1,2}):)?(\d{1,2}|\d+)(?:[.,](\d{1,3})|:(\d{1,2}))?\s*$/;

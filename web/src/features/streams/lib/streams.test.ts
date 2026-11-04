@@ -12,7 +12,6 @@ import {
 	extractOperation,
 	isRuleComplete,
 	keptLanguages,
-	move,
 	nameFields,
 	outputPath,
 	pruneOverrides,
@@ -20,7 +19,6 @@ import {
 	type RuleDraft,
 	ruleName,
 	selectionRows,
-	stem,
 	toggleOverride,
 	toStreamRules,
 	totals
@@ -73,17 +71,10 @@ describe("rules", () => {
 			[RuleAction.DROP, StreamType.UNSPECIFIED, { case: "streamIndex", value: 2 }]
 		]);
 	});
-
-	it("moves items within range only", () => {
-		expect(move([1, 2, 3], 0, 2)).toEqual([2, 3, 1]);
-		expect(move([1, 2, 3], 2, 5)).toEqual([1, 2, 3]);
-	});
 });
 
 describe("output names", () => {
 	it("renders the template with the input's stem and the container's extension", () => {
-		expect(stem("Movie (2024).mkv")).toBe("Movie (2024)");
-		expect(stem(".hidden")).toBe(".hidden");
 		expect(renderTemplate("{name}.eng.{ext}", "Movie (2024).mkv", "mkv")).toBe("Movie (2024).eng.mkv");
 		expect(outputPath("", "a.mkv")).toBe("a.mkv");
 		expect(outputPath("/media/out/", "a.mkv")).toBe("/media/out/a.mkv");
