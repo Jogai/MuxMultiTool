@@ -307,6 +307,27 @@ impl Jobs {
 	}
 }
 
+/// The output as an operation names it: an absolute path as it is, a bare
+/// file name next to `input`, or `default(input)` when empty. The frontend
+/// in container mode knows the input only by its id, so a bare name is
+/// the way it names an output; the path still goes through
+/// [`Jobs::checked_output`] on a submit.
+pub(crate) fn output_near(
+	input: &Path,
+	output: &str,
+	default: impl FnOnce(&Path) -> PathBuf,
+) -> PathBuf {
+	if output.is_empty() {
+		return default(input);
+	}
+	let path = Path::new(output);
+	let mut components = path.components();
+	match (components.next(), components.next()) {
+		(Some(std::path::Component::Normal(_)), None) => input.with_file_name(path),
+		_ => path.to_path_buf(),
+	}
+}
+
 /// A non-empty absolute path. Relative paths are refused rather than
 /// resolved against the server's working directory.
 fn absolute(path: &str, what: &str) -> Result<PathBuf, ConnectError> {
@@ -436,4 +457,32 @@ fn unix_ms(time: Option<SystemTime>) -> i64 {
 	time.and_then(|t| t.duration_since(UNIX_EPOCH).ok())
 		.and_then(|d| i64::try_from(d.as_millis()).ok())
 		.unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn output_near_resolves_bare_names_next_to_the_input() {
+		let input = Path::new("/media/in/Movie A.mkv");
+		let default = |input: &Path| input.with_extension("gif");
+		assert_eq!(
+			output_near(input, "", default),
+			PathBuf::from("/media/in/Movie A.gif")
+		);
+		assert_eq!(
+			output_near(input, "clip.gif", default),
+			PathBuf::from("/media/in/clip.gif")
+		);
+		assert_eq!(
+			output_near(input, "/media/out/clip.gif", default),
+			PathBuf::from("/media/out/clip.gif")
+		);
+		assert_eq!(
+			output_near(input, "sub/clip.gif", default),
+			PathBuf::from("sub/clip.gif"),
+			"a relative path with a folder is left for checked_output to refuse"
+		);
+	}
 }

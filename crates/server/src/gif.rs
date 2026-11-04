@@ -26,7 +26,7 @@ use muxmultitool_proto::proto::muxmultitool::gif::v1::{
 };
 
 use crate::AppState;
-use crate::jobs::{Jobs, PROBE_TIMEOUT};
+use crate::jobs::{Jobs, PROBE_TIMEOUT, output_near};
 
 /// Implements the GIF service. It reuses the jobs service's path checks and
 /// spec builders, so an estimate and a submit go through the same code.
@@ -53,13 +53,9 @@ impl GifService for Gif {
 		let Some(operation) = request.operation.into_option() else {
 			return Err(ConnectError::invalid_argument("an operation is required"));
 		};
-		let input = self.jobs.checked_input(&operation.input)?;
+		let input = self.jobs.cut_input(&operation.input)?;
 		// The output is only shown in the command here; it need not exist.
-		let output = if operation.output.is_empty() {
-			input.with_extension("gif")
-		} else {
-			PathBuf::from(&operation.output)
-		};
+		let output = output_near(&input, &operation.output, default_gif_output);
 		let plan = self.jobs.gif_plan(&operation, &input).await?;
 		let violations = plan.violations(&limits_of(&operation));
 		let argv = self
@@ -86,8 +82,10 @@ impl Jobs {
 		name: &str,
 		operation: &VideoToGifOperation,
 	) -> Result<JobSpec, ConnectError> {
-		let input = self.checked_input(&operation.input)?;
-		let output = self.checked_output(&operation.output)?;
+		let input = self.cut_input(&operation.input)?;
+		let output = self.checked_output(
+			&output_near(&input, &operation.output, default_gif_output).to_string_lossy(),
+		)?;
 		let caps = self.capabilities().await?;
 		let missing = gif::missing_for_gif(&caps);
 		if !missing.is_empty() {
@@ -121,8 +119,7 @@ impl Jobs {
 		name: &str,
 		operation: &GifToVideoOperation,
 	) -> Result<JobSpec, ConnectError> {
-		let input = self.checked_input(&operation.input)?;
-		let output = self.checked_output(&operation.output)?;
+		let input = self.cut_input(&operation.input)?;
 		let format = match operation.format.as_known() {
 			Some(GifVideoFormat::Unspecified | GifVideoFormat::Mp4) => VideoFormat::Mp4,
 			Some(GifVideoFormat::Webm) => VideoFormat::Webm,
@@ -133,6 +130,16 @@ impl Jobs {
 				)));
 			}
 		};
+		let extension = match format {
+			VideoFormat::Mp4 => "mp4",
+			VideoFormat::Webm => "webm",
+		};
+		let output = self.checked_output(
+			&output_near(&input, &operation.output, |input| {
+				input.with_extension(extension)
+			})
+			.to_string_lossy(),
+		)?;
 		let caps = self.capabilities().await?;
 		let Some(encoder) = format.encoder(&caps) else {
 			let names: Vec<&str> = format.encoders().iter().map(|e| e.name()).collect();
@@ -250,6 +257,11 @@ fn millis(ms: i64, field: &str) -> Result<Duration, ConnectError> {
 	u64::try_from(ms)
 		.map(Duration::from_millis)
 		.map_err(|_| ConnectError::invalid_argument(format!("{field} must not be negative")))
+}
+
+/// `movie.gif` next to `movie.mkv`.
+fn default_gif_output(input: &Path) -> PathBuf {
+	input.with_extension("gif")
 }
 
 /// The job's label: `name`, or the output file name when it is empty.

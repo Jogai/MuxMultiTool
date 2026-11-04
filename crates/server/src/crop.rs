@@ -30,7 +30,7 @@ use muxmultitool_proto::proto::muxmultitool::crop::v1::{
 use tokio::sync::mpsc;
 
 use crate::AppState;
-use crate::jobs::{Jobs, PROBE_TIMEOUT};
+use crate::jobs::{Jobs, PROBE_TIMEOUT, output_near};
 
 /// How long black-bar detection may take. A dozen keyframes decode in a
 /// second or two; the margin is for a slow network share.
@@ -61,13 +61,9 @@ impl CropService for Crop {
 		let Some(operation) = request.operation.into_option() else {
 			return Err(ConnectError::invalid_argument("an operation is required"));
 		};
-		let input = self.jobs.checked_input(&operation.input)?;
+		let input = self.jobs.cut_input(&operation.input)?;
 		// The output is only shown in the command here; it need not exist.
-		let output = if operation.output.is_empty() {
-			default_output(&input)
-		} else {
-			PathBuf::from(&operation.output)
-		};
+		let output = output_near(&input, &operation.output, default_output);
 		let source = match self.jobs.crop_source(&input).await? {
 			Ok(source) => source,
 			Err(unsupported) => {
@@ -111,7 +107,7 @@ impl CropService for Crop {
 		request: ServiceRequest<'_, DetectBlackBarsRequest>,
 	) -> ServiceResult<DetectBlackBarsResponse> {
 		let request = request.to_owned_message();
-		let input = self.jobs.checked_input(&request.input)?;
+		let input = self.jobs.cut_input(&request.input)?;
 		let position = u64::try_from(request.position_ms)
 			.map(Duration::from_millis)
 			.map_err(|_| ConnectError::invalid_argument("position_ms must not be negative"))?;
@@ -153,8 +149,10 @@ impl Jobs {
 		name: &str,
 		operation: &CropOperation,
 	) -> Result<JobSpec, ConnectError> {
-		let input = self.checked_input(&operation.input)?;
-		let output = self.checked_output(&operation.output)?;
+		let input = self.cut_input(&operation.input)?;
+		let output = self.checked_output(
+			&output_near(&input, &operation.output, default_output).to_string_lossy(),
+		)?;
 		let source = self
 			.crop_source(&input)
 			.await?

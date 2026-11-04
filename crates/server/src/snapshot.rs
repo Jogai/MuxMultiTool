@@ -12,7 +12,7 @@
 //! needs the frame as a file for the remux to read, so it is grabbed at
 //! submit time into a temporary folder that lives until the job ends.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -31,7 +31,7 @@ use serde::Deserialize;
 use tokio::sync::Semaphore;
 use tracing::warn;
 
-use crate::jobs::{Jobs, PROBE_TIMEOUT};
+use crate::jobs::{Jobs, PROBE_TIMEOUT, output_near};
 use crate::{AppState, timeline};
 
 /// How many frames the route decodes at once. Scrubbing sends a request per
@@ -131,8 +131,13 @@ impl Jobs {
 		name: &str,
 		operation: &SnapshotOperation,
 	) -> Result<JobSpec, ConnectError> {
-		let input = self.checked_input(&operation.input)?;
-		let output = self.checked_output(&operation.output)?;
+		let input = self.cut_input(&operation.input)?;
+		let output = self.checked_output(
+			&output_near(&input, &operation.output, |input| {
+				input.with_extension("jpg")
+			})
+			.to_string_lossy(),
+		)?;
 		let format = ImageFormat::from_path(&output).ok_or_else(|| {
 			ConnectError::invalid_argument(
 				"a snapshot is saved as .jpg, .jpeg or .png; the output has another extension",
@@ -157,8 +162,10 @@ impl Jobs {
 		name: &str,
 		operation: &CoverArtOperation,
 	) -> Result<(JobSpec, TempImage), ConnectError> {
-		let input = self.checked_input(&operation.input)?;
-		let output = self.checked_output(&operation.output)?;
+		let input = self.cut_input(&operation.input)?;
+		let output = self.checked_output(
+			&output_near(&input, &operation.output, default_cover_output).to_string_lossy(),
+		)?;
 		let probe = self.probe_for_frame(&input).await?;
 		let plan = plan_cover(&probe, &output)
 			.map_err(|error| ConnectError::failed_precondition(error.to_string()))?;
@@ -222,6 +229,20 @@ fn checked_position(position_ms: i64, probe: &ProbeResult) -> Result<Duration, C
 		)));
 	}
 	Ok(position)
+}
+
+/// `movie.cover.mkv` next to `movie.mkv`: the same container, so the copy
+/// keeps every stream.
+fn default_cover_output(input: &Path) -> PathBuf {
+	let stem = input
+		.file_stem()
+		.map(|s| s.to_string_lossy().into_owned())
+		.unwrap_or_default();
+	let name = match input.extension() {
+		Some(ext) => format!("{stem}.cover.{}", ext.to_string_lossy()),
+		None => format!("{stem}.cover"),
+	};
+	input.with_file_name(name)
 }
 
 /// The job's label: `name`, or the output file name when it is empty.
