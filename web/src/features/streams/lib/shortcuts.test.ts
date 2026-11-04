@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { COMBINE_SHORTCUTS, formatShortcut, isTypingTarget, type KeyInput, matchShortcut, STREAMS_SHORTCUTS } from "./shortcuts";
+import { type KeyInput, matchShortcut } from "~/core/libs/shortcuts";
+
+import { COMBINE_SHORTCUTS, STREAMS_SHORTCUTS } from "./shortcuts";
 
 const press = (key: string, modifiers: Partial<KeyInput> = {}): KeyInput => ({
 	key,
@@ -29,19 +31,5 @@ describe("shortcuts", () => {
 		expect(matchShortcut(COMBINE_SHORTCUTS, press("ArrowUp"))).toBeUndefined();
 		expect(matchShortcut(COMBINE_SHORTCUTS, press("Delete"))).toEqual({ action: "removeTrack" });
 		expect(matchShortcut(COMBINE_SHORTCUTS, press("7"))).toBeUndefined();
-	});
-
-	it("stays out of text fields", () => {
-		expect(isTypingTarget({ tagName: "INPUT" } as unknown as EventTarget)).toBe(true);
-		expect(isTypingTarget({ tagName: "DIV", isContentEditable: true } as unknown as EventTarget)).toBe(true);
-		expect(isTypingTarget({ tagName: "BUTTON" } as unknown as EventTarget)).toBe(false);
-		expect(isTypingTarget(null)).toBe(false);
-	});
-
-	it("formats the keys for the list", () => {
-		expect(formatShortcut({ action: "toggleStream", key: "0-9" })).toBe("0 – 9");
-		expect(formatShortcut({ action: "queue", key: "Enter", ctrl: true })).toBe("Ctrl + Enter");
-		expect(formatShortcut({ action: "queue", key: "Enter", ctrl: true }, { mac: true })).toBe("⌘ + Enter");
-		expect(formatShortcut({ action: "trackUp", key: "ArrowUp", shift: true })).toBe("Shift + ↑");
 	});
 });

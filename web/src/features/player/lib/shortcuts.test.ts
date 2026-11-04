@@ -1,14 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import {
-	formatShortcut,
-	isDialogTarget,
-	isTypingTarget,
-	type KeyInput,
-	PLAYER_SHORTCUTS,
-	type PlayerAction,
-	shortcutAction
-} from "./shortcuts";
+import type { KeyInput } from "~/core/libs/shortcuts";
+
+import { PLAYER_SHORTCUTS, type PlayerAction, shortcutAction } from "./shortcuts";
 
 function key(key: string, mods: Partial<Omit<KeyInput, "key">> = {}): KeyInput {
 	return { key, shiftKey: false, ctrlKey: false, metaKey: false, altKey: false, ...mods };
@@ -54,44 +48,5 @@ describe("shortcutAction", () => {
 			seen.add(shortcut.action);
 		}
 		expect(seen.size).toBe(PLAYER_SHORTCUTS.length);
-	});
-});
-
-describe("formatShortcut", () => {
-	it("spells the keys the way the list shows them", () => {
-		expect(formatShortcut({ action: "togglePlay", key: " " })).toBe("Space");
-		expect(formatShortcut({ action: "keyframeBack", key: "ArrowLeft", shift: true })).toBe("Shift + ←");
-		expect(formatShortcut({ action: "seekForward", key: "ArrowRight", ctrl: true })).toBe("Ctrl + →");
-		expect(formatShortcut({ action: "seekForward", key: "ArrowRight", ctrl: true }, { mac: true })).toBe("⌘ + →");
-		expect(formatShortcut({ action: "setRangeStart", key: "i" })).toBe("I");
-		expect(formatShortcut({ action: "seekStart", key: "Home" })).toBe("Home");
-	});
-});
-
-describe("isTypingTarget", () => {
-	const element = (tagName: string, isContentEditable = false) => ({ tagName, isContentEditable }) as unknown as EventTarget;
-
-	it("recognises text fields and leaves buttons to the player", () => {
-		expect(isTypingTarget(element("INPUT"))).toBe(true);
-		expect(isTypingTarget(element("TEXTAREA"))).toBe(true);
-		expect(isTypingTarget(element("SELECT"))).toBe(true);
-		expect(isTypingTarget(element("DIV", true))).toBe(true);
-		expect(isTypingTarget(element("BUTTON"))).toBe(false);
-		expect(isTypingTarget(element("BODY"))).toBe(false);
-		expect(isTypingTarget({} as EventTarget)).toBe(false);
-		expect(isTypingTarget(null)).toBe(false);
-	});
-});
-
-describe("isDialogTarget", () => {
-	const inside = (role: string) =>
-		({ closest: (selector: string) => (selector.includes(`"${role}"`) ? {} : null) }) as unknown as EventTarget;
-
-	it("keeps the player out of an open dialog", () => {
-		expect(isDialogTarget(inside("dialog"))).toBe(true);
-		expect(isDialogTarget(inside("alertdialog"))).toBe(true);
-		expect(isDialogTarget({ closest: () => null } as unknown as EventTarget)).toBe(false);
-		expect(isDialogTarget({} as EventTarget)).toBe(false);
-		expect(isDialogTarget(null)).toBe(false);
 	});
 });

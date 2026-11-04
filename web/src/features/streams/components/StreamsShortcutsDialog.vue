@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { formatShortcut, type Shortcut } from "../lib/shortcuts";
+import { formatShortcut, type Shortcut } from "~/core/libs/shortcuts";
 
 /**
  * The fixed shortcut list of a screen, opened from its keyboard button or with `?`. The screen passes
  * its mapping and the locale prefix of the action names (`streams.shortcuts` or `combine.shortcuts`).
  */
-const { shortcuts, prefix } = defineProps<{ shortcuts: readonly Shortcut<string>[]; prefix: string }>();
+const { shortcuts, prefix } = defineProps<{ shortcuts: readonly Shortcut[]; prefix: string }>();
 const open = defineModel<boolean>("open", { default: false });
 const { t } = useI18n();
 const mac = computed(() => /mac/i.test(globalThis.navigator?.platform ?? ""));

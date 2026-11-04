@@ -1,4 +1,4 @@
-import { type KeyInput, type Shortcut as PlayerShortcut, formatShortcut as formatPlayerShortcut } from "~/features/player/lib/shortcuts";
+import { formatShortcut, type KeyInput, matchShortcut, type Shortcut } from "~/core/libs/shortcuts";
 
 import type { Segment } from "./segments";
 
@@ -10,19 +10,11 @@ import type { Segment } from "./segments";
  */
 export type TimelineAction = "undo" | "redo" | "zoomIn" | "zoomOut" | "zoomFit" | "addSegment" | "deleteSegment" | "splitAtPlayhead";
 
-export interface TimelineShortcut extends Omit<PlayerShortcut, "action"> {
-	action: TimelineAction;
-}
-
 /** What a key does to the focused segment: moves it, one of its edges, or the focus to a neighbour. */
 export type SegmentAction = "moveBack" | "moveForward" | "startBack" | "startForward" | "endBack" | "endForward" | "previous" | "next";
 
-export interface SegmentShortcut extends Omit<PlayerShortcut, "action"> {
-	action: SegmentAction;
-}
-
 /** The keys of a focused segment, in the order the shortcut list shows them. */
-export const SEGMENT_SHORTCUTS: readonly SegmentShortcut[] = [
+export const SEGMENT_SHORTCUTS: readonly Shortcut<SegmentAction>[] = [
 	{ action: "moveBack", key: "ArrowLeft" },
 	{ action: "moveForward", key: "ArrowRight" },
 	{ action: "startBack", key: "ArrowLeft", ctrl: true },
@@ -42,7 +34,7 @@ export const SEGMENT_SHORTCUT_ROWS: ReadonlyArray<{ key: "move" | "start" | "end
 ];
 
 /** The mapping, in the order the shortcut list shows it. A key listed twice is an alternative. */
-export const TIMELINE_SHORTCUTS: readonly TimelineShortcut[] = [
+export const TIMELINE_SHORTCUTS: readonly Shortcut<TimelineAction>[] = [
 	{ action: "undo", key: "z", ctrl: true },
 	{ action: "redo", key: "z", ctrl: true, shift: true },
 	{ action: "redo", key: "y", ctrl: true },
@@ -56,34 +48,14 @@ export const TIMELINE_SHORTCUTS: readonly TimelineShortcut[] = [
 	{ action: "deleteSegment", key: "Backspace" }
 ];
 
-/** The action of `shortcuts` a key press maps to, or `undefined` when there is none. Alt never takes part. */
-function shortcutAction<A>(shortcuts: ReadonlyArray<Omit<PlayerShortcut, "action"> & { action: A }>, event: KeyInput): A | undefined {
-	if (event.altKey) {
-		return undefined;
-	}
-	const ctrl = event.ctrlKey || event.metaKey;
-	for (const shortcut of shortcuts) {
-		const sameKey = shortcut.key.length === 1 ? shortcut.key.toLowerCase() === event.key.toLowerCase() : shortcut.key === event.key;
-		if (!sameKey || (shortcut.ctrl ?? false) !== ctrl) {
-			continue;
-		}
-		// `+` is typed with Shift on most layouts, so the Shift state of a symbol is not checked
-		const symbol = shortcut.key.length === 1 && !/[a-z0-9 ]/i.test(shortcut.key);
-		if (symbol || (shortcut.shift ?? false) === event.shiftKey) {
-			return shortcut.action;
-		}
-	}
-	return undefined;
-}
-
 /** The action a key press maps to, or `undefined` when it is not a timeline shortcut. */
 export function timelineShortcutAction(event: KeyInput): TimelineAction | undefined {
-	return shortcutAction(TIMELINE_SHORTCUTS, event);
+	return matchShortcut(TIMELINE_SHORTCUTS, event)?.action;
 }
 
 /** The action a key press on a focused segment maps to, or `undefined` when it is not one of its keys. */
 export function segmentShortcutAction(event: KeyInput): SegmentAction | undefined {
-	return shortcutAction(SEGMENT_SHORTCUTS, event);
+	return matchShortcut(SEGMENT_SHORTCUTS, event)?.action;
 }
 
 /** What a nudge asks of the host: the same as a drag of the segment's body or of one edge. */
@@ -118,13 +90,13 @@ export function nudgeSegment(
 /** The first shortcut of an action, as the list shows it. */
 export function formatTimelineShortcut(action: TimelineAction, platform?: { mac: boolean }): string {
 	const shortcut = TIMELINE_SHORTCUTS.find((candidate) => candidate.action === action);
-	return shortcut ? formatPlayerShortcut({ ...shortcut, action: "togglePlay" }, platform) : "";
+	return shortcut ? formatShortcut(shortcut, platform) : "";
 }
 
 /** The key of a focused segment's action, as the list shows it. */
 export function formatSegmentShortcut(action: SegmentAction, platform?: { mac: boolean }): string {
 	const shortcut = SEGMENT_SHORTCUTS.find((candidate) => candidate.action === action);
-	return shortcut ? formatPlayerShortcut({ ...shortcut, action: "togglePlay" }, platform) : "";
+	return shortcut ? formatShortcut(shortcut, platform) : "";
 }
 
 /** The actions in display order, each once. */

@@ -9,7 +9,8 @@ import { useRpcClient } from "~/core/libs/rpc";
 import type { FileSummary } from "~/features/streams/components/StreamsFileList.vue";
 import type { TableRow } from "~/features/streams/components/StreamsTable.vue";
 import { useStreamPreviews } from "~/features/streams/composables/useStreamPreviews";
-import { isTypingTarget, matchShortcut, STREAMS_SHORTCUTS, type StreamsShortcutAction } from "~/features/streams/lib/shortcuts";
+import { isTypingTarget, matchShortcut } from "~/core/libs/shortcuts";
+import { STREAMS_SHORTCUTS, type StreamsShortcutAction } from "~/features/streams/lib/shortcuts";
 import {
 	clearOverrides,
 	effectiveOperation,

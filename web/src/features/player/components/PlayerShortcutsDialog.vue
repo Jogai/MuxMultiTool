@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { formatShortcut, PLAYER_SHORTCUTS, SEEK_STEP_SECONDS } from "../lib/shortcuts";
+import { formatShortcut } from "~/core/libs/shortcuts";
+import { PLAYER_SHORTCUTS, SEEK_STEP_SECONDS } from "../lib/shortcuts";
 
 /** The fixed shortcut list, opened from the player's keyboard button or with `?`. */
 const open = defineModel<boolean>("open", { default: false });

@@ -9,6 +9,7 @@ import IconUndo from "~icons/lucide/undo-2";
 import { type AppError, toAppError } from "~/core/libs/errors";
 import { entriesForPicked } from "~/core/libs/pickedFiles";
 import { useRpcClient } from "~/core/libs/rpc";
+import { isTypingTarget } from "~/core/libs/shortcuts";
 import { useCutPlan } from "~/features/cut/composables/useCutPlan";
 import { useCutProject } from "~/features/cut/composables/useCutProject";
 import { useKeyframes } from "~/features/cut/composables/useKeyframes";
@@ -28,7 +29,6 @@ import {
 } from "~/features/cut/lib/segments";
 import { type TimelineAction, timelineShortcutAction } from "~/features/cut/lib/shortcuts";
 import { useFileStreams } from "~/features/player/composables/useFileStreams";
-import { isTypingTarget } from "~/features/player/lib/shortcuts";
 import type { PlayerRange } from "~/features/player/lib/range";
 import { CutExport, CutMode, SegmentMode, SourceStatus } from "~/generated/muxmultitool/cut/v1/cut_pb";
 import { FilesService, StreamType } from "~/generated/muxmultitool/files/v1/files_pb";

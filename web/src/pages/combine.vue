@@ -16,7 +16,8 @@ import {
 	syncSources,
 	toCombineOperation
 } from "~/features/streams/lib/combine";
-import { COMBINE_SHORTCUTS, type CombineShortcutAction, isTypingTarget, matchShortcut } from "~/features/streams/lib/shortcuts";
+import { isTypingTarget, matchShortcut } from "~/core/libs/shortcuts";
+import { COMBINE_SHORTCUTS, type CombineShortcutAction } from "~/features/streams/lib/shortcuts";
 import { CONTAINERS, jobLink, move, renderTemplate } from "~/features/streams/lib/streams";
 import { FilesService } from "~/generated/muxmultitool/files/v1/files_pb";
 import { JobsService } from "~/generated/muxmultitool/jobs/v1/jobs_pb";

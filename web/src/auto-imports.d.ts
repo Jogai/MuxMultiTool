@@ -94,6 +94,7 @@ declare global {
   const isAppError: typeof import('./core/libs/errors').isAppError
   const isDefined: typeof import('@vueuse/core').isDefined
   const isDesktop: typeof import('./core/libs/filePicker').isDesktop
+  const isDialogTarget: typeof import('./core/libs/shortcuts').isDialogTarget
   const isProxy: typeof import('vue').isProxy
   const isReactive: typeof import('vue').isReactive
   const isReadonly: typeof import('vue').isReadonly
@@ -542,6 +543,7 @@ declare module 'vue' {
     readonly isAppError: UnwrapRef<typeof import('./core/libs/errors')['isAppError']>
     readonly isDefined: UnwrapRef<typeof import('@vueuse/core')['isDefined']>
     readonly isDesktop: UnwrapRef<typeof import('./core/libs/filePicker')['isDesktop']>
+    readonly isDialogTarget: UnwrapRef<typeof import('./core/libs/shortcuts')['isDialogTarget']>
     readonly isProxy: UnwrapRef<typeof import('vue')['isProxy']>
     readonly isReactive: UnwrapRef<typeof import('vue')['isReactive']>
     readonly isReadonly: UnwrapRef<typeof import('vue')['isReadonly']>
