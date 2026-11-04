@@ -1,4 +1,5 @@
 import type { Client } from "@connectrpc/connect";
+import { useEventListener } from "@vueuse/core";
 import { computed, ref } from "vue";
 
 import { type AppError, toAppError } from "~/core/libs/errors";
@@ -101,9 +102,8 @@ export function useJobQueue(client: Client<typeof JobsService> = useRpcClient(Jo
 		}
 	}
 
-	if (typeof window !== "undefined") {
-		window.addEventListener("online", watch.retryNow);
-	}
+	// Reconnect as soon as the network is back; nothing to listen on outside a browser (tests)
+	useEventListener("online", watch.retryNow);
 
 	return {
 		/** Every known job in view order: running, queued, then finished. */

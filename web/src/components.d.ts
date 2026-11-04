@@ -100,6 +100,7 @@ declare module 'vue' {
     ShellMenu: typeof import('./core/components/ShellMenu.vue')['default']
     ShellNavRail: typeof import('./core/components/ShellNavRail.vue')['default']
     ShellStatusBar: typeof import('./core/components/ShellStatusBar.vue')['default']
+    ShellTimecodeInput: typeof import('./core/components/ShellTimecodeInput.vue')['default']
     ShellTopBar: typeof import('./core/components/ShellTopBar.vue')['default']
     StreamsCombineSources: typeof import('./features/streams/components/StreamsCombineSources.vue')['default']
     StreamsCombineTracks: typeof import('./features/streams/components/StreamsCombineTracks.vue')['default']

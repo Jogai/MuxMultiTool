@@ -5,8 +5,8 @@ import IconGripVertical from "~icons/lucide/grip-vertical";
 import IconX from "~icons/lucide/x";
 
 import { originOf, type SourceDraft, type TrackDraft } from "../lib/combine";
+import { useDragReorder } from "~/core/composables/useDragReorder";
 import type { CachedReport } from "~/core/composables/useStreamReport";
-import { move } from "~/core/libs/collections";
 import { streamTypeName } from "~/core/libs/reportFormat";
 import type { OutputTrack, TrackIssue } from "~/generated/muxmultitool/combine/v1/combine_pb";
 import type { StreamSummary } from "~/generated/muxmultitool/files/v1/files_pb";
@@ -34,19 +34,15 @@ const emit = defineEmits<{
 const active = defineModel<number>("active");
 const { t } = useI18n();
 
-const dragging = ref<number>();
-function moveTo(from: number, to: number) {
-	emit("reorder", move(tracks, from, to));
-	if (to >= 0 && to < tracks.length) {
-		active.value = to;
+const { dragging, moveTo, drop } = useDragReorder(
+	() => tracks,
+	(next, to) => {
+		emit("reorder", next);
+		if (to >= 0 && to < tracks.length) {
+			active.value = to;
+		}
 	}
-}
-function drop(to: number) {
-	if (dragging.value !== undefined) {
-		moveTo(dragging.value, to);
-	}
-	dragging.value = undefined;
-}
+);
 
 function streamOf(track: TrackDraft): StreamSummary | undefined {
 	const source = sources[track.source];

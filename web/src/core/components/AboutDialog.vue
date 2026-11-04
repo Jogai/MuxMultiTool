@@ -8,24 +8,14 @@ const { t } = useI18n();
 const mode = appMode();
 const build = readBuildInfo(__APP_VERSION__);
 const ffmpeg = useFfmpegInfo();
-const copied = ref(false);
+const clipboard = useClipboard();
 
 watch(open, (isOpen) => {
 	if (isOpen && ffmpeg.state.value !== "ok") void ffmpeg.load();
-	copied.value = false;
 });
 
 function onLink(event: MouseEvent, url: string) {
 	if (openExternal(url)) event.preventDefault();
-}
-
-async function copyInfo() {
-	try {
-		await navigator.clipboard.writeText(formatBuildInfo(build, ffmpeg.version.value));
-		copied.value = true;
-	} catch {
-		copied.value = false;
-	}
 }
 
 const linkClass = "text-accent underline focus-visible:outline-2 focus-visible:outline-accent";
@@ -84,11 +74,11 @@ const linkClass = "text-accent underline focus-visible:outline-2 focus-visible:o
 				</dl>
 
 				<div class="mt-5 flex items-center justify-end gap-2">
-					<span v-if="copied" role="status" class="mr-auto text-xs text-muted">{{ t("dialogs.about.copied") }}</span>
+					<span v-if="clipboard.copied.value" role="status" class="mr-auto text-xs text-muted">{{ t("dialogs.about.copied") }}</span>
 					<button
 						type="button"
 						class="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent"
-						@click="copyInfo"
+						@click="clipboard.copy(formatBuildInfo(build, ffmpeg.version.value))"
 					>
 						{{ t("dialogs.about.copy") }}
 					</button>

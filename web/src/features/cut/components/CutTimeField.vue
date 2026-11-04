@@ -26,59 +26,36 @@ const emit = defineEmits<{ commit: [seconds: number] }>();
 const { t } = useI18n();
 const client = useRpcClient(CutService);
 
-const draft = ref<string>();
-const parsing = ref(false);
 const error = ref<AppError>();
-const shown = computed(() => draft.value ?? formatTimecode(seconds));
 
-async function commit(event: Event): Promise<void> {
-	const input = event.target as HTMLInputElement;
-	const text = (draft.value ?? "").trim();
+async function commit(draft: string, settle: (ok: boolean) => void): Promise<void> {
+	const text = draft.trim();
 	if (text === "") {
+		settle(false);
 		return;
 	}
-	parsing.value = true;
 	try {
 		const response = await client.parseTime({ text, fileId });
 		error.value = undefined;
-		draft.value = undefined;
 		emit("commit", response.seconds);
-		input.blur();
+		settle(true);
 	} catch (cause) {
 		error.value = toAppError(cause);
-	} finally {
-		parsing.value = false;
-	}
-}
-function cancel(event: Event): void {
-	draft.value = undefined;
-	error.value = undefined;
-	(event.target as HTMLInputElement).blur();
-}
-function onBlur(): void {
-	// A blur while parsing comes from the commit itself
-	if (!parsing.value) {
-		draft.value = undefined;
-		error.value = undefined;
+		settle(false);
 	}
 }
 </script>
 
 <template>
 	<span class="inline-flex flex-col">
-		<input
-			class="w-[14ch] rounded-md border bg-surface-sunken px-1.5 py-0.5 font-mono text-sm tabular-nums focus-visible:outline-2 focus-visible:outline-accent"
-			:class="error || invalid ? 'border-danger' : 'border-border'"
-			:value="shown"
-			:aria-label="label"
-			:aria-invalid="error || invalid ? true : undefined"
+		<ShellTimecodeInput
+			:value="formatTimecode(seconds)"
+			:invalid="error !== undefined || invalid"
+			dense
+			:label="label"
 			:title="t('cut.segments.typeHint')"
-			spellcheck="false"
-			@focus="draft = formatTimecode(seconds)"
-			@input="draft = ($event.target as HTMLInputElement).value"
-			@keydown.enter.prevent="commit"
-			@keydown.esc.prevent="cancel"
-			@blur="onBlur"
+			@commit="commit"
+			@end="error = undefined"
 		/>
 		<span v-if="error" class="text-xs text-danger">{{ error.message }}</span>
 	</span>

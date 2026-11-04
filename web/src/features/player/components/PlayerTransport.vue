@@ -46,23 +46,15 @@ const timecode = computed(() => formatTimecode(currentTime));
 const frame = computed(() => (frameRate ? frameIndex(currentTime, frameRate) : undefined));
 const hasRange = computed(() => range.start !== undefined || range.end !== undefined);
 
-// The timecode field: shows the playhead until focused, then holds what is typed
-const draft = ref<string>();
+// The timecode field: type a time and press Enter to seek
 const invalid = ref(false);
-function commitDraft(event: Event): void {
-	const text = draft.value ?? "";
+function commitDraft(text: string, settle: (ok: boolean) => void): void {
 	const seconds = parseTimecode(text, frameRate);
-	if (seconds === undefined) {
-		invalid.value = true;
-		return;
+	invalid.value = seconds === undefined;
+	if (seconds !== undefined) {
+		emit("seek", seconds);
 	}
-	invalid.value = false;
-	emit("seek", seconds);
-	(event.target as HTMLInputElement).blur();
-}
-function endEdit(): void {
-	draft.value = undefined;
-	invalid.value = false;
+	settle(seconds !== undefined);
 }
 
 const button =
@@ -112,18 +104,12 @@ const button =
 
 			<label class="flex items-baseline gap-2">
 				<span class="sr-only">{{ t("player.transport.timecode") }}</span>
-				<input
-					class="w-[14ch] rounded-md border bg-surface-sunken px-1.5 py-1 font-mono text-base tabular-nums focus-visible:outline-2 focus-visible:outline-accent"
-					:class="invalid ? 'border-danger' : 'border-border'"
-					:value="draft ?? timecode"
+				<ShellTimecodeInput
+					:value="timecode"
+					:invalid="invalid"
 					:title="t('player.transport.timecode')"
-					:aria-invalid="invalid || undefined"
-					spellcheck="false"
-					@focus="draft = timecode"
-					@input="draft = ($event.target as HTMLInputElement).value"
-					@keydown.enter.prevent="commitDraft"
-					@keydown.esc.prevent="($event.target as HTMLInputElement).blur()"
-					@blur="endEdit"
+					@commit="commitDraft"
+					@end="invalid = false"
 				/>
 				<span v-if="frame !== undefined" class="font-mono text-xs text-muted tabular-nums">
 					{{ t("player.transport.frame", { n: frame }) }}

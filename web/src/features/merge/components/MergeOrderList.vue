@@ -4,7 +4,7 @@ import IconArrowUp from "~icons/lucide/arrow-up";
 import IconGripVertical from "~icons/lucide/grip-vertical";
 import IconX from "~icons/lucide/x";
 
-import { move } from "~/core/libs/collections";
+import { useDragReorder } from "~/core/composables/useDragReorder";
 import { formatDuration } from "~/core/libs/reportFormat";
 import type { Entry } from "~/generated/muxmultitool/files/v1/files_pb";
 import type { MergePart } from "~/generated/muxmultitool/merge/v1/merge_pb";
@@ -17,18 +17,10 @@ const { files, parts } = defineProps<{ files: readonly Entry[]; parts: readonly 
 const emit = defineEmits<{ reorder: [files: Entry[]]; remove: [id: string]; add: [] }>();
 const { t } = useI18n();
 
-const dragging = ref<number>();
-
-function moveTo(from: number, to: number) {
-	emit("reorder", move(files, from, to));
-}
-
-function drop(to: number) {
-	if (dragging.value !== undefined) {
-		moveTo(dragging.value, to);
-	}
-	dragging.value = undefined;
-}
+const { dragging, moveTo, drop } = useDragReorder(
+	() => files,
+	(next) => emit("reorder", next)
+);
 
 const partOf = (index: number): MergePart | undefined => (parts.length === files.length ? parts[index] : undefined);
 const durationOf = (index: number) => {
