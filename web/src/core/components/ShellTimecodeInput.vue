@@ -5,15 +5,15 @@
  * `settle(false)` keeps the draft for a correction. Esc gives up the edit, and so does a blur unless a
  * commit is still settling (the host may be parsing on the server); `end` fires when an edit is given
  * up, so the host can clear what it showed about the draft. `label` is the accessible name; a host that
- * wraps the field in a `<label>` leaves it out.
+ * wraps the field in a `<label>` leaves it out. `hint` is shown as a tooltip on hover and on focus.
  */
 const {
 	value,
 	invalid = false,
 	dense = false,
 	label,
-	title
-} = defineProps<{ value: string; invalid?: boolean; dense?: boolean; label?: string; title?: string }>();
+	hint
+} = defineProps<{ value: string; invalid?: boolean; dense?: boolean; label?: string; hint?: string }>();
 const emit = defineEmits<{ commit: [text: string, settle: (ok: boolean) => void]; end: [] }>();
 
 const draft = ref<string>();
@@ -46,18 +46,19 @@ function cancel(event: Event): void {
 </script>
 
 <template>
-	<input
-		class="w-[14ch] rounded-md border bg-surface-sunken px-1.5 font-mono tabular-nums focus-visible:outline-2 focus-visible:outline-accent"
-		:class="[invalid ? 'border-danger' : 'border-border', dense ? 'py-0.5 text-sm' : 'py-1 text-base']"
-		:value="draft ?? value"
-		:aria-label="label"
-		:title="title"
-		:aria-invalid="invalid || undefined"
-		spellcheck="false"
-		@focus="draft = value"
-		@input="draft = ($event.target as HTMLInputElement).value"
-		@keydown.enter.prevent="commit"
-		@keydown.esc.prevent="cancel"
-		@blur="onBlur"
-	/>
+	<ShellTooltip :text="hint">
+		<input
+			class="w-[14ch] rounded-md border bg-surface-sunken px-1.5 font-mono tabular-nums focus-visible:outline-2 focus-visible:outline-accent"
+			:class="[invalid ? 'border-danger' : 'border-border', dense ? 'py-0.5 text-sm' : 'py-1 text-base']"
+			:value="draft ?? value"
+			:aria-label="label"
+			:aria-invalid="invalid || undefined"
+			spellcheck="false"
+			@focus="draft = value"
+			@input="draft = ($event.target as HTMLInputElement).value"
+			@keydown.enter.prevent="commit"
+			@keydown.esc.prevent="cancel"
+			@blur="onBlur"
+		/>
+	</ShellTooltip>
 </template>

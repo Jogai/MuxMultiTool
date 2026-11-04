@@ -263,15 +263,16 @@ const segment =
 				<IconStar class="size-4" aria-hidden="true" />
 				{{ t("streams.savePreset") }}
 			</button>
-			<button
-				type="button"
-				class="rounded-md border border-border p-1.5 hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent"
-				:aria-label="t('streams.shortcuts.open')"
-				:title="t('streams.shortcuts.open')"
-				@click="shortcutsOpen = true"
-			>
-				<IconKeyboard class="size-4" aria-hidden="true" />
-			</button>
+			<ShellTooltip :text="t('streams.shortcuts.open')">
+				<button
+					type="button"
+					class="rounded-md border border-border p-1.5 hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent"
+					:aria-label="t('streams.shortcuts.open')"
+					@click="shortcutsOpen = true"
+				>
+					<IconKeyboard class="size-4" aria-hidden="true" />
+				</button>
+			</ShellTooltip>
 		</header>
 
 		<template v-if="files.length === 0">

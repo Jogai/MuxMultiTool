@@ -471,16 +471,17 @@ defineExpose({ zoomIn, zoomOut, zoomFit, zoomToSegment });
 					{{ t("cut.timeline.fit") }}
 				</button>
 			</div>
-			<button
-				type="button"
-				class="flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-surface-sunken hover:text-text aria-pressed:text-accent"
-				:aria-pressed="snapping"
-				:title="t('cut.timeline.snapHint')"
-				@click="snapping = !snapping"
-			>
-				<IconMagnet class="size-3.5" aria-hidden="true" />
-				{{ t("cut.timeline.snap") }}
-			</button>
+			<ShellTooltip :text="t('cut.timeline.snapHint')">
+				<button
+					type="button"
+					class="flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-surface-sunken hover:text-text focus-visible:outline-2 focus-visible:outline-accent aria-pressed:text-accent"
+					:aria-pressed="snapping"
+					@click="snapping = !snapping"
+				>
+					<IconMagnet class="size-3.5" aria-hidden="true" />
+					{{ t("cut.timeline.snap") }}
+				</button>
+			</ShellTooltip>
 			<label class="flex items-center gap-1">
 				{{ t("cut.timeline.waveformFrom") }}
 				<select

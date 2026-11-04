@@ -107,7 +107,7 @@ const button =
 				<ShellTimecodeInput
 					:value="timecode"
 					:invalid="invalid"
-					:title="t('player.transport.timecode')"
+					:hint="t('player.transport.timecode')"
 					@commit="commitDraft"
 					@end="invalid = false"
 				/>
@@ -135,16 +135,16 @@ const button =
 							: t("player.range.none")
 					}}
 				</span>
-				<button
-					v-if="hasRange"
-					type="button"
-					class="flex size-8 items-center justify-center rounded-md text-muted hover:bg-surface-sunken hover:text-text focus-visible:outline-2 focus-visible:outline-accent"
-					:aria-label="t('player.range.clear')"
-					:title="t('player.range.clear')"
-					@click="emit('clearRange')"
-				>
-					<IconX class="size-4" />
-				</button>
+				<ShellTooltip v-if="hasRange" :text="t('player.range.clear')">
+					<button
+						type="button"
+						class="flex size-8 items-center justify-center rounded-md text-muted hover:bg-surface-sunken hover:text-text focus-visible:outline-2 focus-visible:outline-accent"
+						:aria-label="t('player.range.clear')"
+						@click="emit('clearRange')"
+					>
+						<IconX class="size-4" />
+					</button>
+				</ShellTooltip>
 				<button
 					type="button"
 					:class="button"

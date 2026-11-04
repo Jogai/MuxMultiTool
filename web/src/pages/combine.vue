@@ -147,15 +147,16 @@ const field = "rounded-md border border-border bg-surface px-2 py-1 text-sm";
 				<h2 class="text-xl font-bold">{{ t("nav.combine") }}</h2>
 				<p class="mt-1 max-w-prose text-sm text-muted">{{ t("combine.description") }}</p>
 			</div>
-			<button
-				type="button"
-				class="rounded-md border border-border p-1.5 hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent"
-				:aria-label="t('combine.shortcuts.open')"
-				:title="t('combine.shortcuts.open')"
-				@click="shortcutsOpen = true"
-			>
-				<IconKeyboard class="size-4" aria-hidden="true" />
-			</button>
+			<ShellTooltip :text="t('combine.shortcuts.open')">
+				<button
+					type="button"
+					class="rounded-md border border-border p-1.5 hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent"
+					:aria-label="t('combine.shortcuts.open')"
+					@click="shortcutsOpen = true"
+				>
+					<IconKeyboard class="size-4" aria-hidden="true" />
+				</button>
+			</ShellTooltip>
 		</header>
 
 		<div class="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">

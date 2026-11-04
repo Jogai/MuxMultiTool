@@ -71,17 +71,20 @@ async function save(format: "png" | "jpg") {
 		</figure>
 
 		<div class="flex flex-wrap items-center gap-2">
-			<button
+			<ShellTooltip
 				v-for="entry in formats"
 				:key="entry.format"
-				type="button"
-				class="rounded-md bg-accent px-4 py-1.5 text-sm text-on-accent focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"
-				:disabled="!entry.enabled || submitting"
-				:title="entry.enabled ? names[entry.format] : t('images.snapshot.noEncoder', { format: entry.label })"
-				@click="save(entry.format)"
+				:text="entry.enabled ? names[entry.format] : t('images.snapshot.noEncoder', { format: entry.label })"
 			>
-				{{ t(`images.snapshot.${entry.key}`) }}
-			</button>
+				<button
+					type="button"
+					class="rounded-md bg-accent px-4 py-1.5 text-sm text-on-accent focus-visible:outline-2 focus-visible:outline-accent aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+					:aria-disabled="!entry.enabled || submitting || undefined"
+					@click="entry.enabled && !submitting && save(entry.format)"
+				>
+					{{ t(`images.snapshot.${entry.key}`) }}
+				</button>
+			</ShellTooltip>
 			<button
 				type="button"
 				class="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent"

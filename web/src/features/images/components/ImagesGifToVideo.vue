@@ -42,7 +42,6 @@ async function convert() {
 				<button
 					type="button"
 					class="flex w-fit items-center gap-2 rounded-md border border-border px-3 py-1.5 hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-accent data-[state=checked]:bg-accent-surface"
-					:title="entry.encoder === undefined ? t('images.gif.noEncoder', { format: t(`images.gif.${entry.key}`) }) : undefined"
 				>
 					{{ t(`images.gif.${entry.key}`) }}
 					<span v-if="entry.encoder" class="text-xs text-muted">{{ t("images.gif.encoder", { encoder: entry.encoder }) }}</span>

@@ -306,45 +306,37 @@ const toolButton =
 			/>
 
 			<div class="flex flex-wrap items-center gap-2">
-				<button
-					type="button"
-					:class="toolButton"
-					:disabled="!project.canUndo.value"
-					:title="t('cut.actions.undoHint')"
-					@click="run('undo')"
-				>
-					<IconUndo class="size-4" aria-hidden="true" />
-					{{ t("cut.actions.undo") }}
-				</button>
-				<button
-					type="button"
-					:class="toolButton"
-					:disabled="!project.canRedo.value"
-					:title="t('cut.actions.redoHint')"
-					@click="run('redo')"
-				>
-					<IconRedo class="size-4" aria-hidden="true" />
-					{{ t("cut.actions.redo") }}
-				</button>
+				<ShellTooltip :text="t('cut.actions.undoHint')">
+					<button type="button" :class="toolButton" :disabled="!project.canUndo.value" @click="run('undo')">
+						<IconUndo class="size-4" aria-hidden="true" />
+						{{ t("cut.actions.undo") }}
+					</button>
+				</ShellTooltip>
+				<ShellTooltip :text="t('cut.actions.redoHint')">
+					<button type="button" :class="toolButton" :disabled="!project.canRedo.value" @click="run('redo')">
+						<IconRedo class="size-4" aria-hidden="true" />
+						{{ t("cut.actions.redo") }}
+					</button>
+				</ShellTooltip>
 				<span class="mx-1 h-5 w-px bg-border" aria-hidden="true" />
-				<button type="button" :class="toolButton" :disabled="!(duration > 0)" :title="t('cut.actions.addHint')" @click="run('addSegment')">
-					<IconPlus class="size-4" aria-hidden="true" />
-					{{ range.start !== undefined && range.end !== undefined ? t("cut.actions.addRange") : t("cut.actions.add") }}
-				</button>
-				<button
-					type="button"
-					:class="toolButton"
-					:disabled="!segmentAt(state.segments, currentTime)"
-					:title="t('cut.actions.splitHint')"
-					@click="run('splitAtPlayhead')"
-				>
-					<IconScissors class="size-4" aria-hidden="true" />
-					{{ t("cut.actions.split") }}
-				</button>
-				<button type="button" :class="toolButton" :disabled="!selected" :title="t('cut.actions.deleteHint')" @click="run('deleteSegment')">
-					<IconTrash class="size-4" aria-hidden="true" />
-					{{ t("cut.actions.delete") }}
-				</button>
+				<ShellTooltip :text="t('cut.actions.addHint')">
+					<button type="button" :class="toolButton" :disabled="!(duration > 0)" @click="run('addSegment')">
+						<IconPlus class="size-4" aria-hidden="true" />
+						{{ range.start !== undefined && range.end !== undefined ? t("cut.actions.addRange") : t("cut.actions.add") }}
+					</button>
+				</ShellTooltip>
+				<ShellTooltip :text="t('cut.actions.splitHint')">
+					<button type="button" :class="toolButton" :disabled="!segmentAt(state.segments, currentTime)" @click="run('splitAtPlayhead')">
+						<IconScissors class="size-4" aria-hidden="true" />
+						{{ t("cut.actions.split") }}
+					</button>
+				</ShellTooltip>
+				<ShellTooltip :text="t('cut.actions.deleteHint')">
+					<button type="button" :class="toolButton" :disabled="!selected" @click="run('deleteSegment')">
+						<IconTrash class="size-4" aria-hidden="true" />
+						{{ t("cut.actions.delete") }}
+					</button>
+				</ShellTooltip>
 				<ShellIconButton class="ml-auto" :label="t('cut.shortcuts.open')" @click="shortcutsOpen = true">
 					<IconKeyboard />
 				</ShellIconButton>

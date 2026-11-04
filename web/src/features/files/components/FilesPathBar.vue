@@ -54,14 +54,15 @@ function submit() {
 		<form class="flex flex-wrap items-center gap-2 text-sm" @submit.prevent="submit">
 			<label class="flex items-center gap-2">
 				<span class="text-muted">{{ t("files.pattern.label") }}</span>
-				<input
-					v-model="pattern"
-					type="text"
-					class="w-40 rounded-md border border-border bg-surface px-2 py-1 font-mono focus-visible:outline-2 focus-visible:outline-accent"
-					:placeholder="t('files.pattern.placeholder')"
-					:title="t('files.pattern.hint')"
-					spellcheck="false"
-				/>
+				<ShellTooltip :text="t('files.pattern.hint')">
+					<input
+						v-model="pattern"
+						type="text"
+						class="w-40 rounded-md border border-border bg-surface px-2 py-1 font-mono focus-visible:outline-2 focus-visible:outline-accent"
+						:placeholder="t('files.pattern.placeholder')"
+						spellcheck="false"
+					/>
+				</ShellTooltip>
 			</label>
 			<button
 				type="submit"

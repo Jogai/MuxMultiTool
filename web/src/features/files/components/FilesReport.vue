@@ -81,15 +81,16 @@ const rowClass = (fileId: string, stream: StreamSummary) => (isSelected(fileId, 
 						{{ t(`files.report.${option}`) }}
 					</RekaToggleGroupItem>
 				</RekaToggleGroupRoot>
-				<button
-					type="button"
-					class="rounded-md border border-border px-3 py-1 text-sm hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"
-					:disabled="loading || reports.length === 0 || measuredAll"
-					:title="measuredAll && reports.length > 0 ? t('files.report.measured') : t('files.report.measureHint')"
-					@click="emit('measure')"
-				>
-					{{ t("files.report.measure") }}
-				</button>
+				<ShellTooltip :text="measuredAll && reports.length > 0 ? t('files.report.measured') : t('files.report.measureHint')">
+					<button
+						type="button"
+						class="rounded-md border border-border px-3 py-1 text-sm hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-transparent"
+						:aria-disabled="loading || reports.length === 0 || measuredAll || undefined"
+						@click="!(loading || reports.length === 0 || measuredAll) && emit('measure')"
+					>
+						{{ t("files.report.measure") }}
+					</button>
+				</ShellTooltip>
 				<button
 					type="button"
 					class="rounded-md border border-border px-3 py-1 text-sm hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"

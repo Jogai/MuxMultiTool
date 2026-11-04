@@ -52,16 +52,11 @@ const button =
 				<span class="truncate">{{ id ? folderLabel || id : placeholder }}</span>
 			</span>
 			<button type="button" :class="button" @click="choose">{{ t("batch.folder.choose") }}</button>
-			<button
-				v-if="clearable && id"
-				type="button"
-				:class="button"
-				:aria-label="t('batch.folder.clear')"
-				:title="t('batch.folder.clear')"
-				@click="clear"
-			>
-				<IconX class="size-4" aria-hidden="true" />
-			</button>
+			<ShellTooltip v-if="clearable && id" :text="t('batch.folder.clear')">
+				<button type="button" :class="button" :aria-label="t('batch.folder.clear')" @click="clear">
+					<IconX class="size-4" aria-hidden="true" />
+				</button>
+			</ShellTooltip>
 		</div>
 		<ErrorPanel v-if="error" :error="error" />
 		<slot />

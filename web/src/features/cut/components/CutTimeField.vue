@@ -53,7 +53,7 @@ async function commit(draft: string, settle: (ok: boolean) => void): Promise<voi
 			:invalid="error !== undefined || invalid"
 			dense
 			:label="label"
-			:title="t('cut.segments.typeHint')"
+			:hint="t('cut.segments.typeHint')"
 			@commit="commit"
 			@end="error = undefined"
 		/>

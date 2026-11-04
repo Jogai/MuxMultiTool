@@ -37,15 +37,16 @@ const button =
 			<span> · {{ t("presets.card.template", { template }) }}</span>
 		</p>
 		<div class="flex flex-wrap items-center gap-2">
-			<button
-				type="button"
-				class="rounded-md bg-accent px-3 py-1 text-sm text-on-accent focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-50"
-				:disabled="fileCount === 0"
-				:title="fileCount === 0 ? t('presets.actions.applyFilesHint') : undefined"
-				@click="emit('applyFiles')"
-			>
-				{{ t("presets.actions.applyFiles", { n: fileCount }, fileCount) }}
-			</button>
+			<ShellTooltip :text="fileCount === 0 ? t('presets.actions.applyFilesHint') : undefined">
+				<button
+					type="button"
+					class="rounded-md bg-accent px-3 py-1 text-sm text-on-accent focus-visible:outline-2 focus-visible:outline-accent aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+					:aria-disabled="fileCount === 0 || undefined"
+					@click="fileCount > 0 && emit('applyFiles')"
+				>
+					{{ t("presets.actions.applyFiles", { n: fileCount }, fileCount) }}
+				</button>
+			</ShellTooltip>
 			<button type="button" :class="button" @click="emit('applyBatch')">{{ t("presets.actions.applyBatch") }}</button>
 			<span class="ml-auto flex gap-2">
 				<button type="button" :class="button" @click="emit('edit')">{{ t("presets.actions.edit") }}</button>
