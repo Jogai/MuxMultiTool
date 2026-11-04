@@ -1,0 +1,154 @@
+# The one-step release (development.md, "Releases"; docs/quality.md, "Releases with
+# git-cliff"). git-cliff works out the next version from the Conventional
+# Commits since the last `v*` tag, scripts/set-version.sh writes it into the
+# Cargo workspace and the frontend package, git-cliff regenerates CHANGELOG.md,
+# and the release commit and its tag are pushed to master. The tag then
+# triggers the desktop installers and the GitHub release (ci.yml) and the
+# container image (image.yml).
+#
+# A dry run (the default) stops before the commit: the job summary shows the
+# version, the notes and the files that would change.
+#
+# A tag pushed with the workflow's own token starts no other workflow, so the
+# builds are started by hand below in that case. With a `RELEASE_TOKEN` secret
+# (a fine-grained personal access token with contents read and write, or a
+# GitHub App token) the tag push triggers them like any other push.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Dry run - show the next version, the notes and the files that would change, commit nothing
+        type: boolean
+        default: true
+      version:
+        description: Release this version instead of the one git-cliff works out (for example 1.2.0)
+        type: string
+        required: false
+
+permissions:
+  contents: write
+  # To start the builds on the new tag when there is no RELEASE_TOKEN.
+  actions: write
+
+# One release at a time; a run in progress is never cancelled.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  NODE_VERSION: 26
+
+jobs:
+  release:
+    name: ${{ inputs.dry_run && 'Dry run' || 'Release' }}
+    runs-on: ubuntu-latest
+    env:
+      # Only a job-level env can look at the secrets; the last step reads this.
+      RELEASE_TOKEN_SET: ${{ secrets.RELEASE_TOKEN != '' }}
+    steps:
+      - name: Releases start from master
+        if: github.ref != 'refs/heads/master'
+        run: |
+          echo "::error::run this workflow on master, not on ${{ github.ref_name }}"
+          exit 1
+      - uses: actions/checkout@v7
+        with:
+          # git-cliff needs the tags and the history since the last one.
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
+      - uses: ./.github/actions/rust-toolchain
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: git-cliff
+      # cargo-edit (for `cargo set-version`) has no install-action manifest; a
+      # cache miss compiles it once.
+      - uses: taiki-e/cache-cargo-install-action@v3
+        with:
+          tool: cargo-edit@0.13.14
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Work out the next version
+        id: next
+        env:
+          REQUESTED: ${{ inputs.version }}
+        run: |
+          if [[ -n "$REQUESTED" ]]; then
+            tag="v${REQUESTED#v}"
+          else
+            tag=$(git cliff --bumped-version)
+          fi
+          if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::not a version: $tag"
+            exit 1
+          fi
+          if git rev-parse --quiet --verify "refs/tags/$tag" > /dev/null; then
+            echo "::error::the tag $tag exists already"
+            exit 1
+          fi
+          echo "next version: $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      # The notes of this release alone, as the GitHub release will show them.
+      - name: Release notes
+        env:
+          TAG: ${{ steps.next.outputs.tag }}
+        run: |
+          git cliff --tag "$TAG" --unreleased --strip all > notes.md
+          {
+            echo "# ${{ inputs.dry_run && 'Dry run: ' || '' }}$TAG"
+            echo
+            cat notes.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Write the version and the changelog
+        env:
+          TAG: ${{ steps.next.outputs.tag }}
+        run: |
+          scripts/set-version.sh "$TAG"
+          git cliff --tag "$TAG" --output CHANGELOG.md
+          git add --all
+          {
+            echo
+            echo '## Files'
+            echo
+            echo '```'
+            git --no-pager diff --cached --stat
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Dry run, nothing is committed
+        if: inputs.dry_run
+        run: |
+          git --no-pager diff --cached --stat
+          echo "::notice::dry run: $TAG was not committed; run again with dry_run off to release it"
+        env:
+          TAG: ${{ steps.next.outputs.tag }}
+
+      - name: Commit, tag and push
+        if: ${{ !inputs.dry_run }}
+        env:
+          TAG: ${{ steps.next.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --quiet --message "chore(release): $TAG"
+          git tag --annotate "$TAG" --file notes.md
+          git push --atomic origin HEAD:master "refs/tags/$TAG"
+          echo "::notice::released $TAG: $(git rev-parse --short HEAD)"
+
+      # GitHub starts no workflow for a push made with the workflow's own
+      # token, so without a RELEASE_TOKEN the two tag workflows are run here.
+      - name: Start the builds on the tag
+        if: ${{ !inputs.dry_run && env.RELEASE_TOKEN_SET != 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.next.outputs.tag }}
+        run: |
+          gh workflow run ci.yml --ref "$TAG"
+          gh workflow run image.yml --ref "$TAG"
+          echo "::notice::no RELEASE_TOKEN: the CI and Image workflows were started on $TAG by hand"

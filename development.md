@@ -273,9 +273,24 @@ GitHub Actions runs the checks above on every pull request and on `master` (`.gi
 
 The jobs: `codegen` runs `buf generate` once and hands the result to the others; `backend-lint`, `backend-test` (nextest with coverage, needs ffmpeg) and `backend-musl` (`cargo zigbuild` of the server for `x86_64-unknown-linux-musl`, so a C dependency can't slip in); `frontend` runs the `npm run ci` steps one by one, then the unit tests; `desktop` builds the installers (see "Desktop app"); `contract` runs the buf checks; `commits` runs `committed` over the new commits. `CI` is the one status check to require in branch protection: it is green when every job passed or was skipped. Cargo builds are cached with `Swatinem/rust-cache`, npm with `actions/setup-node`.
 
-A daily workflow (`.github/workflows/security.yml`) runs `cargo deny check advisories` and `npm audit`. The container image has its own workflow, see "Container" below.
+A daily workflow (`.github/workflows/security.yml`) runs `cargo deny check advisories` and `npm audit`. The container image has its own workflow, see "Container" below. A `v*` tag runs every job and ends with the GitHub release, see "Releases".
 
 Without a GitHub remote, check the workflows with [actionlint](https://github.com/rhysd/actionlint) and run the steps' commands locally.
+
+### Releases
+
+A release is one manual run of the `Release` workflow (`.github/workflows/release.yml`, "Run workflow" on `master`). It does, in this order:
+
+1. `git cliff --bumped-version` works out the next version from the Conventional Commits since the last `v*` tag (`cliff.toml`: a `feat` bumps the minor version, a `fix` the patch version, a breaking change the minor version before 1.0 and the major version after; the first release is `v0.1.0`). The optional `version` input overrides it.
+2. `scripts/set-version.sh` writes the version into the Cargo workspace (`cargo set-version --workspace`: `Cargo.toml`, the path dependencies between the crates and `Cargo.lock`) and into `web/package.json` and `web/package-lock.json` (`npm version`). `crates/desktop/tauri.conf.json` has no `version` of its own: Tauri reads it from the crate, which inherits it from the workspace, and the script fails if someone adds one.
+3. `git cliff --tag <version> --output CHANGELOG.md` regenerates the changelog, and the result is committed as `chore(release): v1.2.3`, tagged `v1.2.3` (the tag message is the release notes) and pushed to `master`.
+4. The tag triggers `ci.yml`, which builds the desktop installers for Windows, macOS and Linux and then creates the GitHub release with git-cliff's notes for that version (`git cliff --current --strip all`) as the body and the installers attached, and `image.yml`, which publishes the container image as the version and `latest`. The release is published when every check passed; when one failed (the Linux bundling, until the Tauri alpha fixes it) it is left as a draft with whatever was built. A version with a suffix (`v1.0.0-rc.1`) is marked a pre-release.
+
+The `dry_run` input is on by default: the run shows the next version, the notes and the files that would change in its job summary and commits nothing. Run it again with `dry_run` off to release.
+
+**Token.** A push made with the workflow's own `GITHUB_TOKEN` starts no other workflow, so without more setup the release run starts `ci.yml` and `image.yml` on the new tag itself (`gh workflow run`). Add a `RELEASE_TOKEN` repository secret (a fine-grained personal access token with contents read and write, or a GitHub App token) and the tag push triggers them like any other push. Either way the token must be allowed to push to `master` if the branch is protected.
+
+By hand, the same pieces: `git cliff --bumped-version` for the next version, `git cliff --bump --unreleased` for the notes it would publish, `scripts/set-version.sh 1.2.3` to write a version (needs `cargo install cargo-edit --locked` for `cargo set-version`). `cargo binstall git-cliff` or `cargo install git-cliff --locked` installs git-cliff.
 
 ### Settings
 

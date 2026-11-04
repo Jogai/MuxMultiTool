@@ -2,12 +2,19 @@
 # run for the changed paths (docs/quality.md, "Shared: CI triggers"); a docs-only
 # change runs nothing. The `ci` job at the end is the one check to require in
 # branch protection.
+#
+# A `v*` tag (pushed by release.yml) runs everything and ends with the GitHub
+# release: the desktop installers attached, git-cliff's notes as the body. A
+# manual run does the same for the chosen ref; release.yml uses that when its
+# token cannot trigger the tag push.
 name: CI
 
 on:
   pull_request:
   push:
     branches: [master]
+    tags: ["v*"]
+  workflow_dispatch:
 
 # A new push to the same branch cancels the run that is still going.
 concurrency:
@@ -31,14 +38,20 @@ jobs:
     name: Changed paths
     runs-on: ubuntu-latest
     outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-      frontend: ${{ steps.filter.outputs.frontend }}
-      proto: ${{ steps.filter.outputs.proto }}
-      desktop: ${{ steps.filter.outputs.desktop }}
+      backend: ${{ steps.filter.outputs.backend || steps.all.outputs.all }}
+      frontend: ${{ steps.filter.outputs.frontend || steps.all.outputs.all }}
+      proto: ${{ steps.filter.outputs.proto || steps.all.outputs.all }}
+      desktop: ${{ steps.filter.outputs.desktop || steps.all.outputs.all }}
     steps:
       - uses: actions/checkout@v7
+      # A tag or a manual run has no "changed paths": everything runs.
+      - name: Everything runs for a tag or a manual run
+        id: all
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        run: echo "all=true" >> "$GITHUB_OUTPUT"
       - uses: dorny/paths-filter@v4
         id: filter
+        if: steps.all.outputs.all != 'true'
         with:
           filters: |
             # Shared code, the lockfile, the toolchain and the CI itself: everything runs.
@@ -270,7 +283,7 @@ jobs:
       # breaking.sh compares with a local branch: the PR base, or for a push the
       # commit before it. A branch creation has no "before" commit to compare with.
       - name: Breaking changes
-        if: github.event_name == 'pull_request' || github.event.before != '0000000000000000000000000000000000000000'
+        if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000')
         env:
           BASE: ${{ github.event_name == 'pull_request' && github.base_ref || github.event.before }}
         run: |
@@ -406,7 +419,7 @@ jobs:
   # Merge commits are left alone, so a branch may merge master instead of rebasing.
   commits:
     name: Commit messages
-    if: github.event_name == 'pull_request' || github.event.before != '0000000000000000000000000000000000000000'
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -424,10 +437,55 @@ jobs:
             committed -vv "$commit~..$commit"
           done
 
+  # The GitHub release for a `v*` tag (development.md, "Releases"): the notes git-cliff
+  # renders for that version as the body, the desktop installers attached. It
+  # is published when every check passed; when one failed it is left a draft
+  # with whatever was built, for someone to look at (the Linux bundling is
+  # known to fail with the current Tauri alpha, see the desktop job).
+  release:
+    name: GitHub release
+    needs: [codegen, backend-lint, backend-test, backend-musl, frontend, contract, desktop]
+    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # git-cliff needs the history back to the previous tag.
+          fetch-depth: 0
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: git-cliff
+      - name: Release notes for ${{ github.ref_name }}
+        run: git cliff --current --strip all > notes.md
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: desktop-*
+          path: bundles
+          merge-multiple: true
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          FAILED: ${{ contains(needs.*.result, 'failure') }}
+        run: |
+          shopt -s nullglob
+          flags=()
+          if [[ "$FAILED" == true ]]; then
+            flags+=(--draft)
+            echo "::warning::a check failed on $TAG: the release is a draft"
+          fi
+          if [[ "$TAG" == *-* ]]; then
+            flags+=(--prerelease)
+          fi
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md "${flags[@]}" bundles/*
+          echo "::notice::release $TAG created with $(ls bundles | wc -l) installer(s)"
+
   # The one status check to require: green when every job passed or was skipped.
   ci:
     name: CI
-    needs: [changes, codegen, backend-lint, backend-test, backend-musl, frontend, contract, desktop, commits]
+    needs: [changes, codegen, backend-lint, backend-test, backend-musl, frontend, contract, desktop, commits, release]
     if: always()
     runs-on: ubuntu-latest
     steps:
