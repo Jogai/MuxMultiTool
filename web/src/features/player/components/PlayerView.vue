@@ -357,6 +357,8 @@ defineExpose({ seek, play, pause, stepFrames, stepKeyframes, run, currentTime: r
 				@volumechange="onVolumeChange"
 			/>
 			<PlayerSubtitleOverlay :cues="shownCues" />
+			<!-- A host may draw over the picture, e.g. the crop overlay of the Images screen -->
+			<slot name="overlay" />
 			<div
 				v-if="preview.status.value === 'starting' || engine === 'none' || fatal"
 				class="notice absolute inset-0 flex items-center justify-center p-6 text-center text-sm"

@@ -377,6 +377,108 @@
 			"title": "Command that will run"
 		}
 	},
+	"images": {
+		"open": "Open file…",
+		"empty": "Open a file, or select one on the Files screen, to take a snapshot, set cover art, make a GIF or crop black bars.",
+		"ffmpegUnavailable": "ffmpeg is not available: {reason}",
+		"position": "frame at {time}",
+		"cropDisabled": "Crop is disabled for this file: {reason}",
+		"tabs": {
+			"snapshot": "Snapshot",
+			"cover": "Cover art",
+			"gif": "GIF",
+			"crop": "Crop"
+		},
+		"output": {
+			"label": "Output filename",
+			"hint": "A file name next to the input, or a full path. The file must not exist yet.",
+			"command": "Command that will run"
+		},
+		"job": {
+			"queued": "{name} is queued.",
+			"running": "{name} is running {percent}",
+			"succeeded": "{name} is done.",
+			"failed": "{name} failed.",
+			"cancelled": "{name} was cancelled.",
+			"view": "View in Jobs",
+			"download": "Download",
+			"showInFolder": "Show in folder",
+			"showFailed": "The folder could not be opened: {detail}"
+		},
+		"snapshot": {
+			"description": "Full-resolution frame at the playhead, decoded from the original file.",
+			"preview": "The frame at {time}",
+			"loading": "Decoding the frame…",
+			"previewFailed": "No frame could be decoded at this position.",
+			"savePng": "Save PNG",
+			"saveJpeg": "Save JPEG",
+			"setCover": "Set as cover art…",
+			"noEncoder": "This ffmpeg build cannot write {format}",
+			"writes": "Saves {png} or {jpg} next to the file."
+		},
+		"cover": {
+			"description": "Embed the frame at the playhead as the file's cover art, on a copy with every stream kept as it is.",
+			"embedded": "Embedded: {codec} · {size}",
+			"none": "No cover art embedded yet.",
+			"replace": "Replace from frame",
+			"set": "Set as cover art",
+			"containers": "Only MKV and MP4 outputs can hold cover art; the output's extension decides."
+		},
+		"gif": {
+			"description": "A GIF from the selected range. State the limits; the scale and palette options follow, and the estimate shows before anything runs.",
+			"unsupported": "This ffmpeg build cannot make GIFs: it lacks {missing}",
+			"range": "Range: {start} – {end} ({duration})",
+			"rangeHint": "Set the range with I and O on the player; without one the GIF starts at the beginning, up to the duration limit.",
+			"limits": "Limits",
+			"maxDuration": "Max duration",
+			"maxWidth": "Max width",
+			"fps": "Frame rate",
+			"maxSize": "Max file size",
+			"seconds": "{n} s",
+			"px": "{n} px",
+			"fpsValue": "{n} fps",
+			"mb": "{n} MB",
+			"estimate": "Estimated: {width}×{height} · {frames} frames · ≈ {size}",
+			"estimating": "Estimating…",
+			"within": "Within all limits ✓",
+			"quality": "Quality",
+			"small": "Small",
+			"balanced": "Balanced",
+			"best": "Best",
+			"loop": "Loop forever",
+			"create": "Create GIF",
+			"toVideo": "This file is a GIF: convert it to a video without audio instead.",
+			"format": "Format",
+			"mp4": "MP4 (H.264)",
+			"webm": "WebM (VP9, or VP8)",
+			"encoder": "with {encoder}",
+			"noEncoder": "This ffmpeg build has no encoder for {format}",
+			"convert": "Convert"
+		},
+		"crop": {
+			"title": "Crop · {codec} {width}×{height}",
+			"unsupported": "Lossless crop is not possible for this file: {reason}",
+			"detect": "Auto-detect black bars",
+			"detecting": "Scanning keyframes…",
+			"found": "Found: top {top}, bottom {bottom}, left {left}, right {right} (scanned {frames} frames)",
+			"detectHint": "Pick a bright frame so auto-detect sees the real edges.",
+			"top": "Top",
+			"bottom": "Bottom",
+			"left": "Left",
+			"right": "Right",
+			"unitSame": "Values snap to {n} px ({pixFmt})",
+			"unit": "Values snap to {x} px across and {y} px down ({pixFmt})",
+			"result": "Result: {width}×{height}",
+			"from": "from {width}×{height} · aspect {aspect}",
+			"planning": "Planning…",
+			"nothing": "Nothing to crop yet: set a side, drag an edge on the picture, or auto-detect.",
+			"limitations": "Lossless crop: what to expect",
+			"start": "Crop",
+			"bar": "black bar · {n} px",
+			"dragEdge": "Drag the {edge} edge",
+			"edgeValue": "{n} px"
+		}
+	},
 	"player": {
 		"starting": "Starting the preview…",
 		"mode": {

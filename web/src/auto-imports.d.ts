@@ -27,6 +27,7 @@ declare global {
   const audioLabel: typeof import('./core/libs/reportFormat').audioLabel
   const autoResetRef: typeof import('@vueuse/core').autoResetRef
   const baseName: typeof import('./core/libs/filePicker').baseName
+  const canShowInFolder: typeof import('./core/libs/showInFolder').canShowInFolder
   const codeName: typeof import('./core/libs/errors').codeName
   const computed: typeof import('vue').computed
   const computedAsync: typeof import('@vueuse/core').computedAsync
@@ -163,6 +164,7 @@ declare global {
   const shallowReactive: typeof import('vue').shallowReactive
   const shallowReadonly: typeof import('vue').shallowReadonly
   const shallowRef: typeof import('vue').shallowRef
+  const showInFolder: typeof import('./core/libs/showInFolder').showInFolder
   const sortJobs: typeof import('./core/libs/jobQueue').sortJobs
   const splitPatterns: typeof import('./core/composables/useFolderBrowser').splitPatterns
   const storeToRefs: typeof import('pinia').storeToRefs
@@ -471,6 +473,7 @@ declare module 'vue' {
     readonly audioLabel: UnwrapRef<typeof import('./core/libs/reportFormat')['audioLabel']>
     readonly autoResetRef: UnwrapRef<typeof import('@vueuse/core')['autoResetRef']>
     readonly baseName: UnwrapRef<typeof import('./core/libs/filePicker')['baseName']>
+    readonly canShowInFolder: UnwrapRef<typeof import('./core/libs/showInFolder')['canShowInFolder']>
     readonly codeName: UnwrapRef<typeof import('./core/libs/errors')['codeName']>
     readonly computed: UnwrapRef<typeof import('vue')['computed']>
     readonly computedAsync: UnwrapRef<typeof import('@vueuse/core')['computedAsync']>
@@ -606,6 +609,7 @@ declare module 'vue' {
     readonly shallowReactive: UnwrapRef<typeof import('vue')['shallowReactive']>
     readonly shallowReadonly: UnwrapRef<typeof import('vue')['shallowReadonly']>
     readonly shallowRef: UnwrapRef<typeof import('vue')['shallowRef']>
+    readonly showInFolder: UnwrapRef<typeof import('./core/libs/showInFolder')['showInFolder']>
     readonly sortJobs: UnwrapRef<typeof import('./core/libs/jobQueue')['sortJobs']>
     readonly splitPatterns: UnwrapRef<typeof import('./core/composables/useFolderBrowser')['splitPatterns']>
     readonly storeToRefs: UnwrapRef<typeof import('pinia')['storeToRefs']>
