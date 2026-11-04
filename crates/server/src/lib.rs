@@ -30,6 +30,7 @@ use muxmultitool_core::cut::project::ProjectStore;
 use muxmultitool_core::ffmpeg::{CapabilityCache, Runner};
 use muxmultitool_core::files::MediaRoots;
 use muxmultitool_core::jobs::{Queue, QueueConfig};
+use muxmultitool_core::presets::PresetStore;
 use muxmultitool_core::preview::{PreviewConfig, PreviewManager};
 use muxmultitool_core::settings::SettingsStore;
 use muxmultitool_core::timeline::{TimelineConfig, TimelineManager};
@@ -52,6 +53,7 @@ pub mod health;
 mod jobs;
 mod media;
 mod merge;
+mod presets;
 mod project;
 mod report;
 mod snapshot;
@@ -94,6 +96,8 @@ pub struct AppState {
 	/// The cut projects (segments per source file, with undo and redo),
 	/// under `projects/` in [`Config::data_dir`] when set.
 	pub projects: ProjectStore,
+	/// The saved presets, in `presets.json` in [`Config::data_dir`] when set.
+	pub presets: PresetStore,
 }
 
 impl AppState {
@@ -117,6 +121,7 @@ impl AppState {
 			frontend_dir: config.frontend_dir.clone(),
 			settings: SettingsStore::from_config(config.data_dir.as_deref()),
 			projects: ProjectStore::from_config(config.data_dir.as_deref()),
+			presets: PresetStore::from_config(config.data_dir.as_deref()),
 		}
 	}
 }
@@ -149,7 +154,8 @@ fn app_with_state(state: Arc<AppState>) -> Router {
 		.add_service(Arc::new(crop::Crop::new(Arc::clone(&state))))
 		.add_service(Arc::new(combine::Combine::new(Arc::clone(&state))))
 		.add_service(Arc::new(extract::Extract::new(Arc::clone(&state))))
-		.add_service(Arc::new(batch::Batches::new(Arc::clone(&state))));
+		.add_service(Arc::new(batch::Batches::new(Arc::clone(&state))))
+		.add_service(Arc::new(presets::Presets::new(Arc::clone(&state))));
 
 	let index = state.frontend_dir.join("index.html");
 	let frontend = ServeDir::new(&state.frontend_dir).fallback(ServeFile::new(index));

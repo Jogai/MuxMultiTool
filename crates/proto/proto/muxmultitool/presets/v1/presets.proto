@@ -1,0 +1,153 @@
+syntax = "proto3";
+
+package muxmultitool.presets.v1;
+
+import "muxmultitool/batch/v1/batch.proto";
+import "muxmultitool/streams/v1/streams.proto";
+
+// PresetsService stores named, reusable combinations of a target container,
+// stream filter rules and an output file name ("English only, drop DTS,
+// MKV"). Presets live on the server, in its data folder, and survive a
+// restart.
+//
+// A preset is applied by turning it into the operation a client would
+// otherwise enter by hand: ApplyPresetToFile returns the
+// SelectStreamsOperation for PreviewStreams or SubmitJob, ApplyPresetToBatch
+// the BatchOperation for PlanBatch or SubmitBatch. The result is the same
+// plan as typing the settings in.
+service PresetsService {
+  // ListPresets returns every preset, in creation order. It fails with
+  // FAILED_PRECONDITION when the stored presets cannot be read (for
+  // example a file written by a newer version); the file is left alone.
+  rpc ListPresets(ListPresetsRequest) returns (ListPresetsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // CreatePreset saves a new preset. INVALID_ARGUMENT for an empty or too
+  // long name, a bad template or an empty rule value; ALREADY_EXISTS when
+  // the name is taken (case does not matter).
+  rpc CreatePreset(CreatePresetRequest) returns (CreatePresetResponse);
+
+  // UpdatePreset replaces the container, template and rules of a preset,
+  // keeping its name. NOT_FOUND for an unknown id.
+  rpc UpdatePreset(UpdatePresetRequest) returns (UpdatePresetResponse);
+
+  // RenamePreset changes only the name.
+  rpc RenamePreset(RenamePresetRequest) returns (RenamePresetResponse);
+
+  // DeletePreset removes a preset. Jobs already queued are not affected.
+  rpc DeletePreset(DeletePresetRequest) returns (DeletePresetResponse);
+
+  // ApplyPresetToFile returns the stream-copy operation of the preset for
+  // one input file.
+  rpc ApplyPresetToFile(ApplyPresetToFileRequest) returns (ApplyPresetToFileResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // ApplyPresetToBatch returns the batch operation of the preset for a
+  // folder.
+  rpc ApplyPresetToBatch(ApplyPresetToBatchRequest) returns (ApplyPresetToBatchResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+// PresetContainer is the container a preset writes.
+enum PresetContainer {
+  PRESET_CONTAINER_UNSPECIFIED = 0;
+  PRESET_CONTAINER_MKV = 1;
+  PRESET_CONTAINER_MP4 = 2;
+  PRESET_CONTAINER_MOV = 3;
+  PRESET_CONTAINER_WEBM = 4;
+}
+
+// PresetSettings is what a preset stores.
+message PresetSettings {
+  // Container is the target container. Required.
+  PresetContainer container = 1;
+  // Template is the output file name without its extension, with the
+  // placeholders of BatchOperation.template, e.g. "{name}.{lang}". The
+  // container adds the extension, so "{name}.{lang}" with MKV is the batch
+  // template "{name}.{lang}.mkv". Required.
+  string template = 2;
+  // Rules are the stream filters, resolved against each file's own
+  // streams.
+  muxmultitool.streams.v1.StreamRules rules = 3;
+}
+
+// Preset is a saved preset.
+message Preset {
+  // Id is assigned by the server and never reused.
+  string id = 1;
+  // Name is unique, ignoring case.
+  string name = 2;
+  PresetSettings settings = 3;
+}
+
+message ListPresetsRequest {}
+
+message ListPresetsResponse {
+  repeated Preset presets = 1;
+}
+
+message CreatePresetRequest {
+  string name = 1;
+  PresetSettings settings = 2;
+}
+
+message CreatePresetResponse {
+  Preset preset = 1;
+}
+
+message UpdatePresetRequest {
+  string id = 1;
+  PresetSettings settings = 2;
+}
+
+message UpdatePresetResponse {
+  Preset preset = 1;
+}
+
+message RenamePresetRequest {
+  string id = 1;
+  string name = 2;
+}
+
+message RenamePresetResponse {
+  Preset preset = 1;
+}
+
+message DeletePresetRequest {
+  string id = 1;
+}
+
+message DeletePresetResponse {}
+
+message ApplyPresetToFileRequest {
+  string preset_id = 1;
+  // Input is a file id from FilesService or the absolute path of a file
+  // inside a media root, as SelectStreamsOperation.input.
+  string input = 2;
+}
+
+message ApplyPresetToFileResponse {
+  // Operation has mode RULES, the preset's rules and, as its output, the
+  // file name the template renders for this input (next to the input).
+  muxmultitool.streams.v1.SelectStreamsOperation operation = 1;
+}
+
+message ApplyPresetToBatchRequest {
+  string preset_id = 1;
+  // Folder, Patterns, Recursive, OutputFolder and Overwrite are the
+  // BatchOperation fields of the same names.
+  string folder = 2;
+  repeated string patterns = 3;
+  bool recursive = 4;
+  string output_folder = 5;
+  bool overwrite = 6;
+}
+
+message ApplyPresetToBatchResponse {
+  // Operation has mode RULES, the preset's rules and its container's
+  // template.
+  muxmultitool.batch.v1.BatchOperation operation = 1;
+}

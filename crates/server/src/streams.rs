@@ -221,7 +221,10 @@ impl Jobs {
 		})
 	}
 
-	async fn probe_stream_input(&self, input: &Path) -> Result<ProbeResult, ConnectError> {
+	pub(crate) async fn probe_stream_input(
+		&self,
+		input: &Path,
+	) -> Result<ProbeResult, ConnectError> {
 		self.state
 			.runner
 			.probe(input, &Limits::timeout(PROBE_TIMEOUT))
