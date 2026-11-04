@@ -3,6 +3,7 @@ import type { Component } from "vue";
 
 import IconBatch from "~icons/lucide/layout-grid";
 import IconCombine from "~icons/lucide/combine";
+import IconCrop from "~icons/lucide/crop";
 import IconCut from "~icons/lucide/scissors";
 import IconFiles from "~icons/lucide/folder";
 import IconImages from "~icons/lucide/image";
@@ -24,6 +25,7 @@ const icons: Record<NavName, Component> = {
 	combine: IconCombine,
 	cut: IconCut,
 	merge: IconMerge,
+	crop: IconCrop,
 	images: IconImages,
 	batch: IconBatch,
 	presets: IconPresets,

@@ -39,7 +39,6 @@ const familyId = computed({
 				<ThemeVariantPicker :family="family" :setting="theme.setting" @update="(patch) => theme.update(patch)" />
 			</div>
 
-			<p class="text-sm text-muted">{{ t("pages.settings.later") }}</p>
 			<div v-if="theme.saveError">
 				<p class="mb-2 text-sm text-warning">{{ t("pages.settings.saveError") }}</p>
 				<ErrorPanel :error="theme.saveError" />

@@ -3,13 +3,14 @@ import { describe, expect, it } from "vitest";
 import { jobLink, NAV_ENTRIES, navNameForPath } from "./navigation";
 
 describe("NAV_ENTRIES", () => {
-	it("lists the rail entries from the sketches in order", () => {
+	it("lists the rail entries in order", () => {
 		expect(NAV_ENTRIES.map((entry) => entry.name)).toEqual([
 			"files",
 			"streams",
 			"combine",
 			"cut",
 			"merge",
+			"crop",
 			"images",
 			"batch",
 			"presets",

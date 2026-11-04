@@ -52,6 +52,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/crop': RouteRecordInfo<
+      '/crop',
+      '/crop',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/cut': RouteRecordInfo<
       '/cut',
       '/cut',
@@ -140,6 +147,14 @@ declare module 'vue-router/auto-routes' {
     'src/pages/combine.vue': {
       routes:
         | '/combine'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/crop.vue': {
+      routes:
+        | '/crop'
       views:
         | never
       pathParamNames:

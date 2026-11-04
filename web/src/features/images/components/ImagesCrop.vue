@@ -21,8 +21,8 @@ import { CropService, type PlanCropResponse } from "~/generated/muxmultitool/cro
 /**
  * Crop panel (sketch 07): auto-detect from the playhead, the four values snapped to the stream's
  * crop unit, the result size, the always-visible limitations, the command and the submit. The
- * values and the output name live in the page, because the overlay on the player shares them; the
- * plan comes from the page too, which uses its support answer to disable the tab.
+ * values, the output name and the plan live in the Crop page, because the overlay on the player
+ * shares them.
  */
 const { fileId, fileName, position, plan, planning, planError } = defineProps<{
 	fileId: string;
@@ -84,10 +84,10 @@ async function start() {
 </script>
 
 <template>
-	<section class="flex flex-col gap-4" :aria-label="t('images.tabs.crop')">
+	<section class="flex flex-col gap-4" :aria-label="t('nav.crop')">
 		<h3 class="font-bold">
 			<template v-if="source">{{ t("images.crop.title", { codec: source.codec, width: source.width, height: source.height }) }}</template>
-			<template v-else>{{ t("images.tabs.crop") }}</template>
+			<template v-else>{{ t("nav.crop") }}</template>
 		</h3>
 
 		<ErrorPanel v-if="planError" :error="planError" />
@@ -113,7 +113,7 @@ async function start() {
 		</div>
 
 		<fieldset class="grid max-w-md grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4">
-			<legend class="sr-only">{{ t("images.tabs.crop") }}</legend>
+			<legend class="sr-only">{{ t("nav.crop") }}</legend>
 			<label v-for="edge in edges" :key="edge" class="flex flex-col gap-1">
 				{{ t(`images.crop.${edge}`) }}
 				<span class="flex items-center gap-1">

@@ -1,10 +1,11 @@
-/** The nav rail entries from the GUI sketches, in order. Each has a page in `src/pages/` and a label under `nav.` in the locale. */
+/** The nav rail entries, in order. Each has a page in `src/pages/` and a label under `nav.` in the locale. */
 export const NAV_ENTRIES = [
 	{ name: "files", path: "/files" },
 	{ name: "streams", path: "/streams" },
 	{ name: "combine", path: "/combine" },
 	{ name: "cut", path: "/cut" },
 	{ name: "merge", path: "/merge" },
+	{ name: "crop", path: "/crop" },
 	{ name: "images", path: "/images" },
 	{ name: "batch", path: "/batch" },
 	{ name: "presets", path: "/presets" },

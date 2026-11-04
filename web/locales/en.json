@@ -10,6 +10,7 @@
 		"combine": "Combine",
 		"cut": "Cut",
 		"merge": "Merge",
+		"crop": "Crop",
 		"images": "Images",
 		"batch": "Batch",
 		"presets": "Presets",
@@ -179,18 +180,14 @@
 		"cancel": "Cancel"
 	},
 	"pages": {
-		"arrives": "This screen arrives with {task}.",
 		"files": {
-			"description": "Browse the media folders, select files by wildcard and read the per-stream report.",
-			"task": "TASK-18"
+			"description": "Browse the media folders, select files by wildcard and read the per-stream report."
 		},
 		"streams": {
-			"description": "Pick the streams to keep, apply filter rules by language, codec or id, and preview the ffmpeg command.",
-			"task": "TASK-23"
+			"description": "Pick the streams to keep, apply filter rules by language, codec or id, and preview the ffmpeg command."
 		},
 		"combine": {
-			"description": "Copy streams between files and build one output from several sources.",
-			"task": "TASK-23"
+			"description": "Copy streams between files and build one output from several sources."
 		},
 		"cut": {
 			"description": "Player, timeline with thumbnails and waveform, segments, keyframe, normal and smart cut.",
@@ -198,12 +195,14 @@
 			"empty": "Open a file to edit it: the preview plays on top, the timeline with thumbnails, waveform, segments and keyframes sits under it, and the segment list and cut settings follow."
 		},
 		"images": {
-			"description": "GIF, snapshots, cover art and lossless crop.",
-			"task": "TASK-40"
+			"description": "Snapshots, cover art and GIFs."
+		},
+		"crop": {
+			"description": "Crop black bars from H.264 and H.265 video without re-encoding.",
+			"empty": "Open a file, or select one on the Files screen, to detect and crop its black bars."
 		},
 		"settings": {
 			"description": "Appearance, shortcuts, paths and the ffmpeg capability check.",
-			"task": "TASK-42",
 			"backend": "Backend",
 			"backendLoading": "Connecting…",
 			"backendOk": "Connected, version {version}",
@@ -220,7 +219,6 @@
 			"markDark": "Use {variant} when the system is dark",
 			"autoHint": "Follows the OS: {light} when the system is light, {dark} when it is dark.",
 			"sameVariantHint": "A family without a light variant uses the same variant for both.",
-			"later": "Material and GitHub follow after the MVP.",
 			"saveError": "The theme could not be saved on the server; it is kept in this browser only."
 		}
 	},
@@ -375,15 +373,13 @@
 	},
 	"images": {
 		"open": "Open file…",
-		"empty": "Open a file, or select one on the Files screen, to take a snapshot, set cover art, make a GIF or crop black bars.",
+		"empty": "Open a file, or select one on the Files screen, to take a snapshot, set cover art or make a GIF.",
 		"ffmpegUnavailable": "ffmpeg is not available: {reason}",
 		"position": "frame at {time}",
-		"cropDisabled": "Crop is disabled for this file: {reason}",
 		"tabs": {
 			"snapshot": "Snapshot",
 			"cover": "Cover art",
-			"gif": "GIF",
-			"crop": "Crop"
+			"gif": "GIF"
 		},
 		"output": {
 			"label": "Output filename",

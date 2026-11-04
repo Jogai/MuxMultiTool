@@ -47,7 +47,6 @@ declare module 'vue' {
     JobsTable: typeof import('./features/jobs/components/JobsTable.vue')['default']
     MergeCompatibility: typeof import('./features/merge/components/MergeCompatibility.vue')['default']
     MergeOrderList: typeof import('./features/merge/components/MergeOrderList.vue')['default']
-    PlaceholderPage: typeof import('./core/components/PlaceholderPage.vue')['default']
     PlayerShortcutsDialog: typeof import('./features/player/components/PlayerShortcutsDialog.vue')['default']
     PlayerSubtitleOverlay: typeof import('./features/player/components/PlayerSubtitleOverlay.vue')['default']
     PlayerTransport: typeof import('./features/player/components/PlayerTransport.vue')['default']
