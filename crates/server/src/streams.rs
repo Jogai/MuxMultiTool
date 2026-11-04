@@ -262,7 +262,7 @@ impl Jobs {
 
 /// The rules of a `RULES` operation as the core sees them. Every rule
 /// needs an action and a match; the core checks the values.
-fn rules(rules: Option<&StreamRules>) -> Result<Rules, ConnectError> {
+pub(crate) fn rules(rules: Option<&StreamRules>) -> Result<Rules, ConnectError> {
 	let Some(rules) = rules else {
 		return Err(ConnectError::invalid_argument(
 			"mode RULES needs rules; use mode ALL for a remux",

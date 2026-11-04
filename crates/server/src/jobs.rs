@@ -341,7 +341,7 @@ where
 	))
 }
 
-fn queue_error(error: &QueueError) -> ConnectError {
+pub(crate) fn queue_error(error: &QueueError) -> ConnectError {
 	match error {
 		QueueError::NotFound(_) => ConnectError::not_found(error.to_string()),
 		QueueError::Finished(..) => ConnectError::failed_precondition(error.to_string()),
@@ -349,7 +349,7 @@ fn queue_error(error: &QueueError) -> ConnectError {
 	}
 }
 
-fn job_message(job: &Job) -> proto::Job {
+pub(crate) fn job_message(job: &Job) -> proto::Job {
 	proto::Job {
 		id: job.id.as_str().to_owned(),
 		name: job.name.clone(),

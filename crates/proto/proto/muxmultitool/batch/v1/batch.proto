@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+package muxmultitool.batch.v1;
+
+import "muxmultitool/files/v1/files.proto";
+import "muxmultitool/jobs/v1/jobs.proto";
+import "muxmultitool/streams/v1/streams.proto";
+
+// BatchService applies one stream operation (a remux, ticked streams or
+// stream rules) to every file of a folder that matches a wildcard, writing
+// each output to a chosen folder under a name built from a template. Every
+// file becomes its own job of JobsService, so progress and failures are
+// per file and one file failing does not stop the others. The motivating
+// case: every MP4 in a folder to MKV in another one.
+service BatchService {
+  // PlanBatch is the dry run: it finds and probes the files and reports,
+  // per file, the output name, the resolved streams, the container issues
+  // and the command, or why the file would be skipped. Nothing is queued.
+  rpc PlanBatch(PlanBatchRequest) returns (PlanBatchResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // SubmitBatch runs the same plan and queues one job per ready file. The
+  // files PlanBatch would skip are skipped here too and returned with their
+  // reason. It fails with FAILED_PRECONDITION when no file matches.
+  rpc SubmitBatch(SubmitBatchRequest) returns (SubmitBatchResponse);
+}
+
+// BatchOperation is one stream operation over the matching files of a
+// folder.
+message BatchOperation {
+  // Folder is where the files are searched: a folder id from FilesService,
+  // or the absolute path of a folder inside a configured media root.
+  string folder = 1;
+  // Patterns are wildcards matched against file names, as
+  // FilesService.FindFiles takes them ("*.mp4"). At least one is required.
+  repeated string patterns = 2;
+  // Recursive also searches the subfolders.
+  bool recursive = 3;
+  // OutputFolder is the existing folder the outputs go into: a folder id
+  // from FilesService, or the absolute path of a folder inside a media
+  // root. Empty puts every output next to its input.
+  string output_folder = 4;
+  // Template is the output file name with placeholders: {name} is the
+  // input's name without its extension, {ext} its extension, {lang} the
+  // languages of the kept audio streams ("eng-fre", "und" when none is
+  // tagged), {date} the day the batch was planned (YYYY-MM-DD, UTC), {n}
+  // the file's number in the batch (zero-padded) and {parent} the name of
+  // the input's folder. The rendered name's extension picks the container
+  // as it does for SelectStreamsOperation.output, so "{name}.mkv" converts
+  // to MKV and "{name}.{ext}" keeps each file's own. A path separator is
+  // refused (INVALID_ARGUMENT).
+  string template = 5;
+  // Overwrite allows an output that already exists to be replaced (the job
+  // runs ffmpeg with -y). Without it, such a file is skipped. An output
+  // that is the input itself, or another input of the batch, is never
+  // written.
+  bool overwrite = 6;
+  // Mode says which streams of every file are copied, as
+  // SelectStreamsOperation.mode does. ALL is a remux; KEEP and DROP take
+  // stream_indexes, which every file must have; RULES resolves rules
+  // against each file's own streams.
+  muxmultitool.streams.v1.SelectionMode mode = 7;
+  // StreamIndexes are the streams to keep (KEEP) or to drop (DROP).
+  repeated uint32 stream_indexes = 8;
+  // Rules are the filters mode RULES resolves per file.
+  muxmultitool.streams.v1.StreamRules rules = 9;
+}
+
+message PlanBatchRequest {
+  BatchOperation operation = 1;
+}
+
+message PlanBatchResponse {
+  // Items are the matching files, sorted by path, each with what the batch
+  // would do with it.
+  repeated BatchItem items = 1;
+  // Ready is how many items would run as a job.
+  uint32 ready = 2;
+  // Date is the {date} value the names were rendered with.
+  string date = 3;
+}
+
+// BatchItem is one matching file and what the batch does with it.
+message BatchItem {
+  // Input is the file, as FilesService lists it.
+  muxmultitool.files.v1.Entry input = 1;
+  // Output is the absolute path of the output; empty while no name could
+  // be rendered.
+  string output = 2;
+  // OutputName is the output's file name without its folder.
+  string output_name = 3;
+  // Ready is true when the file runs as a job; false when it is skipped
+  // for the reason in skip.
+  bool ready = 4;
+  // Skip says why the file is left out, e.g. "the output exists; allow
+  // overwriting to replace it". Empty when ready.
+  string skip = 5;
+  // Overwrites is true when the output exists and the job replaces it.
+  bool overwrites = 6;
+  // Container is the target container's name, e.g. "MKV", once known.
+  string container = 7;
+  // Streams are every stream of the input in container order, each marked
+  // kept or dropped with the reason or the rule that decided it. Listed
+  // for a ready file only.
+  repeated muxmultitool.streams.v1.ResultStream streams = 8;
+  // Issues are the kept streams the container may not hold: warnings only,
+  // since a blocking issue skips the file.
+  repeated muxmultitool.streams.v1.StreamIssue issues = 9;
+  // Warnings are about the selection as a whole, from mode RULES: the
+  // rules drop every video stream, or every audio stream, of the file.
+  repeated string warnings = 10;
+  // Command is the ffmpeg command line the job runs, quoted for a shell.
+  // Empty when skipped.
+  string command = 11;
+  // DurationMs is the input's duration in milliseconds, 0 when unknown.
+  int64 duration_ms = 12;
+}
+
+message SubmitBatchRequest {
+  BatchOperation operation = 1;
+}
+
+message SubmitBatchResponse {
+  // Jobs are the queued jobs, one per ready file, in the order of the
+  // files.
+  repeated muxmultitool.jobs.v1.Job jobs = 1;
+  // Skipped are the files that got no job, with the reason.
+  repeated BatchItem skipped = 2;
+}
