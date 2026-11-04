@@ -1,37 +1,9 @@
 <script setup lang="ts">
-import type { Component } from "vue";
-
-import IconBatch from "~icons/lucide/layout-grid";
-import IconCombine from "~icons/lucide/combine";
-import IconCrop from "~icons/lucide/crop";
-import IconCut from "~icons/lucide/scissors";
-import IconFiles from "~icons/lucide/folder";
-import IconImages from "~icons/lucide/image";
-import IconJobs from "~icons/lucide/play";
-import IconMerge from "~icons/lucide/merge";
-import IconPresets from "~icons/lucide/star";
-import IconSettings from "~icons/lucide/settings";
-import IconStreams from "~icons/lucide/list";
-
 import { NAV_ENTRIES, type NavName } from "~/core/libs/navigation";
 
 /** The nav rail: one entry per screen, the current one highlighted. */
 const { current } = defineProps<{ current: NavName | undefined }>();
 const { t } = useI18n();
-
-const icons: Record<NavName, Component> = {
-	files: IconFiles,
-	streams: IconStreams,
-	combine: IconCombine,
-	cut: IconCut,
-	merge: IconMerge,
-	crop: IconCrop,
-	images: IconImages,
-	batch: IconBatch,
-	presets: IconPresets,
-	jobs: IconJobs,
-	settings: IconSettings
-};
 </script>
 
 <template>
@@ -44,7 +16,18 @@ const icons: Record<NavName, Component> = {
 			:class="entry.name === current ? 'bg-accent-surface text-accent' : 'text-muted hover:bg-surface-sunken hover:text-text'"
 			:aria-current="entry.name === current ? 'page' : undefined"
 		>
-			<component :is="icons[entry.name]" class="size-5" />
+			<!-- One tag per screen, so the icons resolve as components at build time -->
+			<i-ph-folder v-if="entry.name === 'files'" class="size-5" />
+			<i-ph-list-bullets v-else-if="entry.name === 'streams'" class="size-5" />
+			<i-mmt-combine v-else-if="entry.name === 'combine'" class="size-5" />
+			<i-ph-scissors v-else-if="entry.name === 'cut'" class="size-5" />
+			<i-ph-arrows-merge v-else-if="entry.name === 'merge'" class="size-5" />
+			<i-ph-crop v-else-if="entry.name === 'crop'" class="size-5" />
+			<i-ph-image v-else-if="entry.name === 'images'" class="size-5" />
+			<i-ph-squares-four v-else-if="entry.name === 'batch'" class="size-5" />
+			<i-ph-star v-else-if="entry.name === 'presets'" class="size-5" />
+			<i-ph-play v-else-if="entry.name === 'jobs'" class="size-5" />
+			<i-ph-gear v-else-if="entry.name === 'settings'" class="size-5" />
 			<span>{{ t(`nav.${entry.name}`) }}</span>
 		</RouterLink>
 	</nav>

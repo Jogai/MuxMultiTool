@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import type { AcceptableValue } from "reka-ui";
 
-import IconMoon from "~icons/lucide/moon";
-import IconSun from "~icons/lucide/sun";
-
 import type { ThemeMode, ThemeSetting } from "~/core/libs/theme";
 import { findVariant } from "~/core/themes";
 import type { ThemeFamily } from "~/core/themes/palette";
@@ -90,7 +87,7 @@ const markerClass =
 							:aria-label="t('pages.settings.markLight', { variant: variant.name })"
 							@click="emit('update', { lightVariant: variant.id })"
 						>
-							<IconSun class="size-3.5" />
+							<i-ph-sun class="size-3.5" />
 							{{ t("pages.settings.light") }}
 						</button>
 						<button
@@ -100,7 +97,7 @@ const markerClass =
 							:aria-label="t('pages.settings.markDark', { variant: variant.name })"
 							@click="emit('update', { darkVariant: variant.id })"
 						>
-							<IconMoon class="size-3.5" />
+							<i-ph-moon class="size-3.5" />
 							{{ t("pages.settings.dark") }}
 						</button>
 					</span>

@@ -1,15 +1,4 @@
 <script setup lang="ts">
-import IconChevronsLeft from "~icons/lucide/chevrons-left";
-import IconChevronsRight from "~icons/lucide/chevrons-right";
-import IconPause from "~icons/lucide/pause";
-import IconPlay from "~icons/lucide/play";
-import IconRepeat from "~icons/lucide/repeat";
-import IconSkipBack from "~icons/lucide/skip-back";
-import IconSkipForward from "~icons/lucide/skip-forward";
-import IconStepBack from "~icons/lucide/step-back";
-import IconStepForward from "~icons/lucide/step-forward";
-import IconX from "~icons/lucide/x";
-
 import { formatTimecode } from "~/core/libs/format";
 
 import type { PlayerRange } from "../lib/range";
@@ -81,24 +70,24 @@ const button =
 					:disabled="!hasKeyframes"
 					@click="emit('action', 'keyframeBack')"
 				>
-					<IconChevronsLeft />
+					<i-ph-caret-double-left />
 				</ShellIconButton>
 				<ShellIconButton :label="t('player.transport.previousFrame')" @click="emit('action', 'frameBack')">
-					<IconStepBack />
+					<i-ph-caret-line-left />
 				</ShellIconButton>
 				<ShellIconButton :label="paused ? t('player.transport.play') : t('player.transport.pause')" @click="emit('action', 'togglePlay')">
-					<IconPlay v-if="paused" />
-					<IconPause v-else />
+					<i-ph-play v-if="paused" />
+					<i-ph-pause v-else />
 				</ShellIconButton>
 				<ShellIconButton :label="t('player.transport.nextFrame')" @click="emit('action', 'frameForward')">
-					<IconStepForward />
+					<i-ph-caret-line-right />
 				</ShellIconButton>
 				<ShellIconButton
 					:label="hasKeyframes ? t('player.transport.nextKeyframe') : t('player.transport.noKeyframes')"
 					:disabled="!hasKeyframes"
 					@click="emit('action', 'keyframeForward')"
 				>
-					<IconChevronsRight />
+					<i-ph-caret-double-right />
 				</ShellIconButton>
 			</div>
 
@@ -142,7 +131,7 @@ const button =
 						:aria-label="t('player.range.clear')"
 						@click="emit('clearRange')"
 					>
-						<IconX class="size-4" />
+						<i-ph-x class="size-4" />
 					</button>
 				</ShellTooltip>
 				<button
@@ -152,12 +141,12 @@ const button =
 					:aria-pressed="playingRange || undefined"
 					@click="hasRange && emit('action', 'playRange')"
 				>
-					<IconSkipBack class="size-4" aria-hidden="true" />
+					<i-ph-skip-back class="size-4" aria-hidden="true" />
 					{{ t("player.range.playRange") }}
-					<IconSkipForward class="size-4" aria-hidden="true" />
+					<i-ph-skip-forward class="size-4" aria-hidden="true" />
 				</button>
 				<button type="button" :class="button" :aria-pressed="loop" @click="emit('action', 'toggleLoop')">
-					<IconRepeat class="size-4" aria-hidden="true" />
+					<i-ph-repeat class="size-4" aria-hidden="true" />
 					{{ t("player.range.loop") }}
 				</button>
 			</div>

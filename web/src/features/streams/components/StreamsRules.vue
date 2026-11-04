@@ -1,8 +1,4 @@
 <script setup lang="ts">
-import IconArrowDown from "~icons/lucide/arrow-down";
-import IconArrowUp from "~icons/lucide/arrow-up";
-import IconX from "~icons/lucide/x";
-
 import { addRule, isRuleComplete, QUICK_RULES, RULE_STREAM_TYPES, type RuleDraft, type RuleMatchKind, ruleName } from "../lib/streams";
 import { move } from "~/core/libs/collections";
 import { streamTypeName } from "~/core/libs/reportFormat";
@@ -87,7 +83,7 @@ const iconButton =
 						:aria-label="t('streams.rules.up')"
 						@click="rules = move(rules, index, index - 1)"
 					>
-						<IconArrowUp class="size-4" aria-hidden="true" />
+						<i-ph-arrow-up class="size-4" aria-hidden="true" />
 					</button>
 					<button
 						type="button"
@@ -96,7 +92,7 @@ const iconButton =
 						:aria-label="t('streams.rules.down')"
 						@click="rules = move(rules, index, index + 1)"
 					>
-						<IconArrowDown class="size-4" aria-hidden="true" />
+						<i-ph-arrow-down class="size-4" aria-hidden="true" />
 					</button>
 					<button
 						type="button"
@@ -104,7 +100,7 @@ const iconButton =
 						:aria-label="t('streams.rules.remove', { rule: ruleName(rule, typeName) })"
 						@click="remove(index)"
 					>
-						<IconX class="size-4" aria-hidden="true" />
+						<i-ph-x class="size-4" aria-hidden="true" />
 					</button>
 				</span>
 			</li>

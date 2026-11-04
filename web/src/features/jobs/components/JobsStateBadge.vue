@@ -1,10 +1,4 @@
 <script setup lang="ts">
-import IconCheck from "~icons/lucide/check";
-import IconCircle from "~icons/lucide/circle";
-import IconCircleDot from "~icons/lucide/circle-dot";
-import IconMinus from "~icons/lucide/minus";
-import IconX from "~icons/lucide/x";
-
 import { JobState } from "~/generated/muxmultitool/jobs/v1/jobs_pb";
 
 /** The state of a job as the sketch draws it: a glyph and a word, coloured by outcome. */
@@ -29,11 +23,11 @@ const tone = computed(() => {
 
 <template>
 	<span class="inline-flex items-center gap-1.5 whitespace-nowrap" :class="tone">
-		<IconCircleDot v-if="state === JobState.RUNNING" class="size-3.5 animate-pulse" aria-hidden="true" />
-		<IconCheck v-else-if="state === JobState.SUCCEEDED" class="size-3.5" aria-hidden="true" />
-		<IconX v-else-if="state === JobState.FAILED" class="size-3.5" aria-hidden="true" />
-		<IconMinus v-else-if="state === JobState.CANCELLED" class="size-3.5" aria-hidden="true" />
-		<IconCircle v-else class="size-3.5" aria-hidden="true" />
+		<i-ph-record v-if="state === JobState.RUNNING" class="size-3.5 animate-pulse" aria-hidden="true" />
+		<i-ph-check v-else-if="state === JobState.SUCCEEDED" class="size-3.5" aria-hidden="true" />
+		<i-ph-x v-else-if="state === JobState.FAILED" class="size-3.5" aria-hidden="true" />
+		<i-ph-minus v-else-if="state === JobState.CANCELLED" class="size-3.5" aria-hidden="true" />
+		<i-ph-circle v-else class="size-3.5" aria-hidden="true" />
 		<span>{{ t(`jobs.state.${key}`) }}</span>
 	</span>
 </template>

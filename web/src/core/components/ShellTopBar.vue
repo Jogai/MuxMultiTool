@@ -1,9 +1,4 @@
 <script setup lang="ts">
-import IconHelp from "~icons/lucide/circle-question-mark";
-import IconMoon from "~icons/lucide/moon";
-import IconPlay from "~icons/lucide/play";
-import IconSun from "~icons/lucide/sun";
-
 import type { InfoDialogKind } from "~/core/components/ShellInfoDialog.vue";
 
 /** Top bar from the sketches: app name, breadcrumb, job indicator, theme toggle, help and the ☰ menu. */
@@ -36,15 +31,15 @@ const aboutOpen = ref(false);
 				:class="jobs.isActive ? 'text-accent' : 'text-muted'"
 				:aria-label="t('topBar.jobs.open')"
 			>
-				<IconPlay />
+				<i-ph-play />
 				<span>{{ jobs.isActive ? t("topBar.jobs.active", { running: jobs.running, queued: jobs.queued }) : t("topBar.jobs.idle") }}</span>
 			</RouterLink>
 			<ShellIconButton :label="themeLabel" :disabled="!canToggle" @click="toggleTheme()">
-				<IconSun v-if="themeVariant === 'dark'" />
-				<IconMoon v-else />
+				<i-ph-sun v-if="themeVariant === 'dark'" />
+				<i-ph-moon v-else />
 			</ShellIconButton>
 			<ShellIconButton :label="t('topBar.help')" @click="info = 'help'">
-				<IconHelp />
+				<i-ph-question />
 			</ShellIconButton>
 			<ShellMenu @select="(kind) => (kind === 'about' ? (aboutOpen = true) : (info = kind))" />
 		</div>

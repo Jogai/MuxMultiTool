@@ -1,9 +1,4 @@
 <script setup lang="ts">
-import IconArrowUp from "~icons/lucide/arrow-up";
-import IconChevronRight from "~icons/lucide/chevron-right";
-import IconFile from "~icons/lucide/file-video";
-import IconFolder from "~icons/lucide/folder";
-
 import { hasExtension, useFolderBrowser } from "~/core/composables/useFolderBrowser";
 import { pickedFromEntry } from "~/core/libs/pickedFiles";
 import type { Entry } from "~/generated/muxmultitool/files/v1/files_pb";
@@ -78,7 +73,7 @@ function chooseFolder() {
 						:disabled="browser.parentId.value === undefined"
 						@click="browser.up()"
 					>
-						<IconArrowUp class="size-4" />
+						<i-ph-arrow-up class="size-4" />
 					</button>
 					<button
 						type="button"
@@ -89,7 +84,7 @@ function chooseFolder() {
 						{{ t("filePicker.roots") }}
 					</button>
 					<template v-for="(crumb, index) in browser.breadcrumbs.value" :key="crumb.id">
-						<IconChevronRight class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+						<i-ph-caret-right class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
 						<button
 							type="button"
 							class="truncate rounded px-1 py-0.5 hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent"
@@ -110,9 +105,9 @@ function chooseFolder() {
 								class="flex w-full items-center gap-2 px-3 py-1 text-left hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent"
 								@click="browser.open(folder.id)"
 							>
-								<IconFolder class="size-4 shrink-0 text-muted" aria-hidden="true" />
+								<i-ph-folder class="size-4 shrink-0 text-muted" aria-hidden="true" />
 								<span class="truncate">{{ folder.name }}</span>
-								<IconChevronRight class="ml-auto size-3.5 shrink-0 text-muted" aria-hidden="true" />
+								<i-ph-caret-right class="ml-auto size-3.5 shrink-0 text-muted" aria-hidden="true" />
 							</button>
 						</li>
 						<li v-for="file in files" :key="file.id">
@@ -127,7 +122,7 @@ function chooseFolder() {
 									:disabled="directory"
 									@change="toggle(file)"
 								/>
-								<IconFile class="size-4 shrink-0 text-muted" aria-hidden="true" />
+								<i-ph-file-video class="size-4 shrink-0 text-muted" aria-hidden="true" />
 								<span class="truncate">{{ file.name }}</span>
 								<span class="ml-auto shrink-0 font-mono text-xs text-muted">{{ formatBytes(file.sizeBytes) }}</span>
 							</label>

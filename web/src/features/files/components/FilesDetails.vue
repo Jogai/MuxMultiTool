@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import IconX from "~icons/lucide/x";
-
 import type { AppError } from "~/core/libs/errors";
 import { audioLabel, formatBitRate, formatDuration, formatStreamSize, streamTypeName } from "~/core/libs/reportFormat";
 import { type GetStreamDetailsResponse, SizeMethod, type StreamSummary } from "~/generated/muxmultitool/files/v1/files_pb";
@@ -96,7 +94,7 @@ const figures = computed(() => {
 				:aria-label="t('files.details.close')"
 				@click="emit('close')"
 			>
-				<IconX class="size-4" />
+				<i-ph-x class="size-4" />
 			</button>
 		</header>
 

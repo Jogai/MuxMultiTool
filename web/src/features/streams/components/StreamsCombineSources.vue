@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import IconX from "~icons/lucide/x";
-
 import { isAdded, isOffsetValid, type SourceDraft, sourceLabel, type TrackDraft } from "../lib/combine";
 import type { CachedReport } from "~/core/composables/useStreamReport";
 import { formatDuration, streamTypeName } from "~/core/libs/reportFormat";
@@ -72,7 +70,7 @@ const addButton =
 					:aria-label="t('combine.sources.remove', { name: source.name })"
 					@click="emit('remove', position)"
 				>
-					<IconX class="size-4" aria-hidden="true" />
+					<i-ph-x class="size-4" aria-hidden="true" />
 				</button>
 			</header>
 			<p v-if="reportOf(source)?.error" class="px-3 py-2 text-sm text-danger">{{ reportOf(source)?.error?.message }}</p>

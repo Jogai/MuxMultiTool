@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import IconFolder from "~icons/lucide/folder";
-import IconX from "~icons/lucide/x";
-
 import { useFolderPick } from "../composables/useFolderPick";
 import { type AppError, toAppError } from "~/core/libs/errors";
 
@@ -48,13 +45,13 @@ const button =
 				:class="{ 'text-muted': !id }"
 				:title="folderLabel || undefined"
 			>
-				<IconFolder class="size-4 shrink-0" aria-hidden="true" />
+				<i-ph-folder class="size-4 shrink-0" aria-hidden="true" />
 				<span class="truncate">{{ id ? folderLabel || id : placeholder }}</span>
 			</span>
 			<button type="button" :class="button" @click="choose">{{ t("batch.folder.choose") }}</button>
 			<ShellTooltip v-if="clearable && id" :text="t('batch.folder.clear')">
 				<button type="button" :class="button" :aria-label="t('batch.folder.clear')" @click="clear">
-					<IconX class="size-4" aria-hidden="true" />
+					<i-ph-x class="size-4" aria-hidden="true" />
 				</button>
 			</ShellTooltip>
 		</div>

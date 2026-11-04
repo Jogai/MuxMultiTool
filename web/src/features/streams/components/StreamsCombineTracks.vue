@@ -1,9 +1,4 @@
 <script setup lang="ts">
-import IconArrowDown from "~icons/lucide/arrow-down";
-import IconArrowUp from "~icons/lucide/arrow-up";
-import IconGripVertical from "~icons/lucide/grip-vertical";
-import IconX from "~icons/lucide/x";
-
 import { originOf, type SourceDraft, type TrackDraft } from "../lib/combine";
 import { useDragReorder } from "~/core/composables/useDragReorder";
 import type { CachedReport } from "~/core/composables/useStreamReport";
@@ -112,7 +107,7 @@ const button =
 									@dragstart="dragging = position"
 									@dragend="dragging = undefined"
 								>
-									<IconGripVertical class="size-4" aria-hidden="true" />
+									<i-ph-dots-six-vertical class="size-4" aria-hidden="true" />
 								</span>
 							</td>
 							<td class="py-1.5 pr-3 font-mono whitespace-nowrap">
@@ -166,7 +161,7 @@ const button =
 									:aria-label="t('combine.tracks.up', { track: position + 1 })"
 									@click.stop="moveTo(position, position - 1)"
 								>
-									<IconArrowUp class="size-4" aria-hidden="true" />
+									<i-ph-arrow-up class="size-4" aria-hidden="true" />
 								</button>
 								<button
 									type="button"
@@ -175,7 +170,7 @@ const button =
 									:aria-label="t('combine.tracks.down', { track: position + 1 })"
 									@click.stop="moveTo(position, position + 1)"
 								>
-									<IconArrowDown class="size-4" aria-hidden="true" />
+									<i-ph-arrow-down class="size-4" aria-hidden="true" />
 								</button>
 								<button
 									type="button"
@@ -183,7 +178,7 @@ const button =
 									:aria-label="t('combine.tracks.remove', { track: position + 1 })"
 									@click.stop="emit('remove', position)"
 								>
-									<IconX class="size-4" aria-hidden="true" />
+									<i-ph-x class="size-4" aria-hidden="true" />
 								</button>
 							</td>
 						</tr>

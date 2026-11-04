@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import IconX from "~icons/lucide/x";
-
 import { formatGb } from "~/core/libs/reportFormat";
 
 /** One file of the selection as the per-file list shows it. */
@@ -79,7 +77,7 @@ const stateText = (file: FileSummary) => t(`streams.files.state.${file.state}`);
 						:aria-label="t('streams.files.remove', { name: file.name })"
 						@click="emit('remove', file.id)"
 					>
-						<IconX class="size-4" aria-hidden="true" />
+						<i-ph-x class="size-4" aria-hidden="true" />
 					</button>
 				</li>
 			</ul>

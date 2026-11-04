@@ -1,8 +1,4 @@
 <script setup lang="ts">
-import IconChevronRight from "~icons/lucide/chevron-right";
-import IconFolderOpen from "~icons/lucide/folder-open";
-import IconSearch from "~icons/lucide/search";
-
 import type { Entry } from "~/generated/muxmultitool/files/v1/files_pb";
 
 /**
@@ -38,7 +34,7 @@ function submit() {
 				{{ t("files.roots") }}
 			</button>
 			<template v-for="(crumb, index) in breadcrumbs" :key="crumb.id">
-				<IconChevronRight class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+				<i-ph-caret-right class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
 				<button
 					type="button"
 					class="truncate rounded px-1 py-0.5 hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent"
@@ -69,7 +65,7 @@ function submit() {
 				class="flex items-center gap-1 rounded-md border border-border px-3 py-1 hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"
 				:disabled="busy || !canFind || patterns.length === 0"
 			>
-				<IconSearch class="size-3.5" aria-hidden="true" />
+				<i-ph-magnifying-glass class="size-3.5" aria-hidden="true" />
 				{{ t("files.pattern.select") }}
 			</button>
 			<label class="flex items-center gap-1.5">
@@ -84,7 +80,7 @@ function submit() {
 			:disabled="busy"
 			@click="emit('open')"
 		>
-			<IconFolderOpen class="size-4" aria-hidden="true" />
+			<i-ph-folder-open class="size-4" aria-hidden="true" />
 			{{ t("files.open") }}
 		</button>
 	</div>

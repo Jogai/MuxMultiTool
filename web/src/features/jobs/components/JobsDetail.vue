@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import IconX from "~icons/lucide/x";
-
 import { type Job, JobState } from "~/generated/muxmultitool/jobs/v1/jobs_pb";
 
 /**
@@ -96,7 +94,7 @@ const logClipboard = useClipboard();
 					:aria-label="t('jobs.actions.close')"
 					@click="emit('close')"
 				>
-					<IconX class="size-4" />
+					<i-ph-x class="size-4" />
 				</button>
 			</div>
 		</header>

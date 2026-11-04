@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import IconMenu from "~icons/lucide/menu";
-
 import type { InfoDialogKind } from "~/core/components/ShellInfoDialog.vue";
 
 /** The ☰ menu in the top bar: Help and About (TASK-48). */
@@ -16,7 +14,7 @@ const { t } = useI18n();
 				class="flex size-9 items-center justify-center rounded-md text-muted hover:bg-surface-sunken hover:text-text focus-visible:outline-2 focus-visible:outline-accent data-[state=open]:bg-surface-sunken"
 				:aria-label="t('topBar.menu')"
 			>
-				<IconMenu />
+				<i-ph-list />
 			</button>
 		</RekaDropdownMenuTrigger>
 		<RekaDropdownMenuPortal>

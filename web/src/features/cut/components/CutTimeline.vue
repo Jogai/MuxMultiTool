@@ -1,8 +1,4 @@
 <script setup lang="ts">
-import IconMagnet from "~icons/lucide/magnet";
-import IconZoomIn from "~icons/lucide/zoom-in";
-import IconZoomOut from "~icons/lucide/zoom-out";
-
 import { formatTimecode } from "~/core/libs/format";
 import type { ThumbnailSheet } from "~/generated/muxmultitool/media/v1/media_pb";
 
@@ -452,7 +448,7 @@ defineExpose({ zoomIn, zoomOut, zoomFit, zoomToSegment });
 			<div class="flex items-center gap-1" role="group" :aria-label="t('cut.timeline.zoom')">
 				<span>{{ t("cut.timeline.zoom") }}</span>
 				<ShellIconButton :label="t('cut.timeline.zoomOut')" @click="zoomOut">
-					<IconZoomOut class="size-4" />
+					<i-ph-magnifying-glass-minus class="size-4" />
 				</ShellIconButton>
 				<input
 					type="range"
@@ -465,7 +461,7 @@ defineExpose({ zoomIn, zoomOut, zoomFit, zoomToSegment });
 					@input="setZoomFraction"
 				/>
 				<ShellIconButton :label="t('cut.timeline.zoomIn')" @click="zoomIn">
-					<IconZoomIn class="size-4" />
+					<i-ph-magnifying-glass-plus class="size-4" />
 				</ShellIconButton>
 				<button type="button" class="rounded px-1.5 py-0.5 hover:bg-surface-sunken hover:text-text" @click="zoomFit">
 					{{ t("cut.timeline.fit") }}
@@ -478,7 +474,7 @@ defineExpose({ zoomIn, zoomOut, zoomFit, zoomToSegment });
 					:aria-pressed="snapping"
 					@click="snapping = !snapping"
 				>
-					<IconMagnet class="size-3.5" aria-hidden="true" />
+					<i-ph-magnet class="size-3.5" aria-hidden="true" />
 					{{ t("cut.timeline.snap") }}
 				</button>
 			</ShellTooltip>

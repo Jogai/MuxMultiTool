@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import IconDownload from "~icons/lucide/download";
-import IconFolderOpen from "~icons/lucide/folder-open";
-
 import { downloadUrl, jobOutputPath, siblingFileId } from "../lib/outputs";
 import { jobLink } from "~/core/libs/navigation";
 import { Code } from "@connectrpc/connect";
@@ -84,7 +81,7 @@ async function reveal(path: string) {
 				download
 				class="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1 hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent"
 			>
-				<IconDownload class="size-4" aria-hidden="true" />
+				<i-ph-download-simple class="size-4" aria-hidden="true" />
 				{{ t("images.job.download") }}
 			</a>
 			<button
@@ -93,7 +90,7 @@ async function reveal(path: string) {
 				class="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1 hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent"
 				@click="reveal(revealPath)"
 			>
-				<IconFolderOpen class="size-4" aria-hidden="true" />
+				<i-ph-folder-open class="size-4" aria-hidden="true" />
 				{{ t("images.job.showInFolder") }}
 			</button>
 		</p>

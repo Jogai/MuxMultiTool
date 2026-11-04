@@ -1,9 +1,4 @@
 <script setup lang="ts">
-import IconCaptions from "~icons/lucide/captions";
-import IconKeyboard from "~icons/lucide/keyboard";
-import IconVolume from "~icons/lucide/volume-2";
-import IconVolumeOff from "~icons/lucide/volume-x";
-
 import { PreviewMode } from "~/generated/muxmultitool/media/v1/media_pb";
 
 import { useFileStreams } from "../composables/useFileStreams";
@@ -314,7 +309,7 @@ defineExpose({ seek, play, pause, stepFrames, stepKeyframes, run, currentTime: r
 
 			<div class="ml-auto flex items-center gap-1">
 				<label class="flex items-center gap-1.5">
-					<IconCaptions class="size-4 text-muted" aria-hidden="true" />
+					<i-ph-subtitles class="size-4 text-muted" aria-hidden="true" />
 					<span class="sr-only">{{ t("player.subtitles.label") }}</span>
 					<select
 						class="h-8 rounded-md border border-border bg-surface-sunken px-1.5 text-sm focus-visible:outline-2 focus-visible:outline-accent"
@@ -334,11 +329,11 @@ defineExpose({ seek, play, pause, stepFrames, stepKeyframes, run, currentTime: r
 				</label>
 				<span v-if="subtitles.status.value === 'loading'" class="text-xs text-muted">{{ t("player.subtitles.loading") }}</span>
 				<ShellIconButton :label="muted ? t('player.unmute') : t('player.mute')" @click="run('toggleMute')">
-					<IconVolumeOff v-if="muted" />
-					<IconVolume v-else />
+					<i-ph-speaker-x v-if="muted" />
+					<i-ph-speaker-high v-else />
 				</ShellIconButton>
 				<ShellIconButton :label="t('player.shortcuts.open')" @click="shortcutsOpen = true">
-					<IconKeyboard />
+					<i-ph-keyboard />
 				</ShellIconButton>
 			</div>
 		</header>

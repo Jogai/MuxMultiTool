@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import IconChevronRight from "~icons/lucide/chevron-right";
-import IconFolder from "~icons/lucide/folder";
-import IconFolderOpen from "~icons/lucide/folder-open";
 import type { FlattenedItem } from "reka-ui";
 
 import type { FolderNode } from "../lib/folderTree";
@@ -76,13 +73,10 @@ function onToggle(event: TreeEvent): void {
 					aria-hidden="true"
 					@click.stop="handleToggle"
 				>
-					<IconChevronRight class="size-3.5 transition-transform" :class="{ 'rotate-90': isExpanded }" />
+					<i-ph-caret-right class="size-3.5 transition-transform" :class="{ 'rotate-90': isExpanded }" />
 				</span>
-				<component
-					:is="isExpanded ? IconFolderOpen : IconFolder"
-					class="size-4 shrink-0"
-					:class="isCurrent ? 'text-accent' : 'text-muted'"
-				/>
+				<i-ph-folder-open v-if="isExpanded" class="size-4 shrink-0" :class="isCurrent ? 'text-accent' : 'text-muted'" />
+				<i-ph-folder v-else class="size-4 shrink-0" :class="isCurrent ? 'text-accent' : 'text-muted'" />
 				<span class="truncate py-1">{{ node.entry.name }}</span>
 			</div>
 			<div

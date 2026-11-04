@@ -1,9 +1,4 @@
 <script setup lang="ts">
-import IconArrowDown from "~icons/lucide/arrow-down";
-import IconArrowUp from "~icons/lucide/arrow-up";
-import IconGripVertical from "~icons/lucide/grip-vertical";
-import IconX from "~icons/lucide/x";
-
 import { useDragReorder } from "~/core/composables/useDragReorder";
 import { formatDuration } from "~/core/libs/reportFormat";
 import type { Entry } from "~/generated/muxmultitool/files/v1/files_pb";
@@ -64,7 +59,7 @@ const button =
 							@dragstart="dragging = index"
 							@dragend="dragging = undefined"
 						>
-							<IconGripVertical aria-hidden="true" />
+							<i-ph-dots-six-vertical aria-hidden="true" />
 						</span>
 					</td>
 					<td class="py-1.5 text-muted">{{ index + 1 }}</td>
@@ -79,7 +74,7 @@ const button =
 							:aria-label="t('merge.order.up', { name: file.name })"
 							@click="moveTo(index, index - 1)"
 						>
-							<IconArrowUp aria-hidden="true" />
+							<i-ph-arrow-up aria-hidden="true" />
 						</button>
 						<button
 							type="button"
@@ -88,7 +83,7 @@ const button =
 							:aria-label="t('merge.order.down', { name: file.name })"
 							@click="moveTo(index, index + 1)"
 						>
-							<IconArrowDown aria-hidden="true" />
+							<i-ph-arrow-down aria-hidden="true" />
 						</button>
 						<button
 							type="button"
@@ -96,7 +91,7 @@ const button =
 							:aria-label="t('merge.order.remove', { name: file.name })"
 							@click="emit('remove', file.id)"
 						>
-							<IconX aria-hidden="true" />
+							<i-ph-x aria-hidden="true" />
 						</button>
 					</td>
 				</tr>

@@ -18,10 +18,20 @@ import Layouts from "vite-plugin-vue-layouts-next";
 import { VueRouterAutoImports } from "vue-router/unplugin";
 import VueRouter from "vue-router/vite";
 
+import phosphor from "@iconify-json/ph/icons.json" with { type: "json" };
+
 import pkg from "./package.json" with { type: "json" };
 
 const VUE_FILE_REGEX = /\.vue$/;
 const VUE_QUERY_REGEX = /\.vue\?vue/;
+
+/**
+ * Own icons, used as `<i-mmt-*>`. Combine is Phosphor's tree-view turned a quarter to the left, then
+ * mirrored left to right, so its branches read as several sources joining into one output.
+ */
+const MMT_ICONS: Record<string, string> = {
+	combine: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><g transform="translate(256 0) scale(-1 1) rotate(-90 128 128)">${phosphor.icons["tree-view"].body}</g></svg>`
+};
 
 // The axum server in development (`cargo run -p server`)
 const BACKEND = "http://127.0.0.1:8080";
@@ -104,6 +114,7 @@ export default defineConfig((): UserConfig => {
 			// https://github.com/unplugin/unplugin-icons
 			Icons({
 				compiler: "vue3",
+				customCollections: { mmt: MMT_ICONS },
 				autoInstall: false // icon set is a normal dependency, so CI installs from the lockfile only
 			}),
 
@@ -111,7 +122,7 @@ export default defineConfig((): UserConfig => {
 			Components({
 				dirs: ["src/core/components", "src/features/*/components"],
 				resolvers: [
-					IconsResolver(),
+					IconsResolver({ customCollections: ["mmt"] }),
 					// https://reka-ui.com/docs/overview/installation: <RekaDialogRoot>, <RekaSelectTrigger>, …
 					RekaResolver({ prefix: "Reka" })
 				],

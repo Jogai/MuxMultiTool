@@ -1,11 +1,4 @@
 <script setup lang="ts">
-import IconKeyboard from "~icons/lucide/keyboard";
-import IconPlus from "~icons/lucide/plus";
-import IconRedo from "~icons/lucide/redo-2";
-import IconScissors from "~icons/lucide/scissors";
-import IconTrash from "~icons/lucide/trash";
-import IconUndo from "~icons/lucide/undo-2";
-
 import { type AppError, toAppError } from "~/core/libs/errors";
 import { entriesForPicked } from "~/core/libs/pickedFiles";
 import { useRpcClient } from "~/core/libs/rpc";
@@ -308,37 +301,37 @@ const toolButton =
 			<div class="flex flex-wrap items-center gap-2">
 				<ShellTooltip :text="t('cut.actions.undoHint')">
 					<button type="button" :class="toolButton" :disabled="!project.canUndo.value" @click="run('undo')">
-						<IconUndo class="size-4" aria-hidden="true" />
+						<i-ph-arrow-counter-clockwise class="size-4" aria-hidden="true" />
 						{{ t("cut.actions.undo") }}
 					</button>
 				</ShellTooltip>
 				<ShellTooltip :text="t('cut.actions.redoHint')">
 					<button type="button" :class="toolButton" :disabled="!project.canRedo.value" @click="run('redo')">
-						<IconRedo class="size-4" aria-hidden="true" />
+						<i-ph-arrow-clockwise class="size-4" aria-hidden="true" />
 						{{ t("cut.actions.redo") }}
 					</button>
 				</ShellTooltip>
 				<span class="mx-1 h-5 w-px bg-border" aria-hidden="true" />
 				<ShellTooltip :text="t('cut.actions.addHint')">
 					<button type="button" :class="toolButton" :disabled="!(duration > 0)" @click="run('addSegment')">
-						<IconPlus class="size-4" aria-hidden="true" />
+						<i-ph-plus class="size-4" aria-hidden="true" />
 						{{ range.start !== undefined && range.end !== undefined ? t("cut.actions.addRange") : t("cut.actions.add") }}
 					</button>
 				</ShellTooltip>
 				<ShellTooltip :text="t('cut.actions.splitHint')">
 					<button type="button" :class="toolButton" :disabled="!segmentAt(state.segments, currentTime)" @click="run('splitAtPlayhead')">
-						<IconScissors class="size-4" aria-hidden="true" />
+						<i-ph-scissors class="size-4" aria-hidden="true" />
 						{{ t("cut.actions.split") }}
 					</button>
 				</ShellTooltip>
 				<ShellTooltip :text="t('cut.actions.deleteHint')">
 					<button type="button" :class="toolButton" :disabled="!selected" @click="run('deleteSegment')">
-						<IconTrash class="size-4" aria-hidden="true" />
+						<i-ph-trash class="size-4" aria-hidden="true" />
 						{{ t("cut.actions.delete") }}
 					</button>
 				</ShellTooltip>
 				<ShellIconButton class="ml-auto" :label="t('cut.shortcuts.open')" @click="shortcutsOpen = true">
-					<IconKeyboard />
+					<i-ph-keyboard />
 				</ShellIconButton>
 			</div>
 

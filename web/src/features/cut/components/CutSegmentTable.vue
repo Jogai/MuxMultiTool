@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import IconLocate from "~icons/lucide/locate";
-import IconTrash from "~icons/lucide/trash";
-
 import { formatTimecode } from "~/core/libs/format";
 
 import { type Segment, type TimeError, validateTimes } from "../lib/segments";
@@ -87,10 +84,10 @@ function setTime(segment: Segment, edge: "start" | "end", seconds: number): void
 						<td class="py-1">
 							<div class="flex items-center justify-end gap-0.5">
 								<ShellIconButton :label="t('cut.segments.goTo', { n: index + 1 })" @click="emit('seek', segment.start)">
-									<IconLocate class="size-4" />
+									<i-ph-crosshair class="size-4" />
 								</ShellIconButton>
 								<ShellIconButton :label="t('cut.segments.remove', { n: index + 1 })" @click="emit('remove', segment.id)">
-									<IconTrash class="size-4" />
+									<i-ph-trash class="size-4" />
 								</ShellIconButton>
 							</div>
 						</td>

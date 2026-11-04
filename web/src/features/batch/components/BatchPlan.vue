@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import IconChevronDown from "~icons/lucide/chevron-down";
-import IconChevronRight from "~icons/lucide/chevron-right";
-
 import type { PlanRow } from "../lib/batch";
 import { toggled } from "~/core/libs/collections";
 
@@ -66,8 +63,8 @@ const cell = "py-1 pr-3 align-top";
 									:aria-label="open.has(row.id) ? t('batch.plan.hide', { name: row.input }) : t('batch.plan.show', { name: row.input })"
 									@click="toggle(row.id)"
 								>
-									<IconChevronDown v-if="open.has(row.id)" class="size-4" aria-hidden="true" />
-									<IconChevronRight v-else class="size-4" aria-hidden="true" />
+									<i-ph-caret-down v-if="open.has(row.id)" class="size-4" aria-hidden="true" />
+									<i-ph-caret-right v-else class="size-4" aria-hidden="true" />
 								</button>
 							</td>
 							<td :class="cell" class="font-mono whitespace-nowrap" :title="row.inputPath || undefined">{{ row.input }}</td>

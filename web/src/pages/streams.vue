@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import IconKeyboard from "~icons/lucide/keyboard";
-import IconStar from "~icons/lucide/star";
-
 import { useStreamReport } from "~/core/composables/useStreamReport";
 import { type AppError, toAppError } from "~/core/libs/errors";
 import { entriesForPicked } from "~/core/libs/pickedFiles";
@@ -260,7 +257,7 @@ const segment =
 				class="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent"
 				@click="savePresetOpen = true"
 			>
-				<IconStar class="size-4" aria-hidden="true" />
+				<i-ph-star class="size-4" aria-hidden="true" />
 				{{ t("streams.savePreset") }}
 			</button>
 			<ShellTooltip :text="t('streams.shortcuts.open')">
@@ -270,7 +267,7 @@ const segment =
 					:aria-label="t('streams.shortcuts.open')"
 					@click="shortcutsOpen = true"
 				>
-					<IconKeyboard class="size-4" aria-hidden="true" />
+					<i-ph-keyboard class="size-4" aria-hidden="true" />
 				</button>
 			</ShellTooltip>
 		</header>

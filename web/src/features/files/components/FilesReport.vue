@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import IconChevronRight from "~icons/lucide/chevron-right";
-
 import { toggled } from "~/core/libs/collections";
 import type { AppError } from "~/core/libs/errors";
 import { formatGb, formatStreamSize, streamTypeName } from "~/core/libs/reportFormat";
@@ -135,7 +133,7 @@ const rowClass = (fileId: string, stream: StreamSummary) => (isSelected(fileId, 
 								"
 								@click="toggleCollapsed(report.fileId)"
 							>
-								<IconChevronRight class="size-3.5 shrink-0 transition-transform" :class="{ 'rotate-90': !collapsed.has(report.fileId) }" />
+								<i-ph-caret-right class="size-3.5 shrink-0 transition-transform" :class="{ 'rotate-90': !collapsed.has(report.fileId) }" />
 								<span class="truncate font-bold">{{ reportName(report) }}</span>
 								<span v-if="report.error" class="shrink-0 text-xs">· {{ t("files.report.failed") }}</span>
 								<span v-else class="shrink-0 text-xs text-muted">

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import IconKeyboard from "~icons/lucide/keyboard";
-
 import { useStreamReport } from "~/core/composables/useStreamReport";
 import { type AppError, toAppError } from "~/core/libs/errors";
 import { entriesForPicked } from "~/core/libs/pickedFiles";
@@ -154,7 +152,7 @@ const field = "rounded-md border border-border bg-surface px-2 py-1 text-sm";
 					:aria-label="t('combine.shortcuts.open')"
 					@click="shortcutsOpen = true"
 				>
-					<IconKeyboard class="size-4" aria-hidden="true" />
+					<i-ph-keyboard class="size-4" aria-hidden="true" />
 				</button>
 			</ShellTooltip>
 		</header>
