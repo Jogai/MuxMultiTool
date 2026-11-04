@@ -12,6 +12,11 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AboutDialog: typeof import('./core/components/AboutDialog.vue')['default']
+    CutSegmentTable: typeof import('./features/cut/components/CutSegmentTable.vue')['default']
+    CutSettings: typeof import('./features/cut/components/CutSettings.vue')['default']
+    CutShortcutsDialog: typeof import('./features/cut/components/CutShortcutsDialog.vue')['default']
+    CutSplitDialog: typeof import('./features/cut/components/CutSplitDialog.vue')['default']
+    CutTimeField: typeof import('./features/cut/components/CutTimeField.vue')['default']
     CutTimeline: typeof import('./features/cut/components/CutTimeline.vue')['default']
     ErrorPanel: typeof import('./core/components/ErrorPanel.vue')['default']
     FilePickerDialog: typeof import('./core/components/FilePickerDialog.vue')['default']

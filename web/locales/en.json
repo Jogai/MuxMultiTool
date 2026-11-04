@@ -190,9 +190,8 @@
 		},
 		"cut": {
 			"description": "Player, timeline with thumbnails and waveform, segments, keyframe, normal and smart cut.",
-			"task": "TASK-32",
 			"open": "Open file…",
-			"empty": "Open a file to play its preview; the timeline and the segment list come with the editor."
+			"empty": "Open a file to edit it: the preview plays on top, the timeline with thumbnails, waveform, segments and keyframes sits under it, and the segment list and cut settings follow."
 		},
 		"images": {
 			"description": "GIF, snapshots, cover art and lossless crop.",
@@ -616,6 +615,160 @@
 				"copyCommand": "Copy the command",
 				"queue": "Queue the job",
 				"showShortcuts": "Show this list"
+			}
+		}
+	},
+	"cut": {
+		"status": {
+			"idle": "",
+			"loading": "Loading the project…",
+			"saved": "Project saved ✓",
+			"saving": "Saving…",
+			"error": "The project could not be saved",
+			"changed": "Project saved ✓ · the file changed since the segments were saved; check that they still fit",
+			"missing": "Project saved ✓ · the file is no longer where it was"
+		},
+		"actions": {
+			"undo": "Undo",
+			"undoHint": "Undo the last change (Ctrl+Z)",
+			"redo": "Redo",
+			"redoHint": "Redo the undone change (Ctrl+Shift+Z)",
+			"add": "Add segment",
+			"addRange": "Add segment from range",
+			"addHint": "A segment from the player's range (set with I and O), or from the playhead to the end (A)",
+			"split": "Split at playhead",
+			"splitHint": "Split the segment under the playhead in two (S)",
+			"delete": "Delete",
+			"deleteHint": "Delete the selected segment (Delete)"
+		},
+		"timeline": {
+			"title": "Timeline",
+			"zoom": "Zoom",
+			"zoomIn": "Zoom in",
+			"zoomOut": "Zoom out",
+			"fit": "Fit",
+			"snap": "Snap",
+			"snapHint": "Snap segment edges to keyframes and the playhead; hold Alt while dragging to skip it",
+			"waveformFrom": "Waveform from",
+			"waveformOff": "off",
+			"noAudio": "No audio stream",
+			"analysing": "Analysing the audio… {time}",
+			"keyframesLoading": "Reading keyframes…",
+			"thumbnailsLoading": "Generating thumbnails…",
+			"lanes": {
+				"time": "Time",
+				"thumbnails": "Thumbnails",
+				"waveform": "Waveform",
+				"segments": "Segments",
+				"keyframes": "Keyframes"
+			},
+			"segmentLabel": "Segment {n}",
+			"segmentName": "Segment {n}, {start} – {end}",
+			"dragHint": "Drag here to create a segment",
+			"scrollHint": "Drag to scroll; Ctrl + wheel zooms"
+		},
+		"segments": {
+			"title": "Segments",
+			"empty": "No segments yet. Drag on the timeline's segment lane, set a range in the player with I and O and add it, or use Split…",
+			"start": "Start",
+			"end": "End",
+			"length": "Length",
+			"actions": "Actions",
+			"startOf": "Start of segment {n}",
+			"endOf": "End of segment {n}",
+			"goTo": "Go to the start of segment {n}",
+			"remove": "Delete segment {n}",
+			"typeHint": "Type a time such as 12:34.5, 0:12:34.567, 1h2m3s or 754.5 and press Enter",
+			"errors": {
+				"invalid": "That is not a time.",
+				"negative": "A time cannot be negative.",
+				"pastEnd": "The time is past the end of the file.",
+				"startAfterEnd": "The end must be after the start."
+			}
+		},
+		"mode": {
+			"segments": "Mode",
+			"keep": "Keep segments",
+			"keepHint": "Export the segments; the rest is dropped.",
+			"remove": "Remove segments",
+			"removeHint": "Export everything except the segments.",
+			"cut": "Cut",
+			"keyframe": "Keyframe",
+			"keyframeHint": "Lossless: each part starts at the last keyframe before its start, so nothing after the start is lost and up to one GOP is added in front.",
+			"normal": "Normal",
+			"normalHint": "Lossless: each part starts exactly at its start; the picture joins at the next keyframe, so it can stay black for up to one GOP.",
+			"smart": "Smart",
+			"smartHint": "Frame-accurate: the frames around each cut are re-encoded with the source's codec, everything else is copied.",
+			"smartChecking": "Checking whether this file can be smart cut…",
+			"smartUnsupported": "Not available for this file: {reason}",
+			"smartSummary": "Re-encodes ~{seconds} s around {points} cut points ({encoder}). The rest is copied losslessly."
+		},
+		"export": {
+			"title": "Export as",
+			"separate": "Separate files",
+			"merged": "One merged file",
+			"mergedHint": "The parts are joined with the concat demuxer; needs a video stream and a container that seeks by keyframe.",
+			"output": "Output",
+			"outputHintSeparate": "A template inside a media root: {'{n}'} is the part number, {'{start}'} and {'{end}'} its times; a name without a placeholder gets {'-{n}'}. The files must not exist yet.",
+			"outputHintMerged": "A file inside a media root; without an extension it takes the input's. It must not exist yet.",
+			"start": "Export",
+			"submitting": "Submitting…",
+			"submitted": "Cut queued: {name}.",
+			"viewJob": "View progress in Jobs"
+		},
+		"plan": {
+			"title": "Plan",
+			"planning": "Planning…",
+			"none": "Add a segment and an output to see where the cuts land and the command that will run.",
+			"snapped": "(asked {time})",
+			"total": "{time} in {n} file | {time} in {n} files",
+			"command": "Command that will run"
+		},
+		"split": {
+			"open": "Split…",
+			"title": "Split the file",
+			"body": "Replaces the segments with parts cut at keyframes: by a longest duration, a largest size or a number of parts. Review them on the timeline before exporting.",
+			"by": "Split by",
+			"modes": {
+				"duration": "Max duration",
+				"size": "Max file size",
+				"count": "Number of parts"
+			},
+			"errors": {
+				"duration": "Type a duration such as 10:00 or 600.",
+				"size": "Type a size above zero.",
+				"count": "Type a whole number of parts from 2 to 1000."
+			},
+			"preview": "Preview",
+			"planning": "Planning…",
+			"summary": "{n} part · {duration} · {size} | {n} parts · {duration} · {size}",
+			"estimated": "Est. size",
+			"apply": "Use {n} part | Use {n} parts",
+			"cancel": "Cancel"
+		},
+		"shortcuts": {
+			"title": "Timeline shortcuts",
+			"open": "Timeline shortcuts",
+			"body": "Fixed shortcuts for the timeline and segments; the player's own are behind its keyboard button.",
+			"actions": {
+				"undo": "Undo",
+				"redo": "Redo",
+				"zoomIn": "Zoom in",
+				"zoomOut": "Zoom out",
+				"zoomFit": "Fit the whole file",
+				"addSegment": "Add a segment from the range, or from the playhead",
+				"splitAtPlayhead": "Split the segment under the playhead",
+				"deleteSegment": "Delete the selected segment"
+			},
+			"wheelZoom": "Zoom around the pointer",
+			"wheel": "wheel",
+			"dragFree": "Drag without snapping",
+			"segment": {
+				"title": "With a segment focused (Tab to the segment lane)",
+				"move": "Move it by a frame",
+				"start": "Move its start by a frame",
+				"end": "Move its end by a frame",
+				"select": "Previous / next segment"
 			}
 		}
 	}
