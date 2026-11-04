@@ -445,5 +445,178 @@
 				"showShortcuts": "Show this list"
 			}
 		}
+	},
+	"streams": {
+		"description": "Tick streams to keep or drop, filter by language, codec or stream id, or extract tracks to files; the streams are copied, never re-encoded.",
+		"empty": "No files yet. Select files on the Files screen, or add them here.",
+		"extractNote": "Extraction writes every ticked stream to a file of its own. Rules do not apply here; untick what you do not want.",
+		"action": {
+			"label": "Operation",
+			"copy": "Copy streams",
+			"extract": "Extract tracks"
+		},
+		"container": "Target container: {container}",
+		"checking": "Checking…",
+		"resolve": "Resolve the issues in {n} file first | Resolve the issues in {n} files first",
+		"queue": "Queue {n} job | Queue {n} jobs",
+		"submitted": "{n} job queued: | {n} jobs queued:",
+		"rules": {
+			"title": "Rules",
+			"applyTo": "apply to {n} file | apply to all {n} files",
+			"empty": "No rules yet: every stream is kept. Rules apply to every file; the ticks below override them per file.",
+			"videoOnlyNote": "Video only: audio, subtitles, attachments and data are dropped; the rules are not applied.",
+			"add": "Add rule:",
+			"addButton": "Add",
+			"action": "Action",
+			"drop": "Drop",
+			"keep": "Keep",
+			"type": "Stream type",
+			"anyType": "any stream",
+			"where": "where",
+			"match": "Match by",
+			"matches": {
+				"language": "language",
+				"codec": "codec",
+				"streamIndex": "stream id"
+			},
+			"value": "Value",
+			"placeholder": {
+				"language": "eng",
+				"codec": "dts",
+				"streamIndex": "2"
+			},
+			"up": "Move rule up",
+			"down": "Move rule down",
+			"remove": "Remove rule {rule}",
+			"quick": "Quick:",
+			"quickChips": {
+				"videoOnly": "Video only",
+				"englishAudio": "English audio only",
+				"dropFrench": "Drop French",
+				"dropDts": "Drop DTS"
+			},
+			"untagged": "Streams without a language tag",
+			"untaggedKeep": "keep",
+			"untaggedDrop": "drop"
+		},
+		"table": {
+			"title": "Streams of {name}",
+			"keep": "Keep",
+			"why": "Why",
+			"file": "File",
+			"keepStream": "Keep stream #{index}",
+			"tickedByHand": "ticked by hand",
+			"untickedByHand": "unticked by hand",
+			"extracted": "extracted",
+			"result": "Result: {kept} of {total} streams",
+			"loading": "Resolving…",
+			"reset": "Reset to rules",
+			"resetAll": "Tick all"
+		},
+		"files": {
+			"title": "Per file | Per file ({n})",
+			"streams": "{kept} / {total} streams",
+			"extractFiles": "{n} file | {n} files",
+			"warnings": "{n} warning | {n} warnings",
+			"state": {
+				"loading": "Checking…",
+				"ready": "Ready",
+				"blocked": "Blocked",
+				"error": "Failed"
+			},
+			"remove": "Remove {name} from the selection",
+			"add": "Add files…"
+		},
+		"output": {
+			"title": "Output",
+			"container": "Container",
+			"folder": "Output folder",
+			"sameAsSource": "Same as source",
+			"folderHint": "An absolute folder inside a media root. Empty puts the output next to its input.",
+			"template": "Filename template",
+			"templateHint": "{'{name}'} is the input's name without extension, {'{ext}'} the container's extension. The file must not exist yet.",
+			"extractNames": "The files are named after the input, the stream and its codec, e.g. clip.s1.audio.eng.aac; existing files are never overwritten."
+		},
+		"command": {
+			"title": "Command · {name}",
+			"copy": "Copy",
+			"copied": "Copied",
+			"none": "The command appears once the preview is in."
+		},
+		"notices": {
+			"title": "Before you queue"
+		},
+		"shortcuts": {
+			"title": "Keyboard shortcuts",
+			"open": "Keyboard shortcuts",
+			"body": "Fixed shortcuts; they work while no text field has the focus.",
+			"actions": {
+				"toggleStream": "Tick / untick stream #0 – #9 of the active file",
+				"previousFile": "Previous file",
+				"nextFile": "Next file",
+				"toggleVideoOnly": "Video only on / off",
+				"toggleExtract": "Switch between copy and extract",
+				"resetTicks": "Reset the active file's ticks to the rules",
+				"newRule": "New rule (focus the value field)",
+				"copyCommand": "Copy the command",
+				"queue": "Queue the jobs",
+				"showShortcuts": "Show this list"
+			}
+		}
+	},
+	"combine": {
+		"description": "Build one file from streams of several sources: add English subtitles from another file, or video from one release with audio from another. Streams are copied, never re-encoded.",
+		"command": "Command that will run",
+		"queue": "Queue job",
+		"needTrack": "Add at least one track from a source.",
+		"resolve": "Resolve {n} problem first | Resolve {n} problems first",
+		"submitted": "Combine queued: {name}.",
+		"viewJob": "View progress in Jobs",
+		"sources": {
+			"title": "Sources",
+			"empty": "No sources yet. Select files on the Files screen, or add them here.",
+			"loading": "reading…",
+			"add": "+ add",
+			"added": "added",
+			"remove": "Remove source {name}",
+			"offset": "Shift source {label} by",
+			"addSource": "Add source…"
+		},
+		"tracks": {
+			"title": "Output tracks",
+			"hint": "drag to reorder",
+			"empty": "No tracks yet. Add streams from the sources on the left.",
+			"track": "Track",
+			"default": "Default",
+			"forced": "Forced",
+			"actions": "Actions",
+			"drag": "Drag to reorder",
+			"languageOf": "Language of track {track}",
+			"titleOf": "Title of track {track}",
+			"defaultOf": "Track {track} is the default of its kind",
+			"forcedOf": "Track {track} is forced",
+			"up": "Move track {track} up",
+			"down": "Move track {track} down",
+			"remove": "Remove track {track}"
+		},
+		"output": {
+			"file": "Output file",
+			"nextToFirst": "Next to source A",
+			"hint": "{'{name}'} is source A's name without extension, {'{ext}'} the container's extension. The file must not exist yet."
+		},
+		"shortcuts": {
+			"title": "Keyboard shortcuts",
+			"open": "Keyboard shortcuts",
+			"body": "Fixed shortcuts; they work while no text field has the focus. The track shortcuts act on the last clicked track.",
+			"actions": {
+				"addSource": "Add a source",
+				"trackUp": "Move the track up",
+				"trackDown": "Move the track down",
+				"removeTrack": "Remove the track",
+				"copyCommand": "Copy the command",
+				"queue": "Queue the job",
+				"showShortcuts": "Show this list"
+			}
+		}
 	}
 }
