@@ -1,7 +1,7 @@
 import { isDesktop } from "~/core/libs/filePicker";
 
 /** Where the project lives and where the license text is published (architecture.md, "Decisions – License"). */
-export const REPOSITORY_URL = "https://github.com/muxmultitool/muxmultitool";
+export const REPOSITORY_URL = "https://github.com/Jogai/MuxMultiTool";
 export const LICENSE_ID = "GPL-3.0-or-later";
 export const LICENSE_URL = "https://www.gnu.org/licenses/gpl-3.0.html";
 

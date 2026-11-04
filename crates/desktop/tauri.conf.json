@@ -1,6 +1,6 @@
 {
 	"productName": "MuxMultiTool",
-	"identifier": "io.github.muxmultitool.muxmultitool",
+	"identifier": "io.github.jogai.muxmultitool",
 	"build": {
 		"beforeBuildCommand": "",
 		"beforeDevCommand": ""
@@ -17,7 +17,7 @@
 		"targets": ["nsis", "app", "dmg", "deb", "appimage"],
 		"license": "GPL-3.0-or-later",
 		"publisher": "MuxMultiTool",
-		"homepage": "https://github.com/muxmultitool/muxmultitool",
+		"homepage": "https://github.com/Jogai/MuxMultiTool",
 		"category": "Video",
 		"shortDescription": "Self-hostable ffmpeg GUI for lossless cutting, remuxing and stream selection",
 		"longDescription": "MuxMultiTool cuts, remuxes and selects streams of media files without re-encoding, with ffmpeg and ffprobe bundled.",

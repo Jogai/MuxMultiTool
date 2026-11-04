@@ -5,7 +5,7 @@
 # already point at /media and /data, so only the mounts are required.
 services:
   muxmultitool:
-    image: ghcr.io/muxmultitool/muxmultitool:latest
+    image: ghcr.io/jogai/muxmultitool:latest
     container_name: muxmultitool
     restart: unless-stopped
     ports:

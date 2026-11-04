@@ -44,7 +44,7 @@ FROM scratch
 ARG FFMPEG_IMAGE
 LABEL org.opencontainers.image.title="MuxMultiTool" \
 	org.opencontainers.image.description="Self-hostable ffmpeg GUI: lossless cutting, remuxing and stream selection" \
-	org.opencontainers.image.source="https://github.com/muxmultitool/muxmultitool" \
+	org.opencontainers.image.source="https://github.com/Jogai/MuxMultiTool" \
 	org.opencontainers.image.licenses="GPL-3.0-or-later" \
 	org.opencontainers.image.base.name="${FFMPEG_IMAGE}"
 

@@ -40,7 +40,8 @@ env:
   CARGO_INCREMENTAL: 0
   NODE_VERSION: 26
   ZIG_VERSION: 0.17.0
-  IMAGE: ghcr.io/${{ github.repository }}
+  # Lowercase: ghcr.io refuses the capitals of the repository name (Jogai/MuxMultiTool).
+  IMAGE: ghcr.io/jogai/muxmultitool
   # The label that carries the build hash; the next run compares against it.
   HASH_LABEL: org.muxmultitool.build-hash
 
