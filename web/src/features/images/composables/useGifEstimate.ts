@@ -1,7 +1,7 @@
 import type { Client } from "@connectrpc/connect";
 import type { MaybeRefOrGetter } from "vue";
 
-import { useDebouncedCall } from "./useDebouncedCall";
+import { useDebouncedCall } from "~/core/composables/useDebouncedCall";
 import { type GifForm, toGifOperation } from "../lib/gif";
 import { useRpcClient } from "~/core/libs/rpc";
 import { GifService } from "~/generated/muxmultitool/gif/v1/gif_pb";

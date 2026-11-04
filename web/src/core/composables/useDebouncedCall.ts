@@ -4,8 +4,9 @@ import { type AppError, toAppError } from "~/core/libs/errors";
 
 /**
  * Runs an idempotent RPC whenever its request changes, after a short pause, so a panel always shows
- * what a submit would do (the GIF estimate, the crop plan). A newer call wins over one still in
- * flight, which is aborted; no request (undefined) clears the result.
+ * what a submit would do (the cut plan, the merge check, the GIF estimate). A newer call wins over one
+ * still in flight, which is aborted; no request (undefined) clears the result. The timer and the call
+ * are dropped with the scope.
  */
 export function useDebouncedCall<Request, Response>(
 	request: MaybeRefOrGetter<Request | undefined>,

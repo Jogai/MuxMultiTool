@@ -1,7 +1,7 @@
 import type { Client } from "@connectrpc/connect";
 import { computed, type MaybeRefOrGetter } from "vue";
 
-import { useDebouncedCall } from "./useDebouncedCall";
+import { useDebouncedCall } from "~/core/composables/useDebouncedCall";
 import { type CropValues, toCropOperation, toCropValues } from "../lib/crop";
 import { useRpcClient } from "~/core/libs/rpc";
 import { CropService } from "~/generated/muxmultitool/crop/v1/crop_pb";

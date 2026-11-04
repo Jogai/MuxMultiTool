@@ -5,7 +5,7 @@ import { type BatchOperation, BatchService, type PlanBatchResponse } from "~/gen
 import { FilesService } from "~/generated/muxmultitool/files/v1/files_pb";
 import { PresetsService } from "~/generated/muxmultitool/presets/v1/presets_pb";
 import { formProblems, planRows, progressRows, splitPatterns, toApplyPresetRequest, toBatchOperation } from "~/features/batch/lib/batch";
-import { useDebouncedCall } from "~/features/images/composables/useDebouncedCall";
+import { useDebouncedCall } from "~/core/composables/useDebouncedCall";
 import { usePresets } from "~/features/presets/composables/usePresets";
 import { batchTemplateOf } from "~/features/presets/lib/presets";
 

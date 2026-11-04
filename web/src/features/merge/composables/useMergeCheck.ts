@@ -1,10 +1,10 @@
 import type { Client } from "@connectrpc/connect";
-import { type Ref, ref, watch } from "vue";
+import { computed, type Ref } from "vue";
 
 import { type MergeForm, toOperation } from "../lib/merge";
-import { type AppError, toAppError } from "~/core/libs/errors";
+import { useDebouncedCall } from "~/core/composables/useDebouncedCall";
 import { useRpcClient } from "~/core/libs/rpc";
-import { type CheckMergeResponse, MergeService } from "~/generated/muxmultitool/merge/v1/merge_pb";
+import { type CheckMergeRequest, MergeService } from "~/generated/muxmultitool/merge/v1/merge_pb";
 
 /**
  * Runs `CheckMerge` whenever the form changes (two or more inputs), so the table, the problems and the
@@ -15,49 +15,10 @@ export function useMergeCheck(
 	client: Client<typeof MergeService> = useRpcClient(MergeService),
 	delayMs = 200
 ) {
-	const check = ref<CheckMergeResponse>();
-	const checking = ref(false);
-	const error = ref<AppError>();
-	let latest = 0;
-	let timer: ReturnType<typeof setTimeout> | undefined;
-
-	async function run() {
-		const call = ++latest;
-		checking.value = true;
-		try {
-			const response = await client.checkMerge({ operation: toOperation(form.value) });
-			if (call === latest) {
-				check.value = response;
-				error.value = undefined;
-			}
-		} catch (cause) {
-			if (call === latest) {
-				check.value = undefined;
-				error.value = toAppError(cause);
-			}
-		} finally {
-			if (call === latest) {
-				checking.value = false;
-			}
-		}
-	}
-
-	watch(
-		form,
-		(value) => {
-			clearTimeout(timer);
-			if (value.inputs.length < 2) {
-				latest++;
-				check.value = undefined;
-				error.value = undefined;
-				checking.value = false;
-				return;
-			}
-			checking.value = true;
-			timer = setTimeout(() => void run(), delayMs);
-		},
-		{ deep: true, immediate: true }
+	const request = computed<Partial<CheckMergeRequest> | undefined>(() =>
+		form.value.inputs.length < 2 ? undefined : { operation: toOperation(form.value) }
 	);
+	const { result, pending, error, refresh } = useDebouncedCall(request, (value, signal) => client.checkMerge(value, { signal }), delayMs);
 
-	return { check, checking, error, recheck: run };
+	return { check: result, checking: pending, error, recheck: refresh };
 }

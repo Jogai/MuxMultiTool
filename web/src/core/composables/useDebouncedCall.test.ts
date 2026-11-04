@@ -1,6 +1,6 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { nextTick, ref } from "vue";
+import { effectScope, nextTick, ref } from "vue";
 
 import { useDebouncedCall } from "./useDebouncedCall";
 
@@ -49,5 +49,30 @@ describe("useDebouncedCall", () => {
 		expect(result.value).toBeUndefined();
 		expect(error.value?.message).toBe("no");
 		expect(pending.value).toBe(false);
+	});
+
+	it("drops the timer and aborts the call when the scope is disposed", async () => {
+		const signals: AbortSignal[] = [];
+		const call = vi.fn().mockImplementation(
+			(_value: number, signal: AbortSignal) =>
+				new Promise<number>((_resolve, reject) => {
+					signals.push(signal);
+					signal.addEventListener("abort", () => reject(new Error("aborted")));
+				})
+		);
+		const request = ref<number | undefined>(1);
+		const scope = effectScope();
+		const { pending, error } = scope.run(() => useDebouncedCall(request, call, 10))!;
+		await vi.advanceTimersByTimeAsync(20);
+		expect(call).toHaveBeenCalledTimes(1);
+
+		request.value = 2;
+		await nextTick();
+		scope.stop();
+		await vi.advanceTimersByTimeAsync(50);
+		expect(call).toHaveBeenCalledTimes(1);
+		expect(signals[0]?.aborted).toBe(true);
+		expect(pending.value).toBe(false);
+		expect(error.value).toBeUndefined();
 	});
 });
