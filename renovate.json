@@ -1,12 +1,14 @@
 {
 	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
-	"description": "Dependency updates (docs/quality.md, 'Rebuilds triggered without a code change'). Nothing is merged automatically.",
+	"description": "Dependency updates (docs/quality.md, 'Rebuilds triggered without a code change'). Updates merge themselves once CI is green, one PR at a time; Tauri and CEF updates are reviewed by hand.",
 	"extends": ["config:recommended", ":semanticCommits", ":semanticCommitTypeAll(chore)", ":maintainLockFilesWeekly"],
 	"timezone": "Europe/Amsterdam",
 	"schedule": ["before 6am on monday"],
 	"labels": ["dependencies"],
-	"automerge": false,
-	"prConcurrentLimit": 10,
+	"platformAutomerge": true,
+	"automerge": true,
+	"prConcurrentLimit": 1,
+	"prHourlyLimit": 0,
 	"enabledManagers": [
 		"cargo",
 		"npm",
