@@ -45,7 +45,7 @@
 		"oxlint": "^1.91.0",
 		"oxlint-tsgolint": "^7.0.2005",
 		"tailwindcss": "^4.3.4",
-		"typescript": "^6.0.3",
+		"typescript": "^7.0.0",
 		"typescript7": "npm:typescript@^7.0.2",
 		"unplugin-auto-import": "^21.1.0",
 		"unplugin-icons": "^24.0.0",
