@@ -20,6 +20,12 @@
 	"docker-compose": { "pinDigests": true },
 	"packageRules": [
 		{
+			"description": "Our own image in compose.yaml: users get :latest, so it is neither updated nor pinned to a digest (and it does not exist before the first release).",
+			"matchDatasources": ["docker"],
+			"matchPackageNames": ["ghcr.io/jogai/muxmultitool"],
+			"enabled": false
+		},
+		{
 			"description": "Crates and npm packages of Tauri update together: their versions must match. Alpha updates carry their own label and are reviewed by hand.",
 			"groupName": "tauri",
 			"groupSlug": "tauri",
