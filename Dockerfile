@@ -26,12 +26,15 @@
 ARG FFMPEG_IMAGE=docker.io/mwader/static-ffmpeg:9.0.2-1@sha256:f5d100184884eb3e82b0eb14bb5ebf98da99826ac824989720297fb9ef21c822
 ARG LAYOUT_IMAGE=docker.io/library/busybox:1.38.0-musl@sha256:ea2b9914a16a4ac1981994af97b318f7c7d4db76b580c56177f08bf76f4a0be8
 
+# The tag and digest are in the ARG above, which hadolint does not read (DL3006).
+# hadolint ignore=DL3006
 FROM ${FFMPEG_IMAGE} AS ffmpeg
 
 # `scratch` has no mkdir: the folders the server needs (a writable /tmp for
 # preview segments and sprites, /data for the settings, /media as the mount
 # point) are laid out in a throwaway stage and copied over with their modes.
 # This stage runs on the build platform, whatever the target is.
+# hadolint ignore=DL3006
 FROM --platform=${BUILDPLATFORM} ${LAYOUT_IMAGE} AS layout
 ARG TARGETARCH
 RUN mkdir -p /rootfs/tmp /rootfs/data /rootfs/media /rootfs/usr/local/bin \
