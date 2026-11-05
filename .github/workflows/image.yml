@@ -232,7 +232,7 @@ jobs:
         run: docker inspect --format '{{json .Config.Labels}}' "$IMAGE:smoke" | jq .
 
       # Vulnerabilities in the ffmpeg build and, thanks to cargo-auditable, the Rust crates.
-      - uses: aquasecurity/trivy-action@0.28.0
+      - uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE }}:smoke
           scanners: vuln
