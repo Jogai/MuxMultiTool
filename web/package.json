@@ -54,8 +54,12 @@
 		"vite": "^8.3.5",
 		"vite-plugin-meta-info": "^0.1.4",
 		"vite-plugin-vue-devtools": "^8.2.1",
-		"vite-plugin-vue-layouts-next": "^3.3.1",
 		"vitest": "^5.1.0",
 		"vue-tsc": "^3.3.14"
+	},
+	"overrides": {
+		"@typescript-eslint/typescript-estree": {
+			"minimatch": "^11.0.5"
+		}
 	}
 }

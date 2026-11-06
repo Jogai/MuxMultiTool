@@ -145,6 +145,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     ShellIconButton: typeof import('./core/components/ShellIconButton.vue')['default']
     ShellInfoDialog: typeof import('./core/components/ShellInfoDialog.vue')['default']
+    ShellLayout: typeof import('./core/components/ShellLayout.vue')['default']
     ShellMenu: typeof import('./core/components/ShellMenu.vue')['default']
     ShellNavRail: typeof import('./core/components/ShellNavRail.vue')['default']
     ShellStatusBar: typeof import('./core/components/ShellStatusBar.vue')['default']

@@ -14,7 +14,6 @@ import Components from "unplugin-vue-components/vite";
 import { defineConfig, type UserConfig } from "vite";
 import Info from "vite-plugin-meta-info";
 import VueDevTools from "vite-plugin-vue-devtools";
-import Layouts from "vite-plugin-vue-layouts-next";
 import { VueRouterAutoImports } from "vue-router/unplugin";
 import VueRouter from "vue-router/vite";
 
@@ -90,13 +89,6 @@ export default defineConfig((): UserConfig => {
 				highlight: {
 					themeDetect: true
 				}
-			}),
-
-			// https://github.com/loicduong/vite-plugin-vue-layouts-next
-			Layouts({
-				defaultLayout: "default",
-				layoutsDirs: "src/core/layouts",
-				importMode: () => "async"
 			}),
 
 			Vue({
