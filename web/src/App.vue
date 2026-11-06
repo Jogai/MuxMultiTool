@@ -1,3 +1,3 @@
 <template>
-	<RouterView />
+	<ShellLayout />
 </template>

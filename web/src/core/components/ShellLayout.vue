@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { navNameForPath } from "~/core/libs/navigation";
 
-/** The app shell from the GUI sketches: top bar, nav rail, the page, status bar. */
+/** The app shell from the GUI sketches around every page (App.vue): top bar, nav rail, the page, status bar. */
 const { t } = useI18n();
 const route = useRoute();
 const current = computed(() => navNameForPath(route.path));
