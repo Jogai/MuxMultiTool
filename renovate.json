@@ -65,6 +65,12 @@
 			"matchPackageNames": ["typescript", "vue-tsc", "@vue/tsconfig", "@vue/language-*", "@typescript/**"]
 		},
 		{
+			"description": "`typescript` stays on 6: TypeScript 7 is checked side by side as the `typescript7` alias (npm run typecheck:ts7), which this rule leaves alone.",
+			"matchManagers": ["npm"],
+			"matchDepNames": ["typescript"],
+			"allowedVersions": "<7"
+		},
+		{
 			"description": "A new Rust stable updates rust-toolchain.toml.",
 			"matchManagers": ["rust-toolchain", "custom.regex"],
 			"matchDepNames": ["rust", "rust-lang/rust"],
