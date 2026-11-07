@@ -14,7 +14,7 @@
 //!
 //! A time is a [`Duration`], so there are no negative times: `-5` is an
 //! error rather than "five seconds before the end". Every digit is kept
-//! (the arithmetic is on integers), and [`format`] writes milliseconds, so
+//! (the arithmetic is on integers), and [`format()`] writes milliseconds, so
 //! `parse(&format(t))` is `t` rounded to the millisecond.
 
 use std::fmt;
