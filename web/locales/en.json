@@ -28,34 +28,10 @@
 			"toDark": "Switch to the dark theme",
 			"toLight": "Switch to the light theme",
 			"noToggle": "{family} has one variant; pick another family in Settings"
-		},
-		"help": "Help",
-		"menu": "Menu"
-	},
-	"menu": {
-		"help": "Help",
-		"about": "About"
+		}
 	},
 	"dialogs": {
-		"close": "Close",
-		"help": {
-			"title": "Help",
-			"body": "Keyboard shortcuts and a short guide per screen appear here once the editors exist. Until then, every screen explains which feature it is waiting for."
-		},
-		"about": {
-			"title": "About MuxMultiTool",
-			"version": "Version",
-			"commit": "commit {commit}",
-			"builtAt": "built {time}",
-			"project": "Project",
-			"license": "License",
-			"ffmpegBuild": "{version} · GPL build",
-			"ffmpegUnavailable": "Not available",
-			"ffmpegError": "Could not be queried",
-			"ffmpegLoading": "Checking…",
-			"copy": "Copy version info",
-			"copied": "Copied"
-		}
+		"close": "Close"
 	},
 	"statusBar": {
 		"backend": {
@@ -202,11 +178,7 @@
 			"empty": "Open a file, or select one on the Files screen, to detect and crop its black bars."
 		},
 		"settings": {
-			"description": "Appearance, shortcuts, paths and the ffmpeg capability check.",
-			"backend": "Backend",
-			"backendLoading": "Connecting…",
-			"backendOk": "Connected, version {version}",
-			"refresh": "Check again",
+			"description": "Appearance, help, and the version and license of this build.",
 			"appearance": "Appearance",
 			"family": "Family",
 			"variants": "{n} variant | {n} variants",
@@ -219,7 +191,42 @@
 			"markDark": "Use {variant} when the system is dark",
 			"autoHint": "Follows the OS: {light} when the system is light, {dark} when it is dark.",
 			"sameVariantHint": "A family without a light variant uses the same variant for both.",
-			"saveError": "The theme could not be saved on the server; it is kept in this browser only."
+			"saveError": "The theme could not be saved on the server; it is kept in this browser only.",
+			"contents": "Sections",
+			"help": {
+				"title": "Help",
+				"intro": "What each screen is for, in the order of the navigation rail. Nothing is re-encoded unless a screen says so: streams are copied as they are.",
+				"screens": {
+					"files": "Browse the media folders, select files by name or wildcard and read the per-stream report.",
+					"streams": "Tick streams to keep or drop, apply rules by language, codec or id, extract tracks to files or remux to another container.",
+					"combine": "Build one file from streams of several sources, such as subtitles from one file added to another, with a time offset per source.",
+					"cut": "Mark segments of one file on the timeline and export them losslessly, as separate files or joined into one.",
+					"merge": "Join files with identical codecs into one without re-encoding, after a compatibility check.",
+					"crop": "Crop black bars from H.264 and H.265 video without re-encoding; the bars are detected and can be dragged.",
+					"images": "Take snapshots, set cover art and make GIFs from a video, or turn a GIF into an MP4 or WebM.",
+					"batch": "Run one stream operation over every file of a folder that matches a wildcard, each file as its own job, with a dry run first.",
+					"presets": "Saved stream operations to apply to a file on the Streams screen or to a folder as a batch.",
+					"jobs": "Every operation that writes output, with its progress, its ffmpeg command and its log.",
+					"settings": "Appearance, this help, the version and license of this build, and the software bill of materials."
+				},
+				"shortcuts": "Screens with keyboard shortcuts list them behind their keyboard button; pressing ? on such a screen opens the same list.",
+				"command": "The exact ffmpeg command is shown on each screen before anything runs, next to the preview of what the job will do, and again in the Command tab of a job on the Jobs screen.",
+				"log": "The ffmpeg output of a job is in the Log tab of its details on the Jobs screen: click a job name to open them."
+			},
+			"about": {
+				"title": "About MuxMultiTool",
+				"version": "Version",
+				"commit": "commit {commit}",
+				"builtAt": "built {time}",
+				"project": "Project",
+				"license": "License",
+				"ffmpegBuild": "{version} · GPL build",
+				"ffmpegUnavailable": "Not available",
+				"ffmpegError": "Could not be queried",
+				"ffmpegLoading": "Checking…",
+				"copy": "Copy version info",
+				"copied": "Copied"
+			}
 		}
 	},
 	"files": {

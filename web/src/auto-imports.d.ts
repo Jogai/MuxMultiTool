@@ -16,6 +16,8 @@ declare global {
   const NAV_ENTRIES: typeof import('./core/libs/navigation').NAV_ENTRIES
   const RAW_OUTPUT_FIELDS: typeof import('./core/libs/errors').RAW_OUTPUT_FIELDS
   const REPOSITORY_URL: typeof import('./core/libs/externalLink').REPOSITORY_URL
+  const SBOM_KINDS: typeof import('./core/libs/sbom').SBOM_KINDS
+  const SBOM_URL: typeof import('./core/libs/sbom').SBOM_URL
   const THEME_STORAGE_KEY: typeof import('./core/libs/theme').THEME_STORAGE_KEY
   const acceptHMRUpdate: typeof import('pinia').acceptHMRUpdate
   const alignColumns: typeof import('./core/libs/reportText').alignColumns
@@ -40,6 +42,7 @@ declare global {
   const containerLine: typeof import('./core/libs/reportText').containerLine
   const controlledComputed: typeof import('@vueuse/core').controlledComputed
   const controlledRef: typeof import('@vueuse/core').controlledRef
+  const countByKind: typeof import('./core/libs/sbom').countByKind
   const countJobs: typeof import('./core/libs/jobQueue').countJobs
   const createApp: typeof import('vue').createApp
   const createContainerFilePicker: typeof import('./core/libs/filePicker').createContainerFilePicker
@@ -73,6 +76,7 @@ declare global {
   const entriesForPicked: typeof import('./core/libs/pickedFiles').entriesForPicked
   const extendRef: typeof import('@vueuse/core').extendRef
   const extensionOf: typeof import('./core/libs/fileNames').extensionOf
+  const filterSbom: typeof import('./core/libs/sbom').filterSbom
   const folderForPicked: typeof import('./core/libs/pickedFiles').folderForPicked
   const formatBitRate: typeof import('./core/libs/reportFormat').formatBitRate
   const formatBuildInfo: typeof import('./core/libs/buildInfo').formatBuildInfo
@@ -145,6 +149,7 @@ declare global {
   const onUpdated: typeof import('vue').onUpdated
   const onWatcherCleanup: typeof import('vue').onWatcherCleanup
   const openExternal: typeof import('./core/libs/externalLink').openExternal
+  const parseSbom: typeof import('./core/libs/sbom').parseSbom
   const parseStoredTheme: typeof import('./core/libs/theme').parseStoredTheme
   const pausableWatch: typeof import('@vueuse/core').pausableWatch
   const pickedFromEntry: typeof import('./core/libs/pickedFiles').pickedFromEntry
@@ -178,6 +183,7 @@ declare global {
   const shallowRef: typeof import('vue').shallowRef
   const showInFolder: typeof import('./core/libs/showInFolder').showInFolder
   const sortJobs: typeof import('./core/libs/jobQueue').sortJobs
+  const sortSbom: typeof import('./core/libs/sbom').sortSbom
   const splitPatterns: typeof import('./core/composables/useFolderBrowser').splitPatterns
   const stem: typeof import('./core/libs/fileNames').stem
   const storeToRefs: typeof import('pinia').storeToRefs
@@ -341,6 +347,7 @@ declare global {
   const useRouter: typeof import('vue-router').useRouter
   const useRpcClient: typeof import('./core/libs/rpc').useRpcClient
   const useSSRWidth: typeof import('@vueuse/core').useSSRWidth
+  const useSbom: typeof import('./core/composables/useSbom').useSbom
   const useScreenOrientation: typeof import('@vueuse/core').useScreenOrientation
   const useScreenSafeArea: typeof import('@vueuse/core').useScreenSafeArea
   const useScriptTag: typeof import('@vueuse/core').useScriptTag
