@@ -178,7 +178,7 @@
 			"empty": "Open a file, or select one on the Files screen, to detect and crop its black bars."
 		},
 		"settings": {
-			"description": "Appearance, help, and the version and license of this build.",
+			"description": "Appearance, help, the version and license of this build, and everything it is made of.",
 			"appearance": "Appearance",
 			"family": "Family",
 			"variants": "{n} variant | {n} variants",
@@ -226,6 +226,32 @@
 				"ffmpegLoading": "Checking…",
 				"copy": "Copy version info",
 				"copied": "Copied"
+			},
+			"sbom": {
+				"title": "Software bill of materials",
+				"description": "Everything this build is made of: the Rust crates compiled into the server, the npm packages bundled into this page and the ffmpeg build in use, as a CycloneDX document.",
+				"loading": "Loading the bill of materials…",
+				"search": "Search by name or license",
+				"count": {
+					"cargo": "{n} Rust crate | {n} Rust crates",
+					"npm": "{n} npm package | {n} npm packages",
+					"application": "{n} application | {n} applications"
+				},
+				"download": "Download (CycloneDX JSON)",
+				"noMatch": "Nothing matches “{query}”.",
+				"noLicense": "none declared",
+				"built": "Recorded when the server was built: {time}",
+				"columns": {
+					"name": "Name",
+					"version": "Version",
+					"license": "License",
+					"kind": "Type"
+				},
+				"kind": {
+					"cargo": "Rust crate",
+					"npm": "npm package",
+					"application": "Application"
+				}
 			}
 		}
 	},

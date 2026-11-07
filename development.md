@@ -326,6 +326,8 @@ The Images screen (`/images?file=<id>`, or the first file of the selection; `web
 
 Icons are [Phosphor](https://phosphoricons.com) (`@iconify-json/ph`) through unplugin-icons and its resolver in unplugin-vue-components: write `<i-ph-folder class="size-4" />` in a template, with no import; the build pulls in only the icons used, and `src/components.d.ts` types them. Phosphor's other weights are the same name with a suffix (`<i-ph-play-fill />`). The app's own icons are the `mmt` collection in `vite.config.ts` (`<i-mmt-combine />`: Phosphor's tree-view turned a quarter to the left and mirrored). An icon picked at runtime is a `v-if` chain of such tags (as in the nav rail), not a component map.
 
+The Settings page (`web/src/pages/settings.vue`) holds the appearance pickers, the Help text (one line per screen, in `web/locales/en.json` under `pages.settings.help`), the About section (version, commit and build time from vite-plugin-meta-info, the license, the ffmpeg build, "Copy version info") and the software bill of materials table (`SettingsSbom.vue`, fed by `useSbom` from `GET /sbom.cdx.json`). The top bar has no menu: the jobs indicator and the theme toggle are all that is left of it.
+
 Themes are palette files in `web/src/core/themes/families/`, one per family, registered in `web/src/core/themes/index.ts`. A palette gives each variant its official colours; the semantic `--mmt-*` tokens that every component uses through Tailwind are derived from them at runtime, nudged just far enough for WCAG AA contrast. `npx vitest run src/core/themes` checks every variant.
 
 ### Desktop app

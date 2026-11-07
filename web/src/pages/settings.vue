@@ -3,7 +3,8 @@ import { FAMILIES } from "~/core/themes";
 
 /**
  * Settings: the appearance section from the sketch (family first, then variant, auto mode marked on the
- * variant cards), then Help and About, with a short table of contents.
+ * variant cards), then Help, About and the software bill of materials, with a short table of contents
+ * so the long bill at the end is one click away.
  */
 const { t } = useI18n();
 const theme = useThemeStore();
@@ -12,7 +13,7 @@ const familyId = computed({
 	get: () => family.value.id,
 	set: (id) => theme.update({ family: id })
 });
-const SECTIONS = ["appearance", "help", "about"] as const;
+const SECTIONS = ["appearance", "help", "about", "sbom"] as const;
 </script>
 
 <template>
@@ -63,6 +64,11 @@ const SECTIONS = ["appearance", "help", "about"] as const;
 		<section id="about" class="mt-10 scroll-mt-4">
 			<h3 class="text-lg font-bold">{{ t("pages.settings.about.title") }}</h3>
 			<SettingsAbout class="mt-3" />
+		</section>
+
+		<section id="sbom" class="mt-10 scroll-mt-4">
+			<h3 class="text-lg font-bold">{{ t("pages.settings.sbom.title") }}</h3>
+			<SettingsSbom class="mt-3" />
 		</section>
 	</section>
 </template>

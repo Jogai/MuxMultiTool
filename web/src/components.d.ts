@@ -137,6 +137,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     SettingsAbout: typeof import('./core/components/SettingsAbout.vue')['default']
     SettingsHelp: typeof import('./core/components/SettingsHelp.vue')['default']
+    SettingsSbom: typeof import('./core/components/SettingsSbom.vue')['default']
     ShellIconButton: typeof import('./core/components/ShellIconButton.vue')['default']
     ShellLayout: typeof import('./core/components/ShellLayout.vue')['default']
     ShellNavRail: typeof import('./core/components/ShellNavRail.vue')['default']
