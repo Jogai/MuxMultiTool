@@ -63,9 +63,7 @@ const videoOf = (file: Entry) => {
 		<p v-else-if="files.length === 0" class="px-4 py-3 text-sm text-muted">{{ t("files.table.empty") }}</p>
 		<table v-else class="w-full border-collapse text-sm" :aria-busy="loading">
 			<caption class="px-4 py-2 text-left text-sm text-muted">
-				{{
-					t("files.table.caption", { folder: folderName, files: files.length, selected: selectedHere }, files.length)
-				}}
+				{{ t("files.table.caption", { folder: folderName, files: files.length, selected: selectedHere }, files.length) }}
 			</caption>
 			<thead class="text-left text-xs text-muted uppercase">
 				<tr class="border-b border-border">

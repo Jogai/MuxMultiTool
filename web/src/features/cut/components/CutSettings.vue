@@ -73,9 +73,7 @@ const panel = "flex flex-col gap-2 rounded-md border border-border p-3";
 					:checked="state.segmentMode !== SegmentMode.REMOVE"
 					@change="emit('update:segmentMode', SegmentMode.KEEP)"
 				/>
-				<span
-					>{{ t("cut.mode.keep") }}<span class="block text-xs text-muted">{{ t("cut.mode.keepHint") }}</span></span
-				>
+				<span>{{ t("cut.mode.keep") }}<span class="block text-xs text-muted">{{ t("cut.mode.keepHint") }}</span></span>
 			</label>
 			<label :class="radio">
 				<input
@@ -84,9 +82,7 @@ const panel = "flex flex-col gap-2 rounded-md border border-border p-3";
 					:checked="state.segmentMode === SegmentMode.REMOVE"
 					@change="emit('update:segmentMode', SegmentMode.REMOVE)"
 				/>
-				<span
-					>{{ t("cut.mode.remove") }}<span class="block text-xs text-muted">{{ t("cut.mode.removeHint") }}</span></span
-				>
+				<span>{{ t("cut.mode.remove") }}<span class="block text-xs text-muted">{{ t("cut.mode.removeHint") }}</span></span>
 			</label>
 		</fieldset>
 
@@ -99,9 +95,7 @@ const panel = "flex flex-col gap-2 rounded-md border border-border p-3";
 					:checked="state.cutMode === CutMode.KEYFRAME"
 					@change="emit('update:cutMode', CutMode.KEYFRAME)"
 				/>
-				<span
-					>{{ t("cut.mode.keyframe") }}<span class="block text-xs text-muted">{{ t("cut.mode.keyframeHint") }}</span></span
-				>
+				<span>{{ t("cut.mode.keyframe") }}<span class="block text-xs text-muted">{{ t("cut.mode.keyframeHint") }}</span></span>
 			</label>
 			<label :class="radio">
 				<input
@@ -110,9 +104,7 @@ const panel = "flex flex-col gap-2 rounded-md border border-border p-3";
 					:checked="state.cutMode === CutMode.NORMAL"
 					@change="emit('update:cutMode', CutMode.NORMAL)"
 				/>
-				<span
-					>{{ t("cut.mode.normal") }}<span class="block text-xs text-muted">{{ t("cut.mode.normalHint") }}</span></span
-				>
+				<span>{{ t("cut.mode.normal") }}<span class="block text-xs text-muted">{{ t("cut.mode.normalHint") }}</span></span>
 			</label>
 			<label :class="radio" :title="smart && !smart.supported ? smart.reason : undefined">
 				<input
@@ -152,9 +144,7 @@ const panel = "flex flex-col gap-2 rounded-md border border-border p-3";
 					:checked="state.export === CutExport.MERGED"
 					@change="emit('update:export', CutExport.MERGED)"
 				/>
-				<span
-					>{{ t("cut.export.merged") }}<span class="block text-xs text-muted">{{ t("cut.export.mergedHint") }}</span></span
-				>
+				<span>{{ t("cut.export.merged") }}<span class="block text-xs text-muted">{{ t("cut.export.mergedHint") }}</span></span>
 			</label>
 			<label class="flex flex-col gap-1 text-sm">
 				{{ t("cut.export.output") }}
