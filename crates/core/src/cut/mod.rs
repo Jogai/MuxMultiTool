@@ -119,6 +119,12 @@ pub struct Source {
 	/// seconds: the gap between a keyframe's decode and presentation time
 	/// when the container reports no decode time.
 	pub reorder_delay: f64,
+	/// Where the video starts, relative to [`Source::start_time`], in
+	/// seconds: 0 when it starts with the container, more when another
+	/// stream begins first (a remuxed MP4 often has its video 20-odd ms
+	/// after the audio). A range that starts earlier has no keyframe at or
+	/// before its start, so a keyframe cut starts it here instead.
+	pub video_start: f64,
 	/// ffprobe's `format_name`, e.g. `matroska,webm`.
 	pub format_name: String,
 	/// The input's file extension, for outputs that name none.
@@ -153,15 +159,21 @@ impl Source {
 				Some(frames / fps)
 			})
 			.unwrap_or(0.0);
+		let start_time = probe
+			.format
+			.start_time
+			.filter(|t| t.is_finite())
+			.unwrap_or(0.0);
+		let video_start = video
+			.and_then(|v| v.start_time)
+			.filter(|t| t.is_finite())
+			.map_or(0.0, |t| (t - start_time).max(0.0));
 		Ok(Self {
 			duration,
-			start_time: probe
-				.format
-				.start_time
-				.filter(|t| t.is_finite())
-				.unwrap_or(0.0),
+			start_time,
 			video_stream: video.map(|v| v.index),
 			reorder_delay,
+			video_start,
 			format_name: probe.format.format_name.clone(),
 			extension: input.extension().map(|e| e.to_string_lossy().into_owned()),
 		})
@@ -313,7 +325,11 @@ pub fn keyframe_windows(request: &Request, source: &Source, window: f64) -> Vec<
 	let end = source.start_time + source.duration;
 	kept.iter()
 		.map(|segment| {
-			let start = source.start_time + segment.start;
+			let start = source.start_time
+				+ match snap {
+					Snap::Back => segment.start.max(source.video_start),
+					Snap::Forward => segment.start,
+				};
 			let (from, to) = match snap {
 				Snap::Back => (start - window, start + SNAP_TOLERANCE),
 				Snap::Forward => (
@@ -391,7 +407,7 @@ pub fn plan(request: &Request, source: &Source, keyframes: &[Keyframe]) -> Resul
 				relative
 					.iter()
 					.rev()
-					.find(|k| k.pts <= segment.start + SNAP_TOLERANCE)
+					.find(|k| k.pts <= segment.start.max(source.video_start) + SNAP_TOLERANCE)
 					.copied()
 					.ok_or(PlanError::NoKeyframeBefore {
 						number,
@@ -566,6 +582,7 @@ mod tests {
 			start_time: 0.0,
 			video_stream: Some(0),
 			reorder_delay: 0.08,
+			video_start: 0.0,
 			format_name: "matroska,webm".into(),
 			extension: Some("mkv".into()),
 		}
@@ -818,6 +835,36 @@ mod tests {
 		assert!((forward[0].0 - 4.399).abs() < 1e-9, "{forward:?}");
 		assert!((forward[0].1 - 6.65).abs() < 1e-9, "{forward:?}");
 		assert_eq!(whole_file_window(&ts), [(1.4, 101.4)]);
+	}
+
+	#[test]
+	fn a_range_before_the_video_starts_cuts_from_its_first_keyframe() {
+		// The audio starts at 0, the video 23 ms later, as in a remuxed MP4.
+		let late = Source {
+			video_start: 0.023,
+			..source()
+		};
+		let keyframes: Vec<Keyframe> = keyframes()
+			.iter()
+			.map(|k| Keyframe {
+				pts: k.pts + 0.023,
+				dts: k.dts.map(|d| d + 0.023),
+			})
+			.collect();
+		let request = Request {
+			segments: vec![Segment::new(0.0, 3.3)],
+			..request(CutMode::Keyframe, Export::SeparateFiles)
+		};
+		let windows = keyframe_windows(&request, &late, 30.0);
+		assert!(
+			windows[0].0 <= 0.023 && windows[0].1 >= 0.023,
+			"{windows:?}"
+		);
+		let plan = plan(&request, &late, &keyframes).unwrap();
+		assert!(
+			(plan.segments[0].cut_start - 0.023).abs() < 1e-9,
+			"{plan:?}"
+		);
 	}
 
 	#[test]
