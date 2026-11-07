@@ -193,7 +193,7 @@ jobs:
 
       # The amd64 image alone first, loaded into the local docker for the smoke
       # test; the multi-platform build below reuses its layers from the cache.
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64
@@ -240,7 +240,7 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         if: needs.plan.outputs.publish == 'true'
         with:
           context: .
