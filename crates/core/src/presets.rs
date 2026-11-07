@@ -4,13 +4,13 @@
 //!
 //! A [`Preset`] is not a new kind of operation. It is a stored set of the
 //! settings a stream copy or a batch takes by hand, and applying it only
-//! builds those settings: [`Preset::batch`] is the [`Batch`] and
-//! [`Preset::output_template`] the template a hand-entered batch with the
+//! builds those settings: [`Settings::batch`] is the [`Batch`] and
+//! [`Settings::output_template`] the template a hand-entered batch with the
 //! same rules would use, so a preset plans exactly like the settings typed
 //! in (the tests compare the two plans).
 //!
-//! The [`template`](Preset::template) is the output name without the
-//! extension, e.g. `{name}.{lang}`; the [`container`](Preset::container)
+//! The [`template`](Settings::template) is the output name without the
+//! extension, e.g. `{name}.{lang}`; the [`container`](Settings::container)
 //! adds the extension that picks the container, so the two cannot disagree.
 //!
 //! # Storage
