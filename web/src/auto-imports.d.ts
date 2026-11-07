@@ -471,6 +471,9 @@ declare global {
   export type { RpcTransportOptions } from './core/libs/rpc'
   import('./core/libs/rpc')
   // @ts-ignore
+  export type { SbomKind, SbomComponent, Sbom } from './core/libs/sbom'
+  import('./core/libs/sbom')
+  // @ts-ignore
   export type { Shortcut, ShortcutMatch, KeyInput } from './core/libs/shortcuts'
   import('./core/libs/shortcuts')
   // @ts-ignore
@@ -494,6 +497,8 @@ declare module 'vue' {
     readonly NAV_ENTRIES: UnwrapRef<typeof import('./core/libs/navigation')['NAV_ENTRIES']>
     readonly RAW_OUTPUT_FIELDS: UnwrapRef<typeof import('./core/libs/errors')['RAW_OUTPUT_FIELDS']>
     readonly REPOSITORY_URL: UnwrapRef<typeof import('./core/libs/externalLink')['REPOSITORY_URL']>
+    readonly SBOM_KINDS: UnwrapRef<typeof import('./core/libs/sbom')['SBOM_KINDS']>
+    readonly SBOM_URL: UnwrapRef<typeof import('./core/libs/sbom')['SBOM_URL']>
     readonly THEME_STORAGE_KEY: UnwrapRef<typeof import('./core/libs/theme')['THEME_STORAGE_KEY']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
     readonly alignColumns: UnwrapRef<typeof import('./core/libs/reportText')['alignColumns']>
@@ -518,6 +523,7 @@ declare module 'vue' {
     readonly containerLine: UnwrapRef<typeof import('./core/libs/reportText')['containerLine']>
     readonly controlledComputed: UnwrapRef<typeof import('@vueuse/core')['controlledComputed']>
     readonly controlledRef: UnwrapRef<typeof import('@vueuse/core')['controlledRef']>
+    readonly countByKind: UnwrapRef<typeof import('./core/libs/sbom')['countByKind']>
     readonly countJobs: UnwrapRef<typeof import('./core/libs/jobQueue')['countJobs']>
     readonly createApp: UnwrapRef<typeof import('vue')['createApp']>
     readonly createContainerFilePicker: UnwrapRef<typeof import('./core/libs/filePicker')['createContainerFilePicker']>
@@ -550,6 +556,7 @@ declare module 'vue' {
     readonly entriesForPicked: UnwrapRef<typeof import('./core/libs/pickedFiles')['entriesForPicked']>
     readonly extendRef: UnwrapRef<typeof import('@vueuse/core')['extendRef']>
     readonly extensionOf: UnwrapRef<typeof import('./core/libs/fileNames')['extensionOf']>
+    readonly filterSbom: UnwrapRef<typeof import('./core/libs/sbom')['filterSbom']>
     readonly folderForPicked: UnwrapRef<typeof import('./core/libs/pickedFiles')['folderForPicked']>
     readonly formatBitRate: UnwrapRef<typeof import('./core/libs/reportFormat')['formatBitRate']>
     readonly formatBuildInfo: UnwrapRef<typeof import('./core/libs/buildInfo')['formatBuildInfo']>
@@ -622,6 +629,7 @@ declare module 'vue' {
     readonly onUpdated: UnwrapRef<typeof import('vue')['onUpdated']>
     readonly onWatcherCleanup: UnwrapRef<typeof import('vue')['onWatcherCleanup']>
     readonly openExternal: UnwrapRef<typeof import('./core/libs/externalLink')['openExternal']>
+    readonly parseSbom: UnwrapRef<typeof import('./core/libs/sbom')['parseSbom']>
     readonly parseStoredTheme: UnwrapRef<typeof import('./core/libs/theme')['parseStoredTheme']>
     readonly pausableWatch: UnwrapRef<typeof import('@vueuse/core')['pausableWatch']>
     readonly pickedFromEntry: UnwrapRef<typeof import('./core/libs/pickedFiles')['pickedFromEntry']>
@@ -655,6 +663,7 @@ declare module 'vue' {
     readonly shallowRef: UnwrapRef<typeof import('vue')['shallowRef']>
     readonly showInFolder: UnwrapRef<typeof import('./core/libs/showInFolder')['showInFolder']>
     readonly sortJobs: UnwrapRef<typeof import('./core/libs/jobQueue')['sortJobs']>
+    readonly sortSbom: UnwrapRef<typeof import('./core/libs/sbom')['sortSbom']>
     readonly splitPatterns: UnwrapRef<typeof import('./core/composables/useFolderBrowser')['splitPatterns']>
     readonly stem: UnwrapRef<typeof import('./core/libs/fileNames')['stem']>
     readonly storeToRefs: UnwrapRef<typeof import('pinia')['storeToRefs']>
@@ -818,6 +827,7 @@ declare module 'vue' {
     readonly useRouter: UnwrapRef<typeof import('vue-router')['useRouter']>
     readonly useRpcClient: UnwrapRef<typeof import('./core/libs/rpc')['useRpcClient']>
     readonly useSSRWidth: UnwrapRef<typeof import('@vueuse/core')['useSSRWidth']>
+    readonly useSbom: UnwrapRef<typeof import('./core/composables/useSbom')['useSbom']>
     readonly useScreenOrientation: UnwrapRef<typeof import('@vueuse/core')['useScreenOrientation']>
     readonly useScreenSafeArea: UnwrapRef<typeof import('@vueuse/core')['useScreenSafeArea']>
     readonly useScriptTag: UnwrapRef<typeof import('@vueuse/core')['useScriptTag']>
