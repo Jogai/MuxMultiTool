@@ -36,10 +36,10 @@ tracing-subscriber = { version = "0.3.23", default-features = false, features = 
 # pinned: Tauri 3 is an alpha and its crates, plugins and the `@tauri-apps/cli`
 # npm package (web/package.json) must match.
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]
-tauri = { version = "=3.0.0-alpha.5" }
+tauri = { version = "=3.0.0-alpha.6" }
 tauri-plugin-dialog = { version = "=3.0.0-alpha.4", default-features = false }
 tauri-plugin-opener = { version = "=3.0.0-alpha.3" }
-tauri-runtime-wry = { version = "=3.0.0-alpha.5", default-features = false }
+tauri-runtime-wry = { version = "=3.0.0-alpha.6", default-features = false }
 
 # The Tauri shell for Linux: the CEF runtime (`tauri-runtime-cef` pins the CEF
 # binary distribution through the `cef` crate) instead of WebKitGTK. Behind the
@@ -47,12 +47,12 @@ tauri-runtime-wry = { version = "=3.0.0-alpha.5", default-features = false }
 # (`rfd` over D-Bus) rather than its GTK 3 default: GTK 3 and the GTK 4 the CEF
 # runtime links cannot share a process.
 [target.'cfg(target_os = "linux")'.dependencies]
-tauri = { version = "=3.0.0-alpha.5", optional = true }
+tauri = { version = "=3.0.0-alpha.6", optional = true }
 tauri-plugin-dialog = { version = "=3.0.0-alpha.4", default-features = false, features = [
 	"xdg-portal",
 ], optional = true }
 tauri-plugin-opener = { version = "=3.0.0-alpha.3", optional = true }
-tauri-runtime-cef = { version = "=3.0.0-alpha.6", optional = true }
+tauri-runtime-cef = { version = "=3.0.0-alpha.7", optional = true }
 
 [build-dependencies]
 tauri-build = { version = "=3.0.0-alpha.4" }
