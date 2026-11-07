@@ -11,7 +11,8 @@
 //!   can always send JSON.
 //! - `/media/…`: the plain HTTP media routes (the HLS preview, module
 //!   `media`; thumbnail sprites, module `timeline`); `GET /files/{id}`:
-//!   downloads (module `download`).
+//!   downloads (module `download`); `GET /sbom.cdx.json`: the software
+//!   bill of materials (module `sbom`).
 //! - `muxmultitool-server health` (module `health`): the container health
 //!   check, a client of the health RPC.
 //! - everything else: the built frontend, with `index.html` for unknown paths
@@ -60,6 +61,7 @@ mod merge;
 mod presets;
 mod project;
 mod report;
+mod sbom;
 mod snapshot;
 mod split;
 mod streams;
@@ -175,6 +177,7 @@ fn app_with_state(state: Arc<AppState>, local_port: Option<u16>) -> Router {
 		.merge(timeline::routes())
 		.merge(snapshot::routes())
 		.merge(download::routes())
+		.merge(sbom::routes())
 		.fallback_service(frontend);
 	if let Some(port) = local_port {
 		router = router.layer(middleware::from_fn_with_state(port, host::local_only));
