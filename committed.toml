@@ -4,7 +4,11 @@
 style = "conventional"
 # Subjects are lowercase: `feat(core): add the job queue`.
 subject_capitalized = false
-subject_length = 72
+# 100, not 72 (the default for both): Renovate subjects name the whole
+# image or package, e.g.
+# `chore(deps): update docker.io/library/busybox:1.38.0-musl docker digest to 80e38f9`.
+subject_length = 100
+line_length = 100
 allowed_types = [
 	"feat",
 	"fix",
