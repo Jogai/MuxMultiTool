@@ -690,6 +690,7 @@ mod tests {
 					timeline: true,
 				})
 				.collect(),
+			configuration: Vec::new(),
 			hwaccels: Vec::new(),
 			bitstream_filters: bsfs.iter().map(|b| (*b).to_owned()).collect(),
 		};

@@ -867,6 +867,7 @@ mod tests {
 					timeline: false,
 				})
 				.collect(),
+			configuration: Vec::new(),
 			hwaccels: Vec::new(),
 			bitstream_filters: Vec::new(),
 		}

@@ -76,6 +76,9 @@ pub struct Filter {
 pub struct Capabilities {
 	/// The version string, e.g. `7.1.1` or `N-128122-g215351c1c3-20261027`.
 	pub version: String,
+	/// The `configure` options the build was made with, from the
+	/// `configuration:` line of `ffmpeg -version`, e.g. `--enable-gpl`.
+	pub configuration: Vec<String>,
 	/// Encoders, which decide what a job can write.
 	pub encoders: Vec<Codec>,
 	/// Decoders, which decide what a job can read.
@@ -109,6 +112,22 @@ impl Capabilities {
 	pub fn has_bitstream_filter(&self, name: &str) -> bool {
 		self.bitstream_filters.iter().any(|f| f == name)
 	}
+
+	/// Whether the build was configured with this exact option, e.g.
+	/// `--enable-gpl`.
+	#[must_use]
+	pub fn has_configure_option(&self, option: &str) -> bool {
+		self.configuration.iter().any(|o| o == option)
+	}
+
+	/// Whether the build is under the GPL version 3 or later: configured
+	/// with both `--enable-gpl` and `--enable-version3`. Without
+	/// `--enable-version3` the GPL parts are version 2 or later, and without
+	/// `--enable-gpl` the build is LGPL; neither case is reported here.
+	#[must_use]
+	pub fn is_gpl3(&self) -> bool {
+		self.has_configure_option("--enable-gpl") && self.has_configure_option("--enable-version3")
+	}
 }
 
 /// Why capabilities are not available.
@@ -129,6 +148,18 @@ pub fn parse_version(text: &str) -> Option<String> {
 	let mut words = first.split_whitespace();
 	words.find(|w| *w == "version")?;
 	words.next().map(str::to_owned)
+}
+
+/// Parses the `configuration:` line of `ffmpeg -version`: the options the
+/// build was configured with, split on whitespace. Empty when the line is
+/// missing. A quoted value such as `--extra-libs='-lgomp -ldl'` is split
+/// too; the options this is read for (`--enable-*`) carry no spaces.
+#[must_use]
+pub fn parse_configuration(text: &str) -> Vec<String> {
+	text.lines()
+		.find_map(|line| line.strip_prefix("configuration:"))
+		.map(|rest| rest.split_whitespace().map(str::to_owned).collect())
+		.unwrap_or_default()
 }
 
 /// Parses `ffmpeg -encoders` or `-decoders`.
@@ -279,14 +310,24 @@ pub async fn detect(runner: &Runner) -> Result<Capabilities, CapabilityError> {
 	detect_with_version(runner, version).await
 }
 
-async fn read_version(runner: &Runner) -> Result<String, CapabilityError> {
+/// What `ffmpeg -version` says: the version and the configure options.
+struct VersionInfo {
+	version: String,
+	configuration: Vec<String>,
+}
+
+async fn read_version(runner: &Runner) -> Result<VersionInfo, CapabilityError> {
 	let text = query(runner, "-version").await?;
-	parse_version(&text).ok_or(CapabilityError::UnknownVersion)
+	let version = parse_version(&text).ok_or(CapabilityError::UnknownVersion)?;
+	Ok(VersionInfo {
+		version,
+		configuration: parse_configuration(&text),
+	})
 }
 
 async fn detect_with_version(
 	runner: &Runner,
-	version: String,
+	version: VersionInfo,
 ) -> Result<Capabilities, CapabilityError> {
 	let (encoders, decoders, formats, filters, hwaccels, bsfs) = tokio::try_join!(
 		query(runner, "-encoders"),
@@ -297,7 +338,8 @@ async fn detect_with_version(
 		query(runner, "-bsfs"),
 	)?;
 	Ok(Capabilities {
-		version,
+		version: version.version,
+		configuration: version.configuration,
 		encoders: parse_codecs(&encoders),
 		decoders: parse_codecs(&decoders),
 		formats: parse_formats(&formats),
@@ -352,7 +394,7 @@ impl CapabilityCache {
 				return Err(error);
 			}
 		};
-		if let Some(hit) = cached.as_ref().filter(|c| c.version == version) {
+		if let Some(hit) = cached.as_ref().filter(|c| c.version == version.version) {
 			return Ok(Arc::clone(hit));
 		}
 		match detect_with_version(runner, version).await {
@@ -398,6 +440,36 @@ mod tests {
 	fn version_of_something_else_is_none() {
 		assert_eq!(parse_version(""), None);
 		assert_eq!(parse_version("bash: ffmpeg: command not found"), None);
+	}
+
+	#[test]
+	fn configuration_is_the_list_of_configure_options() {
+		assert_eq!(
+			parse_configuration(VERSION),
+			vec!["--enable-gpl".to_owned(), "--enable-libx264".to_owned()]
+		);
+		assert_eq!(
+			parse_configuration("ffmpeg version 7.1.1\n"),
+			Vec::<String>::new()
+		);
+	}
+
+	#[test]
+	fn gpl3_needs_both_gpl_and_version3() {
+		let caps = |configuration: &[&str]| Capabilities {
+			version: "9.0".to_owned(),
+			configuration: configuration.iter().map(|o| (*o).to_owned()).collect(),
+			encoders: Vec::new(),
+			decoders: Vec::new(),
+			formats: Vec::new(),
+			filters: Vec::new(),
+			hwaccels: Vec::new(),
+			bitstream_filters: Vec::new(),
+		};
+		assert!(caps(&["--enable-gpl", "--enable-version3"]).is_gpl3());
+		assert!(!caps(&["--enable-gpl"]).is_gpl3());
+		assert!(!caps(&["--enable-version3"]).is_gpl3());
+		assert!(!caps(&[]).is_gpl3());
 	}
 
 	#[test]
