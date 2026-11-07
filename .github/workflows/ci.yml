@@ -185,11 +185,8 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-nextest,cargo-llvm-cov
-      # The core tests run ffmpeg and ffprobe; a static build, like the container.
-      - uses: FedericoCarboni/setup-ffmpeg@v3
-        with:
-          ffmpeg-version: release
-          linking-type: static
+      # The tests run ffmpeg and ffprobe: the desktop app's pinned build.
+      - uses: ./.github/actions/ffmpeg
       # The generated RPC code is left out of the report; it isn't ours to cover.
       - name: Tests with coverage
         run: cargo llvm-cov nextest --workspace --locked --ignore-filename-regex '/generated/' --lcov --output-path lcov.info

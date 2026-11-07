@@ -64,6 +64,8 @@ Methods that have no side effects must declare `option idempotency_level = NO_SI
 
 `cargo run -p muxmultitool-server` starts the axum server on `127.0.0.1:8080`. It mounts the ConnectRPC services under `/rpc`, serves the built frontend (`web/dist`, from `npm run build`) at `/` and logs to stderr (`RUST_LOG` filters, default `info`). Every setting is a flag with an environment variable behind it, so a compose file needs no command line; `--help` lists them:
 
+ffmpeg and ffprobe must be version 8 or newer. ffmpeg 7 differs in ways the cuts, the preview and the progress reports depend on (its progress has no frame count, remuxes shift the first video timestamp, and the keyframe lookups land elsewhere), and the tests fail on it. The tests and CI use the desktop app's pinned BtbN build (`crates/desktop/scripts/fetch-sidecars.sh`, through `.github/actions/ffmpeg`); the container ships its own ffmpeg 9.
+
 | Setting | Flag | Variable | Default |
 |---|---|---|---|
 | Listen address | `--listen` | `MMT_LISTEN` | `127.0.0.1` (use `0.0.0.0` in a container) |

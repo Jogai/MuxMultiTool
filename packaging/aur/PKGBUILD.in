@@ -15,7 +15,7 @@ depends=(
 	'cairo'
 	'dbus'
 	'expat'
-	'ffmpeg'
+	'ffmpeg>=2:8'
 	'glib2'
 	'gtk4'
 	'libcups'

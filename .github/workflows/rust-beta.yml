@@ -59,10 +59,8 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-nextest
-      - uses: FedericoCarboni/setup-ffmpeg@v3
-        with:
-          ffmpeg-version: release
-          linking-type: static
+      # The tests run ffmpeg and ffprobe: the desktop app's pinned build.
+      - uses: ./.github/actions/ffmpeg
       - name: Lint
         run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
       - name: Tests
