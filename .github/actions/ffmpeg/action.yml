@@ -1,8 +1,8 @@
 # ffmpeg and ffprobe on PATH for the tests: the same pinned, checksummed
 # BtbN build the Linux desktop app ships (crates/desktop/scripts/fetch-sidecars.sh),
 # so CI tests what users get and a new ffmpeg arrives as a reviewed bump,
-# not as whatever a "latest release" download serves that day. The tests
-# need ffmpeg 8 or newer.
+# not as whatever a "latest release" download serves that day (which was
+# ffmpeg 7, where the tests fail).
 name: ffmpeg
 description: Puts the desktop app's pinned ffmpeg and ffprobe on PATH (Linux x64).
 runs:

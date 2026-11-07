@@ -64,7 +64,7 @@ Methods that have no side effects must declare `option idempotency_level = NO_SI
 
 `cargo run -p muxmultitool-server` starts the axum server on `127.0.0.1:8080`. It mounts the ConnectRPC services under `/rpc`, serves the built frontend (`web/dist`, from `npm run build`) at `/` and logs to stderr (`RUST_LOG` filters, default `info`). Every setting is a flag with an environment variable behind it, so a compose file needs no command line; `--help` lists them:
 
-ffmpeg and ffprobe must be version 8 or newer. ffmpeg 7 differs in ways the cuts, the preview and the progress reports depend on (its progress has no frame count, remuxes shift the first video timestamp, and the keyframe lookups land elsewhere), and the tests fail on it. The tests and CI use the desktop app's pinned BtbN build (`crates/desktop/scripts/fetch-sidecars.sh`, through `.github/actions/ffmpeg`); the container ships its own ffmpeg 9.
+Every build ships ffmpeg 9: the container (mwader/static-ffmpeg 9.0.2), the desktop sidecars (BtbN 9.0.2 for Windows and Linux, Martin Riedl's 9.0.2 for macOS, pinned in `crates/desktop/scripts/fetch-sidecars.sh`) and the AUR package (Arch's `ffmpeg` 9). The tests and CI use the same BtbN build, through `.github/actions/ffmpeg`. The code also works with ffmpeg 8; ffmpeg 7 does not: it differs in ways the cuts, the preview and the progress reports depend on (its progress has no frame count, remuxes shift the first video timestamp, and the keyframe lookups land elsewhere), and the tests fail on it. To move the BtbN pin, take a month-end `autobuild-YYYY-MM-…` release: BtbN deletes its daily releases after about two weeks.
 
 | Setting | Flag | Variable | Default |
 |---|---|---|---|
