@@ -3,24 +3,34 @@ import { FAMILIES } from "~/core/themes";
 
 /**
  * Settings: the appearance section from the sketch (family first, then variant, auto mode marked on the
- * variant cards), and the backend check so an unreachable backend has somewhere to show its error.
+ * variant cards), then Help and About, with a short table of contents.
  */
 const { t } = useI18n();
-const system = useSystemStore();
 const theme = useThemeStore();
 const family = computed(() => theme.resolved.family);
 const familyId = computed({
 	get: () => family.value.id,
 	set: (id) => theme.update({ family: id })
 });
+const SECTIONS = ["appearance", "help", "about"] as const;
 </script>
 
 <template>
 	<section class="p-6">
 		<h2 class="text-xl font-bold">{{ t("nav.settings") }}</h2>
 		<p class="mt-2 max-w-prose text-muted">{{ t("pages.settings.description") }}</p>
+		<nav :aria-label="t('pages.settings.contents')" class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+			<a
+				v-for="section in SECTIONS"
+				:key="section"
+				:href="`#${section}`"
+				class="text-accent underline focus-visible:outline-2 focus-visible:outline-accent"
+			>
+				{{ t(section === "appearance" ? "pages.settings.appearance" : `pages.settings.${section}.title`) }}
+			</a>
+		</nav>
 
-		<section class="mt-6 space-y-6">
+		<section id="appearance" class="mt-8 scroll-mt-4 space-y-6">
 			<h3 class="text-lg font-bold">{{ t("pages.settings.appearance") }}</h3>
 
 			<div>
@@ -45,14 +55,14 @@ const familyId = computed({
 			</div>
 		</section>
 
-		<section class="mt-8 max-w-prose">
-			<h3 class="font-bold">{{ t("pages.settings.backend") }}</h3>
-			<p v-if="system.state === 'loading'" class="mt-1 text-sm text-muted">{{ t("pages.settings.backendLoading") }}</p>
-			<p v-else-if="system.state === 'ok'" class="mt-1 text-sm text-success">
-				{{ t("pages.settings.backendOk", { version: system.version }) }}
-			</p>
-			<ErrorPanel v-else-if="system.error" :error="system.error" class="mt-2" />
-			<button type="button" class="mt-3 text-sm underline" @click="system.refresh()">{{ t("pages.settings.refresh") }}</button>
+		<section id="help" class="mt-10 scroll-mt-4">
+			<h3 class="text-lg font-bold">{{ t("pages.settings.help.title") }}</h3>
+			<SettingsHelp class="mt-3" />
+		</section>
+
+		<section id="about" class="mt-10 scroll-mt-4">
+			<h3 class="text-lg font-bold">{{ t("pages.settings.about.title") }}</h3>
+			<SettingsAbout class="mt-3" />
 		</section>
 	</section>
 </template>

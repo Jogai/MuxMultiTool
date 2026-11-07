@@ -11,7 +11,7 @@ onMounted(() => void ffmpeg.load());
 	<footer class="flex h-7 items-center gap-4 border-t border-border bg-surface-raised px-3 text-xs text-muted">
 		<span v-if="system.state === 'loading'">{{ t("statusBar.backend.loading") }}</span>
 		<span v-else-if="system.state === 'ok'">{{ t("statusBar.backend.ok", { version: system.version }) }}</span>
-		<RouterLink v-else to="/settings" class="text-danger underline">{{ t("statusBar.backend.error") }}</RouterLink>
+		<span v-else class="text-danger">{{ t("statusBar.backend.error") }}</span>
 		<span v-if="ffmpeg.state.value === 'ok'">{{ t("statusBar.ffmpeg.ok", { version: ffmpeg.version.value }) }}</span>
 		<RouterLink
 			v-else-if="ffmpeg.state.value === 'unavailable' || ffmpeg.state.value === 'error'"

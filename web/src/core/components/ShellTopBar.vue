@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import type { InfoDialogKind } from "~/core/components/ShellInfoDialog.vue";
-
-/** Top bar from the sketches: app name, breadcrumb, job indicator, theme toggle, help and the ☰ menu. */
+/** Top bar from the sketches: app name, breadcrumb, job indicator and theme toggle. Help and About live in Settings. */
 const { title } = defineProps<{ title: string }>();
 const { t } = useI18n();
 const jobs = useJobsStore();
@@ -12,8 +10,6 @@ const themeLabel = computed(() => {
 	}
 	return themeVariant.value === "dark" ? t("topBar.theme.toLight") : t("topBar.theme.toDark");
 });
-const info = ref<InfoDialogKind>();
-const aboutOpen = ref(false);
 </script>
 
 <template>
@@ -38,13 +34,6 @@ const aboutOpen = ref(false);
 				<i-ph-sun v-if="themeVariant === 'dark'" />
 				<i-ph-moon v-else />
 			</ShellIconButton>
-			<ShellIconButton :label="t('topBar.help')" @click="info = 'help'">
-				<i-ph-question />
-			</ShellIconButton>
-			<ShellMenu @select="(kind) => (kind === 'about' ? (aboutOpen = true) : (info = kind))" />
 		</div>
-
-		<ShellInfoDialog v-model="info" />
-		<AboutDialog v-model:open="aboutOpen" />
 	</header>
 </template>
