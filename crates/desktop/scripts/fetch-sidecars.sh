@@ -33,14 +33,16 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$out"
 
-btbn_tag="autobuild-2026-10-27-18-38"
-btbn_build="ffmpeg-n8.1.3-24-g92611900bb"
-btbn_win64="$btbn_build-win64-gpl-8.1"
-btbn_win64_sha256="79a803e134ffbd69c08b380aac33693dc028135785b23213f292d84c59c1e95e"
-btbn_linux64="$btbn_build-linux64-gpl-8.1"
-btbn_linux64_sha256="292e10a463befababcd31e0c7d0c1e068d46342398d9674534eb07517c1ba38e"
-btbn_linuxarm64="$btbn_build-linuxarm64-gpl-8.1"
-btbn_linuxarm64_sha256="f6cddb0f449e2db8dd89e8c9407d972331793a5f129065c5db7a94dacd4270e7"
+# A month-end autobuild: BtbN prunes its daily releases after about two
+# weeks but keeps the last one of each month, so this URL keeps working.
+btbn_tag="autobuild-2026-10-31-12-59"
+btbn_build="ffmpeg-n9.0.2-39-g7adfbe40dc"
+btbn_win64="$btbn_build-win64-gpl-9.0"
+btbn_win64_sha256="693f3e224bc184b40524a62ca47526cfebaf2504414021b92fe75f677ad868b9"
+btbn_linux64="$btbn_build-linux64-gpl-9.0"
+btbn_linux64_sha256="73e29a56974ae5a651133a04584c7483b21afe941e17dc91d79814a758b608d3"
+btbn_linuxarm64="$btbn_build-linuxarm64-gpl-9.0"
+btbn_linuxarm64_sha256="6cad88ae5bcec356cfc5d7979a036cc4007128201928a0cf243df3db483276cc"
 
 riedl="https://ffmpeg.martin-riedl.de/download/macos"
 riedl_arm64="arm64/1789931890_9.0.2"
