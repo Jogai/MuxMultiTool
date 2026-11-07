@@ -42,7 +42,7 @@ async fn make_clip(dir: &Path) -> Result<PathBuf> {
 		.option("-c:v", "libx264")
 		.option("-preset", "ultrafast")
 		.option("-pix_fmt", "yuv420p")
-		.option("-c:a", "aac")
+		.option("-c:a", "flac") // lossless: the peaks must not depend on an AAC encoder
 		.option("-c:s", "srt")
 		.flag("-y")
 		.output(&clip);
