@@ -1,0 +1,21 @@
+# ffmpeg and ffprobe on PATH for the tests: the same pinned, checksummed
+# BtbN build the Linux desktop app ships (crates/desktop/scripts/fetch-sidecars.sh),
+# so CI tests what users get and a new ffmpeg arrives as a reviewed bump,
+# not as whatever a "latest release" download serves that day. The tests
+# need ffmpeg 8 or newer.
+name: ffmpeg
+description: Puts the desktop app's pinned ffmpeg and ffprobe on PATH (Linux x64).
+runs:
+  using: composite
+  steps:
+    - name: Fetch the pinned ffmpeg build
+      shell: bash
+      run: |
+        crates/desktop/scripts/fetch-sidecars.sh x86_64-unknown-linux-gnu
+        bin="$RUNNER_TEMP/ffmpeg"
+        mkdir -p "$bin"
+        for tool in ffmpeg ffprobe; do
+          ln -sf "$GITHUB_WORKSPACE/crates/desktop/binaries/$tool-x86_64-unknown-linux-gnu" "$bin/$tool"
+        done
+        echo "$bin" >> "$GITHUB_PATH"
+        "$bin/ffmpeg" -hide_banner -version | head -n 1
