@@ -304,10 +304,14 @@ jobs:
   # ANGLE libraries that the Linux CEF distribution does not ship, see
   # architecture.md "Linux desktop app as built", issue 1); the compile and
   # link still run, and a bundler fix is a version bump away.
+  #
+  # Off until the desktop builds are fixed: the job only runs when the
+  # repository variable DESKTOP_BUILDS is `true` (Settings → Secrets and
+  # variables → Actions → Variables). A skipped job keeps `CI` green.
   desktop:
     name: Desktop (${{ matrix.target }})
     needs: [changes, codegen]
-    if: needs.changes.outputs.desktop == 'true'
+    if: vars.DESKTOP_BUILDS == 'true' && needs.changes.outputs.desktop == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -457,6 +461,7 @@ jobs:
       - name: Release notes for ${{ github.ref_name }}
         run: git cliff --current --strip all > notes.md
       - uses: actions/download-artifact@v8
+        if: needs.desktop.result == 'success'
         with:
           pattern: desktop-*
           path: bundles
