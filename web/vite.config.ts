@@ -1,4 +1,5 @@
 // Rationale per plugin: docs/frontend.md.
+import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import tailwindcss from "@tailwindcss/vite";
@@ -11,7 +12,7 @@ import IconsResolver from "unplugin-icons/resolver";
 import Icons from "unplugin-icons/vite";
 import TurboConsole from "unplugin-turbo-console/vite";
 import Components from "unplugin-vue-components/vite";
-import { defineConfig, type UserConfig } from "vite";
+import { defineConfig, type Plugin, type UserConfig } from "vite";
 import Info from "vite-plugin-meta-info";
 import VueDevTools from "vite-plugin-vue-devtools";
 import { VueRouterAutoImports } from "vue-router/unplugin";
@@ -34,6 +35,42 @@ const MMT_ICONS: Record<string, string> = {
 
 // The axum server in development (`cargo run -p server`)
 const BACKEND = "http://127.0.0.1:8080";
+
+/** The lock file entries this build reads: `dev` marks a package only the build needs. */
+interface LockPackage {
+	name?: string;
+	version?: string;
+	license?: string;
+	dev?: boolean;
+}
+
+/**
+ * Writes `sbom.web.json` into the build output: every production package of the lock file (the
+ * non-dev closure, what can end up in the bundle) with its name, version and license. The server
+ * merges it into the CycloneDX document it serves at `/sbom.cdx.json` (see development.md).
+ */
+function webSbom(lockFile: string): Plugin {
+	return {
+		name: "mmt:web-sbom",
+		apply: "build",
+		generateBundle() {
+			const lock = JSON.parse(readFileSync(lockFile, "utf8")) as { packages?: Record<string, LockPackage> };
+			const seen = new Set<string>();
+			const packages = [];
+			for (const [location, entry] of Object.entries(lock.packages ?? {})) {
+				// The root entry is the app itself; dev packages are not bundled
+				if (location === "" || entry.dev || !entry.version) continue;
+				const name = entry.name ?? location.slice(location.lastIndexOf("node_modules/") + "node_modules/".length);
+				const key = `${name}@${entry.version}`;
+				if (seen.has(key)) continue;
+				seen.add(key);
+				packages.push({ name, version: entry.version, ...(entry.license ? { license: entry.license } : {}) });
+			}
+			packages.sort((a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version));
+			this.emitFile({ type: "asset", fileName: "sbom.web.json", source: JSON.stringify({ packages }) });
+		}
+	};
+}
 
 export default defineConfig((): UserConfig => {
 	return {
@@ -69,7 +106,8 @@ export default defineConfig((): UserConfig => {
 			proxy: {
 				"/rpc": BACKEND,
 				"^/media/": BACKEND,
-				"^/files/": BACKEND
+				"^/files/": BACKEND,
+				"/sbom.cdx.json": BACKEND
 			}
 		},
 
@@ -146,8 +184,11 @@ export default defineConfig((): UserConfig => {
 			}),
 
 			// https://github.com/bazingaedward/vite-plugin-buildInfo
-			// Version, commit and build time for the About screen and status bar
-			Info()
+			// Version, commit and build time for the About section and status bar
+			Info(),
+
+			// The npm packages in the bundle, for the SBOM the server serves
+			webSbom(path.resolve(import.meta.dirname, "package-lock.json"))
 		]
 	};
 });
