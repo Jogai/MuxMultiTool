@@ -1,0 +1,16 @@
+Filters:
+  T.. = Timeline support
+  .S. = Slice threading
+  ..C = Command support
+  A = Audio input/output
+  V = Video input/output
+  N = Dynamic number and/or type of input/output
+  | = Source or sink filter
+ TSC aap               AA->A      Apply Affine Projection algorithm to first audio stream.
+ ... aresample         A->A       Resample audio data.
+ ..C crop              V->V       Crop the input video.
+ T.C cropdetect        V->V       Auto-detect crop size.
+ ... palettegen        V->V       Find the optimal palette for a given stream.
+ ..C scale             V->V       Scale the input video size and/or convert the image format.
+ ... nullsrc           |->V       Null video source, return unprocessed video frames.
+ ... buffersink        V->|       Buffer video frames, and make them available to the end of the filter graph.

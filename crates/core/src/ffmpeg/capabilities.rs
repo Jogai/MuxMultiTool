@@ -200,12 +200,21 @@ pub fn parse_formats(text: &str) -> Vec<Format> {
 }
 
 /// Parses `ffmpeg -filters`.
+///
+/// ffmpeg 8 and newer put a `------` line between the legend and the table;
+/// ffmpeg 7 and older do not, and also have a third flag column (`..C`,
+/// command support). So every line is tried, and a row is one whose flags
+/// are only `T`, `S`, `C` and `.` and whose third column is a shape such as
+/// `V->V`, which leaves the legend out.
 #[must_use]
 pub fn parse_filters(text: &str) -> Vec<Filter> {
-	table_rows(text)
+	text.lines()
 		.filter_map(|row| {
 			let mut parts = row.split_whitespace();
 			let flags = parts.next()?;
+			if !flags.chars().all(|c| matches!(c, 'T' | 'S' | 'C' | '.')) {
+				return None;
+			}
 			let name = parts.next()?;
 			// The third column is the input/output shape, e.g. `V->V`.
 			let shape = parts.next()?;
@@ -437,6 +446,19 @@ mod tests {
 		assert_eq!(by("scale").description.split(' ').next(), Some("Scale"));
 		assert!(by("cropdetect").timeline);
 		assert_eq!(filters.len(), 12);
+	}
+
+	#[test]
+	fn filters_of_ffmpeg_7_have_no_separator_line() {
+		let filters = parse_filters(include_str!("../../tests/fixtures/ffmpeg/filters-7.txt"));
+		let names: Vec<&str> = filters.iter().map(|f| f.name.as_str()).collect();
+		assert!(names.contains(&"scale"));
+		assert!(names.contains(&"cropdetect"));
+		assert!(names.iter().all(|n| *n != "=" && *n != "|"));
+		let by = |name: &str| filters.iter().find(|f| f.name == name).unwrap();
+		assert!(by("cropdetect").timeline);
+		assert!(!by("scale").timeline);
+		assert_eq!(by("scale").description.split(' ').next(), Some("Scale"));
 	}
 
 	#[test]
