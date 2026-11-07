@@ -16,7 +16,7 @@ The Rust workspace lives in `crates/`. `rust-toolchain.toml` pins the Rust versi
 | TOML | `taplo fmt --check` (`cargo install taplo-cli`, or `npx @taplo/cli fmt --check`) |
 | Dependencies | `cargo deny check` (`cargo install cargo-deny`): RustSec advisories, licenses, bans and sources, configured in `deny.toml` |
 | Unused dependencies | `cargo shear` (`cargo install cargo-shear`) |
-| Feature combinations | `cargo hack check --each-feature --workspace --locked` (`cargo install cargo-hack`) |
+| Feature combinations | `cargo hack check --each-feature --workspace --locked --exclude-features cef` (`cargo install cargo-hack`; the desktop `cef` feature needs GTK 4 and is checked in the Linux desktop job) |
 
 To fix formatting instead of checking it, drop `--check`. Lints are defined once in the root `Cargo.toml` and every crate inherits them; project rules such as the disallowed `Command::new` (use `core::ffmpeg::Runner`) are in `clippy.toml`. Indentation is tabs everywhere the format allows it (see `.editorconfig`, `rustfmt.toml` and `taplo.toml`).
 
