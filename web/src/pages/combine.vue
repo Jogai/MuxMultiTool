@@ -205,9 +205,7 @@ const field = "rounded-md border border-border bg-surface px-2 py-1 text-sm";
 					<input v-model="form.template" type="text" :class="field" class="font-mono" />
 					<span class="text-xs text-muted">
 						{{ t("combine.output.hint") }}
-						<template v-if="outputName"
-							>→ <span class="font-mono">{{ preview?.outputName || outputName }}</span></template
-						>
+						<template v-if="outputName">→ <span class="font-mono">{{ preview?.outputName || outputName }}</span></template>
 					</span>
 				</label>
 			</div>

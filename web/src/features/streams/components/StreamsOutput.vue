@@ -37,9 +37,7 @@ const field = "rounded-md border border-border bg-surface px-2 py-1 text-sm";
 				<input v-model="template" type="text" :class="field" class="font-mono" />
 				<span class="text-xs text-muted">
 					{{ t("streams.output.templateHint") }}
-					<template v-if="example"
-						>→ <span class="font-mono">{{ example }}</span></template
-					>
+					<template v-if="example">→ <span class="font-mono">{{ example }}</span></template>
 				</span>
 			</label>
 			<p v-else class="max-w-prose self-end text-xs text-muted">{{ t("streams.output.extractNames") }}</p>

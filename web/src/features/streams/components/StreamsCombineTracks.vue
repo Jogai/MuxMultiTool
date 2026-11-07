@@ -69,9 +69,7 @@ const button =
 
 <template>
 	<section class="flex min-w-0 flex-col gap-2" :aria-label="t('combine.tracks.title')">
-		<h3 class="font-bold">
-			{{ t("combine.tracks.title") }} <span class="font-normal text-muted">· {{ t("combine.tracks.hint") }}</span>
-		</h3>
+		<h3 class="font-bold">{{ t("combine.tracks.title") }} <span class="font-normal text-muted">· {{ t("combine.tracks.hint") }}</span></h3>
 		<p v-if="tracks.length === 0" class="text-sm text-muted">{{ t("combine.tracks.empty") }}</p>
 		<div v-else class="overflow-x-auto">
 			<table class="w-full border-collapse text-sm">
