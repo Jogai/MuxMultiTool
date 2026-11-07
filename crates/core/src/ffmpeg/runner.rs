@@ -192,7 +192,7 @@ impl Runner {
 		let (status, (), log_tail) = supervise(&mut child, Tool::Ffmpeg, limits, pipes)
 			.instrument(span)
 			.await?;
-		if status.success() {
+		if status.success() && !refused_to_overwrite(&log_tail) {
 			Ok(Completed { status, log_tail })
 		} else {
 			Err(RunError::Failed {
@@ -691,10 +691,28 @@ async fn read_all(pipe: Option<impl AsyncRead + Unpin>) -> String {
 	text
 }
 
+/// Whether ffmpeg stopped because an output file exists. ffmpeg 8.1 and
+/// older exit with 0 then, although nothing was written (newer builds exit
+/// with an error), so the log decides.
+fn refused_to_overwrite(log_tail: &str) -> bool {
+	log_tail.lines().any(|line| {
+		line.contains("already exists. Exiting") || line.contains("Not overwriting - exiting")
+	})
+}
+
 #[cfg(test)]
 mod tests {
 	use super::super::operations::remux;
 	use super::*;
+
+	#[test]
+	fn a_refused_overwrite_is_noticed_in_the_log() {
+		let tail =
+			"Error opening output file /m/out.mkv.\nFile '/m/out.mkv' already exists. Exiting.";
+		assert!(refused_to_overwrite(tail));
+		assert!(refused_to_overwrite("Not overwriting - exiting"));
+		assert!(!refused_to_overwrite("video:12kB audio:3kB subtitle:0kB"));
+	}
 
 	#[test]
 	fn ffmpeg_argv_adds_runner_flags_before_the_operation() {
