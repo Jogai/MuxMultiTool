@@ -845,6 +845,7 @@ mod tests {
 			start_time: 0.0,
 			video_stream: Some(0),
 			reorder_delay: 0.08,
+			video_start: 0.0,
 			format_name: "mov,mp4,m4a,3gp,3g2,mj2".into(),
 			extension: Some("mp4".into()),
 		}
