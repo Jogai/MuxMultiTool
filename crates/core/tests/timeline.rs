@@ -46,7 +46,7 @@ async fn make_clip(
 		.option("-preset", "ultrafast")
 		.option("-pix_fmt", "yuv420p")
 		.option("-g", "50")
-		.option("-c:a", "aac")
+		.option("-c:a", "flac") // lossless: the peaks must not depend on an AAC encoder
 		.option("-c:s", "srt")
 		.flag("-y")
 		.output(&clip);
