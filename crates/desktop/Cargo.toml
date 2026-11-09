@@ -23,8 +23,8 @@ cef = [
 ]
 
 [dependencies]
-muxmultitool-core = { path = "../core", version = "0.1.0" }
-muxmultitool-server = { path = "../server", version = "0.1.0" }
+muxmultitool-core = { path = "../core", version = "0.2.0" }
+muxmultitool-server = { path = "../server", version = "0.2.0" }
 tokio = { version = "1.54.1", features = ["rt", "sync", "time"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = [
