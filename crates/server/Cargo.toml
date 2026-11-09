@@ -22,8 +22,8 @@ connectrpc = { version = "0.9", default-features = false, features = [
 	"json",
 ] }
 futures-util = { version = "0.3.34", default-features = false }
-muxmultitool-core = { path = "../core", version = "0.1.0" }
-muxmultitool-proto = { path = "../proto", version = "0.1.0" }
+muxmultitool-core = { path = "../core", version = "0.2.0" }
+muxmultitool-proto = { path = "../proto", version = "0.2.0" }
 percent-encoding = "2.3.2"
 serde = { version = "1.0.229", features = ["derive"] }
 tokio = { version = "1.54.1", features = [
