@@ -47,6 +47,10 @@ use tracing::{info, warn};
 mod batch;
 mod combine;
 mod config;
+// The crate graph walk of `build.rs`, compiled here only for its unit tests.
+#[cfg(test)]
+#[path = "../build/crate_graph.rs"]
+mod crate_graph;
 mod crop;
 mod cut;
 mod download;

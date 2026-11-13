@@ -155,6 +155,31 @@ async fn the_crates_are_the_normal_dependencies_of_the_server() {
 }
 
 #[tokio::test]
+async fn proc_macros_are_build_time_and_everything_else_runtime() {
+	let web = r#"{"packages":[{"name":"vue","version":"3.5.45","license":"MIT"}]}"#;
+	let (_, document) = fetch(Some(web), no_ffmpeg()).await.unwrap();
+
+	let scope = |name: &str| by_name(&document, name).map(|c| c["scope"].clone());
+	// Linked into the server
+	assert_eq!(scope("tokio"), Some("required".into()));
+	assert_eq!(scope("axum"), Some("required".into()));
+	// Procedural macros run inside the compiler, and so do the crates only they use
+	for build_time in ["serde_derive", "tokio-macros", "syn", "quote"] {
+		assert_eq!(scope(build_time), Some("excluded".into()), "{build_time}");
+	}
+	// npm packages are bundled, so runtime
+	assert_eq!(scope("vue"), Some("required".into()));
+	// Every component has one of the two
+	assert!(
+		document["components"]
+			.as_array()
+			.unwrap()
+			.iter()
+			.all(|c| c["scope"] == "required" || c["scope"] == "excluded")
+	);
+}
+
+#[tokio::test]
 async fn npm_packages_come_from_the_frontend_folder() {
 	let web = r#"{"packages":[
 		{"name":"vue","version":"3.5.45","license":"MIT"},
