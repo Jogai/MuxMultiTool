@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { countByKind, filterSbom, parseSbom, type SbomComponent, sortSbom } from "./sbom";
+import { filterSbom, groupSbom, parseSbom, type SbomComponent, sortSbom } from "./sbom";
 
 const document = {
 	bomFormat: "CycloneDX",
@@ -10,7 +10,22 @@ const document = {
 		component: { type: "application", name: "muxmultitool", version: "0.1.0" }
 	},
 	components: [
-		{ type: "library", name: "tokio", version: "1.54.1", purl: "pkg:cargo/tokio@1.54.1", licenses: [{ expression: "MIT" }] },
+		{
+			type: "library",
+			name: "tokio",
+			version: "1.54.1",
+			purl: "pkg:cargo/tokio@1.54.1",
+			scope: "required",
+			licenses: [{ expression: "MIT" }]
+		},
+		{
+			type: "library",
+			name: "serde_derive",
+			version: "1.0.229",
+			purl: "pkg:cargo/serde_derive@1.0.229",
+			scope: "excluded",
+			licenses: [{ expression: "MIT" }]
+		},
 		{ type: "library", name: "ring", version: "0.17.0", purl: "pkg:cargo/ring@0.17.0" },
 		{
 			type: "library",
@@ -32,16 +47,18 @@ const document = {
 };
 
 describe("parseSbom", () => {
-	it("flattens the components with their kind and license", () => {
+	it("flattens the components with their kind, phase and license", () => {
 		const sbom = parseSbom(document);
 		expect(sbom.application).toEqual({ name: "muxmultitool", version: "0.1.0" });
 		expect(sbom.timestamp).toBe("2026-11-07T12:00:00Z");
 		expect(sbom.components).toEqual<SbomComponent[]>([
-			{ name: "tokio", version: "1.54.1", license: "MIT", kind: "cargo" },
-			{ name: "ring", version: "0.17.0", license: "", kind: "cargo" },
-			{ name: "@connectrpc/connect", version: "2.3.0", license: "Apache-2.0", kind: "npm" },
-			{ name: "odd", version: "1.0.0", license: "SEE LICENSE IN LICENSE.md", kind: "npm" },
-			{ name: "ffmpeg", version: "9.0.2", license: "GPL-3.0-or-later", kind: "application" }
+			{ name: "tokio", version: "1.54.1", license: "MIT", kind: "cargo", phase: "runtime" },
+			{ name: "serde_derive", version: "1.0.229", license: "MIT", kind: "cargo", phase: "build" },
+			// No scope: a document from before the split reads as runtime
+			{ name: "ring", version: "0.17.0", license: "", kind: "cargo", phase: "runtime" },
+			{ name: "@connectrpc/connect", version: "2.3.0", license: "Apache-2.0", kind: "npm", phase: "runtime" },
+			{ name: "odd", version: "1.0.0", license: "SEE LICENSE IN LICENSE.md", kind: "npm", phase: "runtime" },
+			{ name: "ffmpeg", version: "9.0.2", license: "GPL-3.0-or-later", kind: "application", phase: "runtime" }
 		]);
 	});
 
@@ -65,6 +82,10 @@ describe("filterSbom", () => {
 		expect(filterSbom(components, "gpl").map((c) => c.name)).toEqual(["ffmpeg"]);
 	});
 
+	it("matches build-time components too", () => {
+		expect(filterSbom(components, "serde").map((c) => c.name)).toEqual(["serde_derive"]);
+	});
+
 	it("needs every word", () => {
 		expect(filterSbom(components, "connect apache").map((c) => c.name)).toEqual(["@connectrpc/connect"]);
 		expect(filterSbom(components, "connect mit")).toEqual([]);
@@ -75,24 +96,36 @@ describe("filterSbom", () => {
 	});
 });
 
-describe("countByKind", () => {
-	it("counts every kind, zero included", () => {
-		expect(countByKind(parseSbom(document).components)).toEqual({ cargo: 2, npm: 2, application: 1 });
-		expect(countByKind([])).toEqual({ cargo: 0, npm: 0, application: 0 });
-	});
-});
-
 describe("sortSbom", () => {
 	it("puts programs first, then crates, then npm packages, each by name", () => {
 		const names = sortSbom(parseSbom(document).components).map((c) => `${c.kind}:${c.name}`);
-		expect(names).toEqual(["application:ffmpeg", "cargo:ring", "cargo:tokio", "npm:@connectrpc/connect", "npm:odd"]);
+		expect(names).toEqual(["application:ffmpeg", "cargo:ring", "cargo:serde_derive", "cargo:tokio", "npm:@connectrpc/connect", "npm:odd"]);
 	});
 
 	it("orders versions numerically", () => {
 		const versions = sortSbom([
-			{ name: "a", version: "1.10.0", license: "", kind: "cargo" },
-			{ name: "a", version: "1.9.0", license: "", kind: "cargo" }
+			{ name: "a", version: "1.10.0", license: "", kind: "cargo", phase: "runtime" },
+			{ name: "a", version: "1.9.0", license: "", kind: "cargo", phase: "runtime" }
 		]).map((c) => c.version);
 		expect(versions).toEqual(["1.9.0", "1.10.0"]);
+	});
+});
+
+describe("groupSbom", () => {
+	it("splits runtime from build time, then by kind, in display order", () => {
+		const groups = groupSbom(parseSbom(document).components);
+		expect(groups.map((group) => [group.key, group.components.map((c) => c.name)])).toEqual([
+			["runtime:application", ["ffmpeg"]],
+			["runtime:cargo", ["ring", "tokio"]],
+			["runtime:npm", ["@connectrpc/connect", "odd"]],
+			["build:cargo", ["serde_derive"]]
+		]);
+		expect(groups[3]).toMatchObject({ phase: "build", kind: "cargo" });
+	});
+
+	it("leaves out empty groups", () => {
+		expect(groupSbom([])).toEqual([]);
+		const onlyBuild = groupSbom([{ name: "syn", version: "2.0.119", license: "MIT", kind: "cargo", phase: "build" }]);
+		expect(onlyBuild.map((group) => group.key)).toEqual(["build:cargo"]);
 	});
 });
