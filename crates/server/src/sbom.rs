@@ -5,15 +5,17 @@
 //! - the Rust crates compiled into this binary, recorded at build time by
 //!   `build.rs` (the normal-dependency closure of this crate for the build
 //!   target, without the workspace crates: they are the application) and
-//!   embedded here;
+//!   embedded here. The procedural macros among them, and the crates only
+//!   they use, run inside the compiler and are not in the binary: they get
+//!   the `CycloneDX` scope `excluded`, every other component `required`;
 //! - the npm packages bundled into the frontend, from `sbom.web.json` next
 //!   to `index.html` in the frontend folder, which `vite build` writes. A
 //!   frontend without the file (an old build, a test) lists no npm packages;
 //! - the ffmpeg build the server uses, as the capability check reports it,
 //!   with a license only when the build says it is GPL version 3 or later.
 //!
-//! The Settings page shows the document as a table and links to it for a
-//! download. The desktop app serves the same list: the Tauri crates around
+//! The Settings page shows the document, runtime and build time apart, and
+//! links to it for a download. The desktop app serves the same list: the Tauri crates around
 //! the embedded server are not in it.
 
 use std::path::Path;
@@ -61,6 +63,10 @@ struct Crate {
 	/// `license-file`.
 	license: Option<String>,
 	repository: Option<String>,
+	/// A procedural macro, or a crate only procedural macros use: it runs
+	/// while compiling and is not in the binary.
+	#[serde(default, rename = "buildOnly")]
+	build_only: bool,
 }
 
 /// The npm packages bundled into the frontend, as `vite build` wrote them.
@@ -170,6 +176,9 @@ fn crate_component(krate: &Crate) -> Value {
 		krate.license.as_deref(),
 	);
 	component.insert("purl".into(), purl.into());
+	if krate.build_only {
+		component.insert("scope".into(), SCOPE_BUILD_ONLY.into());
+	}
 	if let Some(repository) = &krate.repository {
 		component.insert(
 			"externalReferences".into(),
@@ -205,8 +214,15 @@ fn ffmpeg_component(found: &Capabilities) -> Value {
 	Value::Object(component)
 }
 
-/// The fields every component has. `license` becomes a `licenses` entry
-/// when present.
+/// The `CycloneDX` scope of a component that is in the running program.
+const SCOPE_RUNTIME: &str = "required";
+
+/// The `CycloneDX` scope of a component that is not: the spec's "not
+/// reachable within a call graph at runtime".
+const SCOPE_BUILD_ONLY: &str = "excluded";
+
+/// The fields every component has, with the runtime scope. `license`
+/// becomes a `licenses` entry when present.
 fn component(
 	kind: &str,
 	bom_ref: &str,
@@ -219,6 +235,7 @@ fn component(
 	component.insert("bom-ref".into(), bom_ref.into());
 	component.insert("name".into(), name.into());
 	component.insert("version".into(), version.into());
+	component.insert("scope".into(), SCOPE_RUNTIME.into());
 	if let Some(license) = license.map(str::trim).filter(|l| !l.is_empty()) {
 		component.insert("licenses".into(), json!([license_entry(license)]));
 	}
@@ -415,6 +432,7 @@ mod tests {
 			version: "0.17.0".to_owned(),
 			license: None,
 			repository: Some("https://github.com/briansmith/ring".to_owned()),
+			build_only: false,
 		});
 		assert!(component.get("licenses").is_none());
 		assert_eq!(
@@ -422,6 +440,30 @@ mod tests {
 			"https://github.com/briansmith/ring"
 		);
 		assert_eq!(component["purl"], "pkg:cargo/ring@0.17.0");
+		assert_eq!(component["scope"], "required");
+	}
+
+	#[test]
+	fn a_build_only_crate_is_excluded() {
+		let record: BuildRecord = serde_json::from_value(json!({
+			"serialNumber": "urn:uuid:00000000-0000-4000-8000-000000000000",
+			"timestamp": "2026-11-13T12:00:00Z",
+			"crates": [
+				{ "name": "tokio", "version": "1.54.1" },
+				{ "name": "serde_derive", "version": "1.0.229", "buildOnly": true },
+			],
+		}))
+		.unwrap();
+		let components: Vec<Value> = record.crates.iter().map(crate_component).collect();
+		assert_eq!(components[0]["scope"], "required");
+		assert_eq!(components[1]["scope"], "excluded");
+	}
+
+	#[test]
+	fn the_embedded_record_marks_proc_macros_build_only() {
+		let by_name = |name: &str| BUILD.crates.iter().find(|c| c.name == name);
+		assert!(by_name("tokio").is_some_and(|c| !c.build_only));
+		assert!(by_name("serde_derive").is_some_and(|c| c.build_only));
 	}
 
 	#[test]
@@ -434,6 +476,7 @@ mod tests {
 				version: "1.54.1".to_owned(),
 				license: Some("MIT".to_owned()),
 				repository: None,
+				build_only: false,
 			}],
 		};
 		let web = WebRecord {
@@ -454,6 +497,7 @@ mod tests {
 		assert_eq!(components.len(), 2);
 		assert_eq!(components[0]["purl"], "pkg:cargo/tokio@1.54.1");
 		assert_eq!(components[1]["purl"], "pkg:npm/%40vue/shared@3.5.45");
+		assert!(components.iter().all(|c| c["scope"] == "required"));
 		assert_eq!(
 			document["dependencies"][0]["dependsOn"],
 			json!(["pkg:cargo/tokio@1.54.1", "pkg:npm/%40vue/shared@3.5.45"])

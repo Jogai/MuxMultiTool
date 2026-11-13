@@ -4,10 +4,12 @@
 //! `cargo metadata` (through the `CARGO` cargo is running as) resolves the
 //! workspace for the build target, and the script walks the `resolve` graph
 //! from this package along the normal dependencies only (no `dev`, no
-//! `build`), for the target only. The crates it finds, with their version,
-//! SPDX license expression and repository, go to `sbom-crates.json` in
-//! `OUT_DIR`, together with the build time and a serial number derived from
-//! those inputs, and `sbom.rs` embeds the file with `include_str!`.
+//! `build`), for the target only (`build/crate_graph.rs`). The crates it
+//! finds, with their version, SPDX license expression, repository and
+//! whether they are build time only (procedural macros and what only they
+//! use), go to `sbom-crates.json` in `OUT_DIR`, together with the build time
+//! and a serial number derived from those inputs, and `sbom.rs` embeds the
+//! file with `include_str!`.
 //!
 //! The workspace crates themselves are left out: they are the application,
 //! which the SBOM names as its root component. The desktop crate embeds the
@@ -20,7 +22,9 @@
 //! (a release build never downloads dev-dependencies). An air-gapped build
 //! runs `cargo fetch` first.
 
-use std::collections::{BTreeSet, HashMap};
+#[path = "build/crate_graph.rs"]
+mod crate_graph;
+
 use std::env;
 use std::error::Error;
 use std::fs;
@@ -29,19 +33,21 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use serde_json::{Map, Value, json};
+use serde_json::{Value, json};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 fn main() -> Result<()> {
 	println!("cargo:rerun-if-changed=build.rs");
+	println!("cargo:rerun-if-changed=build/crate_graph.rs");
 	let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR")?);
 	let out_dir = PathBuf::from(env::var("OUT_DIR")?);
 	let target = env::var("TARGET")?;
 
 	let metadata = cargo_metadata(&manifest_dir, &target)?;
 	rerun_on_manifest_changes(&metadata)?;
-	let crates = dependency_crates(&metadata, &manifest_dir)?;
+	let root = crate_graph::package_id(&metadata, &manifest_dir.join("Cargo.toml"))?;
+	let crates = crate_graph::dependency_crates(&metadata, root)?;
 
 	let timestamp = build_timestamp();
 	let serial = serial_number(&crates, &timestamp, &target);
@@ -109,101 +115,14 @@ fn rerun_on_manifest_changes(metadata: &Value) -> Result<()> {
 		"cargo:rerun-if-changed={}",
 		Path::new(root).join("Cargo.toml").display()
 	);
-	for package in packages(metadata)?.values() {
-		if is_workspace_member(metadata, package)
+	for package in crate_graph::packages(metadata)?.values() {
+		if crate_graph::is_workspace_member(metadata, package)
 			&& let Some(manifest) = package["manifest_path"].as_str()
 		{
 			println!("cargo:rerun-if-changed={manifest}");
 		}
 	}
 	Ok(())
-}
-
-fn packages(metadata: &Value) -> Result<HashMap<&str, &Value>> {
-	metadata["packages"]
-		.as_array()
-		.ok_or("cargo metadata has no packages")?
-		.iter()
-		.map(|package| {
-			Ok((
-				package["id"].as_str().ok_or("a package has no id")?,
-				package,
-			))
-		})
-		.collect()
-}
-
-fn is_workspace_member(metadata: &Value, package: &Value) -> bool {
-	metadata["workspace_members"]
-		.as_array()
-		.is_some_and(|members| members.iter().any(|member| member == &package["id"]))
-}
-
-/// The normal-dependency closure of this package, sorted by name and
-/// version, without the workspace crates.
-fn dependency_crates(metadata: &Value, manifest_dir: &Path) -> Result<Vec<Value>> {
-	let packages = packages(metadata)?;
-	let own_manifest = manifest_dir.join("Cargo.toml");
-	let root = packages
-		.values()
-		.find(|package| {
-			package["manifest_path"]
-				.as_str()
-				.is_some_and(|path| Path::new(path) == own_manifest)
-		})
-		.and_then(|package| package["id"].as_str())
-		.ok_or("this package is not in cargo metadata")?;
-
-	let nodes: HashMap<&str, &Value> = metadata["resolve"]["nodes"]
-		.as_array()
-		.ok_or("cargo metadata has no resolve graph")?
-		.iter()
-		.filter_map(|node| Some((node["id"].as_str()?, node)))
-		.collect();
-
-	let mut seen = BTreeSet::new();
-	let mut pending = vec![root];
-	while let Some(id) = pending.pop() {
-		if !seen.insert(id) {
-			continue;
-		}
-		let node = nodes
-			.get(id)
-			.ok_or_else(|| format!("{id} is not in the resolve graph"))?;
-		for dep in node["deps"].as_array().into_iter().flatten() {
-			// `kind` is null for a normal dependency, "dev" or "build" otherwise.
-			// `--filter-platform` already dropped the entries for other targets.
-			let normal = dep["dep_kinds"]
-				.as_array()
-				.is_some_and(|kinds| kinds.iter().any(|kind| kind["kind"].is_null()));
-			if let (true, Some(pkg)) = (normal, dep["pkg"].as_str()) {
-				pending.push(pkg);
-			}
-		}
-	}
-
-	let mut crates: Vec<Value> = seen
-		.into_iter()
-		.filter_map(|id| packages.get(id).copied())
-		.filter(|package| !is_workspace_member(metadata, package))
-		.map(|package| {
-			let mut entry = Map::new();
-			entry.insert("name".into(), package["name"].clone());
-			entry.insert("version".into(), package["version"].clone());
-			if let Some(license) = package["license"].as_str() {
-				entry.insert("license".into(), license.into());
-			}
-			if let Some(repository) = package["repository"].as_str() {
-				entry.insert("repository".into(), repository.into());
-			}
-			Value::Object(entry)
-		})
-		.collect();
-	crates.sort_by(|a, b| {
-		(a["name"].as_str(), a["version"].as_str())
-			.cmp(&(b["name"].as_str(), b["version"].as_str()))
-	});
-	Ok(crates)
 }
 
 /// Now, as RFC 3339 in UTC; `SOURCE_DATE_EPOCH` when set, for reproducible
