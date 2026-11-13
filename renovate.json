@@ -71,6 +71,11 @@
 			"allowedVersions": "<7"
 		},
 		{
+			"description": "npm updates raise the range in package.json too (`^8.3.6` → `^8.3.8`), not only the lock file, so package.json names the versions in use.",
+			"matchManagers": ["npm"],
+			"rangeStrategy": "bump"
+		},
+		{
 			"description": "A new Rust stable updates rust-toolchain.toml.",
 			"matchManagers": ["rust-toolchain", "custom.regex"],
 			"matchDepNames": ["rust", "rust-lang/rust"],
