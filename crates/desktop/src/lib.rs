@@ -48,7 +48,7 @@ pub fn init_logging() {
 	target_os = "macos",
 	all(target_os = "linux", feature = "cef")
 ))]
-#[must_use]
+#[must_use = "main returns this code so the process exits with it"]
 pub fn run() -> ExitCode {
 	app::run()
 }
@@ -60,7 +60,7 @@ pub fn run() -> ExitCode {
 	target_os = "macos",
 	all(target_os = "linux", feature = "cef")
 )))]
-#[must_use]
+#[must_use = "main returns this code so the process exits with it"]
 pub fn run() -> ExitCode {
 	tracing::error!(
 		"this desktop binary was built without a shell: on Linux build it with `--features cef` (Tauri's CEF runtime, see crates/desktop/Cargo.toml), or run the server (muxmultitool-server) and open it in a browser instead"
