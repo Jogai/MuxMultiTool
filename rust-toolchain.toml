@@ -1,7 +1,7 @@
 # Pinned toolchain for the whole workspace. Renovate bumps the channel when a
 # new Rust stable is released; CI and local builds use exactly this version.
 [toolchain]
-channel = "1.99.1"
+channel = "1.100.0"
 profile = "minimal"
 components = ["clippy", "rustfmt"]
 targets = [
