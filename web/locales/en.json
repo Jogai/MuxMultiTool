@@ -232,25 +232,32 @@
 				"description": "Everything this build is made of: the Rust crates compiled into the server, the npm packages bundled into this page and the ffmpeg build in use, as a CycloneDX document.",
 				"loading": "Loading the bill of materials…",
 				"search": "Search by name or license",
-				"count": {
-					"cargo": "{n} Rust crate | {n} Rust crates",
-					"npm": "{n} npm package | {n} npm packages",
-					"application": "{n} application | {n} applications"
-				},
+				"total": "{n} component | {n} components",
 				"download": "Download (CycloneDX JSON)",
 				"noMatch": "Nothing matches “{query}”.",
+				"empty": "The bill of materials lists no components.",
+				"matches": "{shown} of {total}",
 				"noLicense": "none declared",
 				"built": "Recorded when the server was built: {time}",
+				"phase": {
+					"runtime": {
+						"title": "Runtime",
+						"description": "Part of the running program: compiled into the server, bundled into this page, or run by the server."
+					},
+					"build": {
+						"title": "Build time",
+						"description": "Used only while compiling: procedural macros and the crates only they use. Nothing of them is in the program."
+					}
+				},
+				"group": {
+					"application": "Programs",
+					"cargo": "Rust crates",
+					"npm": "npm packages"
+				},
 				"columns": {
 					"name": "Name",
 					"version": "Version",
-					"license": "License",
-					"kind": "Type"
-				},
-				"kind": {
-					"cargo": "Rust crate",
-					"npm": "npm package",
-					"application": "Application"
+					"license": "License"
 				}
 			}
 		}

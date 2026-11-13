@@ -4,7 +4,15 @@ export const SBOM_URL = "/sbom.cdx.json";
 /** What a component is: a Rust crate, an npm package, or a program such as ffmpeg. */
 export type SbomKind = "cargo" | "npm" | "application";
 
-export const SBOM_KINDS: readonly SbomKind[] = ["cargo", "npm", "application"];
+/**
+ * When a component is used: `runtime` when it is in the running program (linked into the server,
+ * bundled into the page, or run by the server), `build` when it only runs while compiling (procedural
+ * macros and the crates only they use). The document says so with the CycloneDX `scope`: `excluded` is
+ * build time, anything else runtime.
+ */
+export type SbomPhase = "runtime" | "build";
+
+export const SBOM_PHASES: readonly SbomPhase[] = ["runtime", "build"];
 
 /** One row of the table: a component of the SBOM, flattened. */
 export interface SbomComponent {
@@ -13,6 +21,7 @@ export interface SbomComponent {
 	/** The SPDX expression or the license name; empty when the component declares none. */
 	license: string;
 	kind: SbomKind;
+	phase: SbomPhase;
 }
 
 /** The parts of the document the page shows. */
@@ -36,6 +45,7 @@ interface CycloneDxComponent {
 	name?: unknown;
 	version?: unknown;
 	purl?: unknown;
+	scope?: unknown;
 	licenses?: { expression?: unknown; license?: { id?: unknown; name?: unknown } }[];
 }
 
@@ -56,7 +66,8 @@ export function parseSbom(value: unknown): Sbom {
 				name,
 				version: text(component.version),
 				license: licenseOf(component),
-				kind: kindOf(component)
+				kind: kindOf(component),
+				phase: component.scope === "excluded" ? ("build" as const) : ("runtime" as const)
 			}
 		];
 	});
@@ -99,13 +110,6 @@ export function filterSbom(components: readonly SbomComponent[], query: string):
 	});
 }
 
-/** How many components of each kind, every kind present even when zero. */
-export function countByKind(components: readonly SbomComponent[]): Record<SbomKind, number> {
-	const counts: Record<SbomKind, number> = { cargo: 0, npm: 0, application: 0 };
-	for (const component of components) counts[component.kind] += 1;
-	return counts;
-}
-
 /** The table's order: programs first (ffmpeg), then the crates, then the npm packages, each by name. */
 const KIND_ORDER: readonly SbomKind[] = ["application", "cargo", "npm"];
 
@@ -115,5 +119,25 @@ export function sortSbom(components: readonly SbomComponent[]): SbomComponent[] 
 			KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) ||
 			a.name.localeCompare(b.name) ||
 			a.version.localeCompare(b.version, undefined, { numeric: true })
+	);
+}
+
+/** The components of one phase and kind, sorted, as one collapsible section. */
+export interface SbomGroup {
+	/** Stable id of the group, `<phase>:<kind>`. */
+	key: string;
+	phase: SbomPhase;
+	kind: SbomKind;
+	components: SbomComponent[];
+}
+
+/** The groups in display order, runtime before build time and by kind within each; empty ones are left out. */
+export function groupSbom(components: readonly SbomComponent[]): SbomGroup[] {
+	const sorted = sortSbom(components);
+	return SBOM_PHASES.flatMap((phase) =>
+		KIND_ORDER.flatMap((kind) => {
+			const members = sorted.filter((component) => component.phase === phase && component.kind === kind);
+			return members.length > 0 ? [{ key: `${phase}:${kind}`, phase, kind, components: members }] : [];
+		})
 	);
 }
