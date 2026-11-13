@@ -6,9 +6,19 @@ use std::os::unix::fs::PermissionsExt;
 
 use muxmultitool_core::ffmpeg::capabilities::detect;
 use muxmultitool_core::ffmpeg::{CapabilityCache, CapabilityError, RunError, Runner, Tools};
+use tokio::sync::Mutex;
+
+/// Every test here holds this for its whole run, so they run one at a time.
+/// The tests run as threads of one process: while one writes a fake ffmpeg,
+/// another starting a process forks a child that inherits the still-open
+/// write handle for a moment, and running the fake then fails with ETXTBSY
+/// ("text file busy"). nextest, which CI uses, runs each test in its own
+/// process and never sees this; `cargo test` does, about one run in three.
+static SERIAL: Mutex<()> = Mutex::const_new(());
 
 #[tokio::test]
 async fn detects_the_installed_build() {
+	let _serial = SERIAL.lock().await;
 	let found = detect(&Runner::default()).await.unwrap();
 	assert_ne!(found.version, "");
 	assert!(found.has_filter("scale"));
@@ -19,6 +29,7 @@ async fn detects_the_installed_build() {
 
 #[tokio::test]
 async fn cache_returns_the_same_value_while_the_version_holds() {
+	let _serial = SERIAL.lock().await;
 	let runner = Runner::default();
 	let cache = CapabilityCache::new();
 	let first = cache.get(&runner).await.unwrap();
@@ -28,6 +39,7 @@ async fn cache_returns_the_same_value_while_the_version_holds() {
 
 #[tokio::test]
 async fn cache_detects_again_when_the_version_changes() {
+	let _serial = SERIAL.lock().await;
 	let dir = tempfile::tempdir().unwrap();
 	let fake = dir.path().join("ffmpeg");
 	let script = |version: &str| {
@@ -53,6 +65,7 @@ async fn cache_detects_again_when_the_version_changes() {
 
 #[tokio::test]
 async fn a_missing_ffmpeg_is_an_error_not_a_panic() {
+	let _serial = SERIAL.lock().await;
 	let runner = Runner::new(Tools {
 		ffmpeg: "/nonexistent/ffmpeg".into(),
 		..Tools::default()
@@ -66,6 +79,7 @@ async fn a_missing_ffmpeg_is_an_error_not_a_panic() {
 
 #[tokio::test]
 async fn an_ffmpeg_that_prints_nonsense_is_an_error() {
+	let _serial = SERIAL.lock().await;
 	let dir = tempfile::tempdir().unwrap();
 	let fake = dir.path().join("ffmpeg");
 	write_executable(&fake, "#!/bin/sh\necho hello\n").unwrap();
@@ -79,6 +93,7 @@ async fn an_ffmpeg_that_prints_nonsense_is_an_error() {
 
 #[tokio::test]
 async fn an_ffmpeg_that_fails_is_an_error() {
+	let _serial = SERIAL.lock().await;
 	let dir = tempfile::tempdir().unwrap();
 	let fake = dir.path().join("ffmpeg");
 	write_executable(&fake, "#!/bin/sh\necho 'broken install' >&2\nexit 3\n").unwrap();
@@ -94,7 +109,7 @@ async fn an_ffmpeg_that_fails_is_an_error() {
 }
 
 /// Writes a script and makes it executable, via a rename so a running copy
-/// is never written to ("text file busy").
+/// is never written to ("text file busy"; see `SERIAL` for the other cause).
 fn write_executable(path: &std::path::Path, content: &str) -> std::io::Result<()> {
 	let tmp = path.with_extension("tmp");
 	fs::write(&tmp, content)?;
