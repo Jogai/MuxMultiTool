@@ -8,9 +8,11 @@
 //!   embedded here. The procedural macros among them, and the crates only
 //!   they use, run inside the compiler and are not in the binary: they get
 //!   the `CycloneDX` scope `excluded`, every other component `required`;
-//! - the npm packages bundled into the frontend, from `sbom.web.json` next
-//!   to `index.html` in the frontend folder, which `vite build` writes. A
-//!   frontend without the file (an old build, a test) lists no npm packages;
+//! - the direct npm dependencies of the frontend, from `sbom.web.json` next
+//!   to `index.html` in the frontend folder, which `vite build` writes:
+//!   `dependencies` are bundled into the page, `devDependencies` (marked
+//!   `dev`) only build it and get the scope `excluded`. A frontend without
+//!   the file (an old build, a test) lists no npm packages;
 //! - the ffmpeg build the server uses, as the capability check reports it,
 //!   with a license only when the build says it is GPL version 3 or later.
 //!
@@ -69,7 +71,7 @@ struct Crate {
 	build_only: bool,
 }
 
-/// The npm packages bundled into the frontend, as `vite build` wrote them.
+/// The direct npm dependencies of the frontend, as `vite build` wrote them.
 #[derive(Debug, Default, Deserialize)]
 struct WebRecord {
 	packages: Vec<NpmPackage>,
@@ -80,6 +82,9 @@ struct NpmPackage {
 	name: String,
 	version: String,
 	license: Option<String>,
+	/// A devDependency: it builds, checks or tests the page and is not in it.
+	#[serde(default)]
+	dev: bool,
 }
 
 static BUILD: LazyLock<BuildRecord> = LazyLock::new(|| match serde_json::from_str(BUILD_RECORD) {
@@ -198,6 +203,9 @@ fn npm_component(package: &NpmPackage) -> Value {
 		package.license.as_deref(),
 	);
 	component.insert("purl".into(), purl.into());
+	if package.dev {
+		component.insert("scope".into(), SCOPE_BUILD_ONLY.into());
+	}
 	Value::Object(component)
 }
 
@@ -460,6 +468,20 @@ mod tests {
 	}
 
 	#[test]
+	fn an_npm_dev_dependency_is_excluded() {
+		let web: WebRecord = serde_json::from_value(json!({
+			"packages": [
+				{ "name": "vue", "version": "3.5.45" },
+				{ "name": "vite", "version": "8.3.8", "dev": true },
+			],
+		}))
+		.unwrap();
+		let components: Vec<Value> = web.packages.iter().map(npm_component).collect();
+		assert_eq!(components[0]["scope"], "required");
+		assert_eq!(components[1]["scope"], "excluded");
+	}
+
+	#[test]
 	fn the_embedded_record_marks_proc_macros_build_only() {
 		let by_name = |name: &str| BUILD.crates.iter().find(|c| c.name == name);
 		assert!(by_name("tokio").is_some_and(|c| !c.build_only));
@@ -484,6 +506,7 @@ mod tests {
 				name: "@vue/shared".to_owned(),
 				version: "3.5.45".to_owned(),
 				license: Some("MIT".to_owned()),
+				dev: false,
 			}],
 		};
 		let document = document(&build, &web, None);

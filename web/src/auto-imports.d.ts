@@ -17,6 +17,7 @@ declare global {
   const RAW_OUTPUT_FIELDS: typeof import('./core/libs/errors').RAW_OUTPUT_FIELDS
   const REPOSITORY_URL: typeof import('./core/libs/externalLink').REPOSITORY_URL
   const SBOM_KINDS: typeof import('./core/libs/sbom').SBOM_KINDS
+  const SBOM_PHASES: typeof import('./core/libs/sbom').SBOM_PHASES
   const SBOM_URL: typeof import('./core/libs/sbom').SBOM_URL
   const THEME_STORAGE_KEY: typeof import('./core/libs/theme').THEME_STORAGE_KEY
   const acceptHMRUpdate: typeof import('pinia').acceptHMRUpdate
@@ -95,6 +96,7 @@ declare global {
   const getCurrentScope: typeof import('vue').getCurrentScope
   const getCurrentWatcher: typeof import('vue').getCurrentWatcher
   const getRpcTransport: typeof import('./core/libs/rpc').getRpcTransport
+  const groupSbom: typeof import('./core/libs/sbom').groupSbom
   const h: typeof import('vue').h
   const hasExtension: typeof import('./core/composables/useFolderBrowser').hasExtension
   const ignorableWatch: typeof import('@vueuse/core').ignorableWatch
@@ -424,6 +426,7 @@ declare global {
   const watchThrottled: typeof import('@vueuse/core').watchThrottled
   const watchTriggerable: typeof import('@vueuse/core').watchTriggerable
   const watchWithFilter: typeof import('@vueuse/core').watchWithFilter
+  const webSbomPackages: typeof import('./core/libs/webSbom').webSbomPackages
   const whenever: typeof import('@vueuse/core').whenever
 }
 // for type re-export
@@ -471,7 +474,7 @@ declare global {
   export type { RpcTransportOptions } from './core/libs/rpc'
   import('./core/libs/rpc')
   // @ts-ignore
-  export type { SbomKind, SbomComponent, Sbom } from './core/libs/sbom'
+  export type { SbomKind, SbomPhase, SbomComponent, Sbom, SbomGroup } from './core/libs/sbom'
   import('./core/libs/sbom')
   // @ts-ignore
   export type { Shortcut, ShortcutMatch, KeyInput } from './core/libs/shortcuts'
@@ -482,6 +485,9 @@ declare global {
   // @ts-ignore
   export type { WatchStatus, WatchStreamOptions, WatchHandle } from './core/libs/watchStream'
   import('./core/libs/watchStream')
+  // @ts-ignore
+  export type { Manifest, LockFile, WebSbomPackage } from './core/libs/webSbom'
+  import('./core/libs/webSbom')
 }
 
 // for vue template auto import
@@ -497,7 +503,7 @@ declare module 'vue' {
     readonly NAV_ENTRIES: UnwrapRef<typeof import('./core/libs/navigation')['NAV_ENTRIES']>
     readonly RAW_OUTPUT_FIELDS: UnwrapRef<typeof import('./core/libs/errors')['RAW_OUTPUT_FIELDS']>
     readonly REPOSITORY_URL: UnwrapRef<typeof import('./core/libs/externalLink')['REPOSITORY_URL']>
-    readonly SBOM_KINDS: UnwrapRef<typeof import('./core/libs/sbom')['SBOM_KINDS']>
+    readonly SBOM_PHASES: UnwrapRef<typeof import('./core/libs/sbom')['SBOM_PHASES']>
     readonly SBOM_URL: UnwrapRef<typeof import('./core/libs/sbom')['SBOM_URL']>
     readonly THEME_STORAGE_KEY: UnwrapRef<typeof import('./core/libs/theme')['THEME_STORAGE_KEY']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
@@ -523,7 +529,6 @@ declare module 'vue' {
     readonly containerLine: UnwrapRef<typeof import('./core/libs/reportText')['containerLine']>
     readonly controlledComputed: UnwrapRef<typeof import('@vueuse/core')['controlledComputed']>
     readonly controlledRef: UnwrapRef<typeof import('@vueuse/core')['controlledRef']>
-    readonly countByKind: UnwrapRef<typeof import('./core/libs/sbom')['countByKind']>
     readonly countJobs: UnwrapRef<typeof import('./core/libs/jobQueue')['countJobs']>
     readonly createApp: UnwrapRef<typeof import('vue')['createApp']>
     readonly createContainerFilePicker: UnwrapRef<typeof import('./core/libs/filePicker')['createContainerFilePicker']>
@@ -575,6 +580,7 @@ declare module 'vue' {
     readonly getCurrentScope: UnwrapRef<typeof import('vue')['getCurrentScope']>
     readonly getCurrentWatcher: UnwrapRef<typeof import('vue')['getCurrentWatcher']>
     readonly getRpcTransport: UnwrapRef<typeof import('./core/libs/rpc')['getRpcTransport']>
+    readonly groupSbom: UnwrapRef<typeof import('./core/libs/sbom')['groupSbom']>
     readonly h: UnwrapRef<typeof import('vue')['h']>
     readonly hasExtension: UnwrapRef<typeof import('./core/composables/useFolderBrowser')['hasExtension']>
     readonly ignorableWatch: UnwrapRef<typeof import('@vueuse/core')['ignorableWatch']>
@@ -904,6 +910,7 @@ declare module 'vue' {
     readonly watchThrottled: UnwrapRef<typeof import('@vueuse/core')['watchThrottled']>
     readonly watchTriggerable: UnwrapRef<typeof import('@vueuse/core')['watchTriggerable']>
     readonly watchWithFilter: UnwrapRef<typeof import('@vueuse/core')['watchWithFilter']>
+    readonly webSbomPackages: UnwrapRef<typeof import('./core/libs/webSbom')['webSbomPackages']>
     readonly whenever: UnwrapRef<typeof import('@vueuse/core')['whenever']>
   }
 }

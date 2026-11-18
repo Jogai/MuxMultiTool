@@ -21,6 +21,7 @@ import VueRouter from "vue-router/vite";
 import phosphor from "@iconify-json/ph/icons.json" with { type: "json" };
 
 import pkg from "./package.json" with { type: "json" };
+import { type LockFile, type Manifest, webSbomPackages } from "./src/core/libs/webSbom";
 
 const VUE_FILE_REGEX = /\.vue$/;
 const VUE_QUERY_REGEX = /\.vue\?vue/;
@@ -36,37 +37,18 @@ const MMT_ICONS: Record<string, string> = {
 // The axum server in development (`cargo run -p server`)
 const BACKEND = "http://127.0.0.1:8080";
 
-/** The lock file entries this build reads: `dev` marks a package only the build needs. */
-interface LockPackage {
-	name?: string;
-	version?: string;
-	license?: string;
-	dev?: boolean;
-}
-
 /**
- * Writes `sbom.web.json` into the build output: every production package of the lock file (the
- * non-dev closure, what can end up in the bundle) with its name, version and license. The server
- * merges it into the CycloneDX document it serves at `/sbom.cdx.json` (see development.md).
+ * Writes `sbom.web.json` into the build output: the direct dependencies of package.json at the
+ * versions the lock file installs, devDependencies marked `dev` (build time). The server merges it
+ * into the CycloneDX document it serves at `/sbom.cdx.json` (see development.md).
  */
-function webSbom(lockFile: string): Plugin {
+function webSbom(manifest: Manifest, lockFile: string): Plugin {
 	return {
 		name: "mmt:web-sbom",
 		apply: "build",
 		generateBundle() {
-			const lock = JSON.parse(readFileSync(lockFile, "utf8")) as { packages?: Record<string, LockPackage> };
-			const seen = new Set<string>();
-			const packages = [];
-			for (const [location, entry] of Object.entries(lock.packages ?? {})) {
-				// The root entry is the app itself; dev packages are not bundled
-				if (location === "" || entry.dev || !entry.version) continue;
-				const name = entry.name ?? location.slice(location.lastIndexOf("node_modules/") + "node_modules/".length);
-				const key = `${name}@${entry.version}`;
-				if (seen.has(key)) continue;
-				seen.add(key);
-				packages.push({ name, version: entry.version, ...(entry.license ? { license: entry.license } : {}) });
-			}
-			packages.sort((a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version));
+			const lock = JSON.parse(readFileSync(lockFile, "utf8")) as LockFile;
+			const packages = webSbomPackages(manifest, lock);
 			this.emitFile({ type: "asset", fileName: "sbom.web.json", source: JSON.stringify({ packages }) });
 		}
 	};
@@ -187,8 +169,8 @@ export default defineConfig((): UserConfig => {
 			// Version, commit and build time for the About section and status bar
 			Info(),
 
-			// The npm packages in the bundle, for the SBOM the server serves
-			webSbom(path.resolve(import.meta.dirname, "package-lock.json"))
+			// The direct npm dependencies, for the SBOM the server serves
+			webSbom(pkg, path.resolve(import.meta.dirname, "package-lock.json"))
 		]
 	};
 });

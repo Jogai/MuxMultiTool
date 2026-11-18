@@ -229,7 +229,7 @@
 			},
 			"sbom": {
 				"title": "Software bill of materials",
-				"description": "Everything this build is made of: the Rust crates compiled into the server, the npm packages bundled into this page and the ffmpeg build in use, as a CycloneDX document.",
+				"description": "Everything this build is made of: the Rust crates compiled into the server, the npm packages this page uses directly, to run or to build, and the ffmpeg build in use, as a CycloneDX document.",
 				"loading": "Loading the bill of materials…",
 				"search": "Search by name or license",
 				"total": "{n} component | {n} components",
@@ -246,7 +246,7 @@
 					},
 					"build": {
 						"title": "Build time",
-						"description": "Used only while compiling: procedural macros and the crates only they use. Nothing of them is in the program."
+						"description": "Used only while building: procedural macros and the crates only they use, and the npm packages that build, check and test this page. Nothing of them is in the program."
 					}
 				},
 				"group": {

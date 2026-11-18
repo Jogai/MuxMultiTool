@@ -156,7 +156,10 @@ async fn the_crates_are_the_normal_dependencies_of_the_server() {
 
 #[tokio::test]
 async fn proc_macros_are_build_time_and_everything_else_runtime() {
-	let web = r#"{"packages":[{"name":"vue","version":"3.5.45","license":"MIT"}]}"#;
+	let web = r#"{"packages":[
+		{"name":"vue","version":"3.5.45","license":"MIT"},
+		{"name":"vite","version":"8.3.8","license":"MIT","dev":true}
+	]}"#;
 	let (_, document) = fetch(Some(web), no_ffmpeg()).await.unwrap();
 
 	let scope = |name: &str| by_name(&document, name).map(|c| c["scope"].clone());
@@ -167,8 +170,9 @@ async fn proc_macros_are_build_time_and_everything_else_runtime() {
 	for build_time in ["serde_derive", "tokio-macros", "syn", "quote"] {
 		assert_eq!(scope(build_time), Some("excluded".into()), "{build_time}");
 	}
-	// npm packages are bundled, so runtime
+	// npm dependencies are bundled, so runtime; devDependencies only build
 	assert_eq!(scope("vue"), Some("required".into()));
+	assert_eq!(scope("vite"), Some("excluded".into()));
 	// Every component has one of the two
 	assert!(
 		document["components"]

@@ -6,9 +6,9 @@ export type SbomKind = "cargo" | "npm" | "application";
 
 /**
  * When a component is used: `runtime` when it is in the running program (linked into the server,
- * bundled into the page, or run by the server), `build` when it only runs while compiling (procedural
- * macros and the crates only they use). The document says so with the CycloneDX `scope`: `excluded` is
- * build time, anything else runtime.
+ * bundled into the page, or run by the server), `build` when it only runs while building (procedural
+ * macros and the crates only they use, npm devDependencies). The document says so with the CycloneDX
+ * `scope`: `excluded` is build time, anything else runtime.
  */
 export type SbomPhase = "runtime" | "build";
 
