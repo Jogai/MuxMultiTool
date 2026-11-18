@@ -19,6 +19,7 @@ declare global {
   const SBOM_KINDS: typeof import('./core/libs/sbom').SBOM_KINDS
   const SBOM_PHASES: typeof import('./core/libs/sbom').SBOM_PHASES
   const SBOM_URL: typeof import('./core/libs/sbom').SBOM_URL
+  const SETTINGS_TABS: typeof import('./core/libs/navigation').SETTINGS_TABS
   const THEME_STORAGE_KEY: typeof import('./core/libs/theme').THEME_STORAGE_KEY
   const acceptHMRUpdate: typeof import('pinia').acceptHMRUpdate
   const alignColumns: typeof import('./core/libs/reportText').alignColumns
@@ -180,6 +181,7 @@ declare global {
   const setActivePinia: typeof import('pinia').setActivePinia
   const setMapStoreSuffix: typeof import('pinia').setMapStoreSuffix
   const setRpcTransport: typeof import('./core/libs/rpc').setRpcTransport
+  const settingsTab: typeof import('./core/libs/navigation').settingsTab
   const shallowReactive: typeof import('vue').shallowReactive
   const shallowReadonly: typeof import('vue').shallowReadonly
   const shallowRef: typeof import('vue').shallowRef
@@ -465,7 +467,7 @@ declare global {
   export type { QueueJobs } from './core/libs/jobQueue'
   import('./core/libs/jobQueue')
   // @ts-ignore
-  export type { NavName } from './core/libs/navigation'
+  export type { NavName, SettingsTab } from './core/libs/navigation'
   import('./core/libs/navigation')
   // @ts-ignore
   export type { ReportLayout } from './core/libs/reportText'
@@ -505,6 +507,7 @@ declare module 'vue' {
     readonly REPOSITORY_URL: UnwrapRef<typeof import('./core/libs/externalLink')['REPOSITORY_URL']>
     readonly SBOM_PHASES: UnwrapRef<typeof import('./core/libs/sbom')['SBOM_PHASES']>
     readonly SBOM_URL: UnwrapRef<typeof import('./core/libs/sbom')['SBOM_URL']>
+    readonly SETTINGS_TABS: UnwrapRef<typeof import('./core/libs/navigation')['SETTINGS_TABS']>
     readonly THEME_STORAGE_KEY: UnwrapRef<typeof import('./core/libs/theme')['THEME_STORAGE_KEY']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
     readonly alignColumns: UnwrapRef<typeof import('./core/libs/reportText')['alignColumns']>
@@ -664,6 +667,7 @@ declare module 'vue' {
     readonly setActivePinia: UnwrapRef<typeof import('pinia')['setActivePinia']>
     readonly setMapStoreSuffix: UnwrapRef<typeof import('pinia')['setMapStoreSuffix']>
     readonly setRpcTransport: UnwrapRef<typeof import('./core/libs/rpc')['setRpcTransport']>
+    readonly settingsTab: UnwrapRef<typeof import('./core/libs/navigation')['settingsTab']>
     readonly shallowReactive: UnwrapRef<typeof import('vue')['shallowReactive']>
     readonly shallowReadonly: UnwrapRef<typeof import('vue')['shallowReadonly']>
     readonly shallowRef: UnwrapRef<typeof import('vue')['shallowRef']>

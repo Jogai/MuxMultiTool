@@ -179,7 +179,6 @@
 		},
 		"settings": {
 			"description": "Appearance, help, the version and license of this build, and everything it is made of.",
-			"appearance": "Appearance",
 			"family": "Family",
 			"variants": "{n} variant | {n} variants",
 			"variant": "Variant · {family}",
@@ -192,9 +191,13 @@
 			"autoHint": "Follows the OS: {light} when the system is light, {dark} when it is dark.",
 			"sameVariantHint": "A family without a light variant uses the same variant for both.",
 			"saveError": "The theme could not be saved on the server; it is kept in this browser only.",
-			"contents": "Sections",
+			"tabs": {
+				"appearance": "Appearance",
+				"help": "Help",
+				"about": "About",
+				"sbom": "Bill of materials"
+			},
 			"help": {
-				"title": "Help",
 				"intro": "What each screen is for, in the order of the navigation rail. Nothing is re-encoded unless a screen says so: streams are copied as they are.",
 				"screens": {
 					"files": "Browse the media folders, select files by name or wildcard and read the per-stream report.",
