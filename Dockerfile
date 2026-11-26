@@ -21,9 +21,10 @@
 # ffmpeg: mwader/static-ffmpeg, a fully static (musl) GPL build with x264,
 # configured `--enable-gpl --enable-version3`, published for amd64 and arm64
 # and pinned by digest (Renovate updates the tag and digest together). The
-# BtbN linux builds named in docs/architecture.md link glibc dynamically, so
-# they would need a glibc base instead of `scratch`.
-ARG FFMPEG_IMAGE=docker.io/mwader/static-ffmpeg:9.0.2-1@sha256:f5d100184884eb3e82b0eb14bb5ebf98da99826ac824989720297fb9ef21c822
+# Linux desktop sidecars and the ffmpeg that CI tests with come from the same
+# image, pinned by layer digest in crates/desktop/scripts/fetch-sidecars.sh:
+# move those digests with this tag.
+ARG FFMPEG_IMAGE=docker.io/mwader/static-ffmpeg:9.1@sha256:dd09509d8c2152bfa601c8c20e3dd166bde906d37951b9f7e8bbd922267f5ac9
 ARG LAYOUT_IMAGE=docker.io/library/busybox:1.38.0-musl@sha256:80e38f9a1b39188b8bdb28879178edb322a4402b081a9aedda1924609decd6f6
 
 # The tag and digest are in the ARG above, which hadolint does not read (DL3006).

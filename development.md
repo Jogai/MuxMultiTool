@@ -64,7 +64,7 @@ Methods that have no side effects must declare `option idempotency_level = NO_SI
 
 `cargo run -p muxmultitool-server` starts the axum server on `127.0.0.1:8080`. It mounts the ConnectRPC services under `/rpc`, serves the built frontend (`web/dist`, from `npm run build`) at `/` and logs to stderr (`RUST_LOG` filters, default `info`). Every setting is a flag with an environment variable behind it, so a compose file needs no command line; `--help` lists them:
 
-Every build ships ffmpeg 9: the container (mwader/static-ffmpeg 9.0.2), the desktop sidecars (BtbN 9.0.2 for Windows and Linux, Martin Riedl's 9.0.2 for macOS, pinned in `crates/desktop/scripts/fetch-sidecars.sh`) and the AUR package (Arch's `ffmpeg` 9). The tests and CI use the same BtbN build, through `.github/actions/ffmpeg`. The code also works with ffmpeg 8; ffmpeg 7 does not: it differs in ways the cuts, the preview and the progress reports depend on (its progress has no frame count, remuxes shift the first video timestamp, and the keyframe lookups land elsewhere), and the tests fail on it. To move the BtbN pin, take a month-end `autobuild-YYYY-MM-…` release: BtbN deletes its daily releases after about two weeks.
+Every build ships ffmpeg 9.1: the container and the Linux desktop sidecars (mwader/static-ffmpeg 9.1, the same static musl binary), the Windows sidecars (gyan.dev's 9.1 "essentials" build) and the macOS sidecars (Martin Riedl's 9.1), pinned in the `Dockerfile` and `crates/desktop/scripts/fetch-sidecars.sh`, and the AUR package (Arch's `ffmpeg` 9). The tests and CI use the static-ffmpeg binary through `.github/actions/ffmpeg`, so they test what the container and the Linux app ship. All of these are GPL v3 builds without `--enable-nonfree`; Martin Riedl's Linux builds are nonfree (DeckLink) and cannot be redistributed. The code also works with ffmpeg 8; ffmpeg 7 does not: it differs in ways the cuts, the preview and the progress reports depend on (its progress has no frame count, remuxes shift the first video timestamp, and the keyframe lookups land elsewhere), and the tests fail on it. To move the version: Renovate updates `FFMPEG_IMAGE` in the `Dockerfile`; copy the amd64 and arm64 layer digests of that image into `fetch-sidecars.sh` (`static_amd64_layer`, `static_arm64_layer`), and take gyan.dev's versioned GitHub release (`GyanD/codexffmpeg`, its asset digest) and Martin Riedl's build of the same version with the published `.sha256` files.
 
 | Setting | Flag | Variable | Default |
 |---|---|---|---|
@@ -315,7 +315,7 @@ The Settings page (`SettingsSbom.vue`, logic in `core/libs/sbom.ts`) splits the 
 
 ```sh
 curl -s http://127.0.0.1:8080/sbom.cdx.json | jq '{serialNumber, components: (.components | length), ffmpeg: (.components[] | select(.name == "ffmpeg") | .version)}'
-# {"serialNumber":"urn:uuid:…","components":261,"ffmpeg":"9.0.2"}
+# {"serialNumber":"urn:uuid:…","components":261,"ffmpeg":"9.1"}
 ```
 
 ### Frontend
@@ -343,7 +343,7 @@ The Tauri crates are pinned to the 3.0.0 alpha named in the architecture doc (`t
 Build an installer:
 
 1. `cd web && npm ci && npm run build`: the frontend, bundled as the `web/` resource.
-2. `crates/desktop/scripts/fetch-sidecars.sh <target>` downloads the pinned GPL ffmpeg and ffprobe builds for the target triple into `crates/desktop/binaries/` (git-ignored): BtbN `win64-gpl` for Windows, `linux64-gpl` and `linuxarm64-gpl` for Linux, Martin Riedl's static builds for macOS arm64 and x64, each checked against its SHA-256.
+2. `crates/desktop/scripts/fetch-sidecars.sh <target>` downloads the pinned GPL ffmpeg and ffprobe builds for the target triple into `crates/desktop/binaries/` (git-ignored): gyan.dev's "essentials" build for Windows, the mwader/static-ffmpeg image layer for Linux x64 and arm64, Martin Riedl's static builds for macOS arm64 and x64, each checked against its SHA-256.
 3. `cd web && TAURI_APP_PATH=../crates/desktop npx tauri build --target <target>` writes the NSIS installer, the `.app` and `.dmg`, or the `.deb` and `.AppImage` to `target/<target>/release/bundle/`. `tauri.conf.json` has no `version`: it inherits the workspace version from `Cargo.toml`.
 
 For development, `cargo run -p muxmultitool-desktop` (on Linux with `--features cef`) after `npm run build` is enough: without a bundle the app serves `web/dist` (or `MMT_FRONTEND_DIR`), and `MMT_FFMPEG` and `MMT_FFPROBE` point at an installed ffmpeg when the sidecars are not fetched. Logs go to stderr, filtered by `RUST_LOG`.
