@@ -6,11 +6,13 @@
 # reproducible and a changed download fails loudly; Renovate does not track
 # these, bump them by hand.
 #
-# Sources (architecture.md, "ffmpeg sources"): all GPL builds with x264.
-# - Windows: BtbN FFmpeg-Builds, `win64-gpl` (static, --enable-gpl --enable-version3).
-# - Linux: BtbN FFmpeg-Builds, `linux64-gpl` and `linuxarm64-gpl` from the same
-#   autobuild (glibc, like the desktop binary itself; the container uses a
-#   different, musl build).
+# Sources (architecture.md, "ffmpeg sources"): all GPL-3.0 builds with x264,
+# none of them configured with --enable-nonfree.
+# - Windows: gyan.dev's release "essentials" build (static, GPL v3), from its
+#   versioned GitHub release (GyanD/codexffmpeg).
+# - Linux: mwader/static-ffmpeg, the build the container ships (static musl,
+#   --enable-gpl --enable-version3), taken from the image layer of each
+#   architecture. The layer is pinned by its digest, which is its SHA-256.
 # - macOS: Martin Riedl's static builds (https://ffmpeg.martin-riedl.de), the
 #   `release` channel, for arm64 and amd64 (--enable-gpl --enable-version3
 #   --enable-libx264; OpenSSL 3 is Apache-2.0, which GPL-3.0 allows).
@@ -33,29 +35,29 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$out"
 
-# A month-end autobuild: BtbN prunes its daily releases after about two
-# weeks but keeps the last one of each month, so this URL keeps working.
-btbn_tag="autobuild-2026-10-31-12-59"
-btbn_build="ffmpeg-n9.0.2-39-g7adfbe40dc"
-btbn_win64="$btbn_build-win64-gpl-9.0"
-btbn_win64_sha256="693f3e224bc184b40524a62ca47526cfebaf2504414021b92fe75f677ad868b9"
-btbn_linux64="$btbn_build-linux64-gpl-9.0"
-btbn_linux64_sha256="73e29a56974ae5a651133a04584c7483b21afe941e17dc91d79814a758b608d3"
-btbn_linuxarm64="$btbn_build-linuxarm64-gpl-9.0"
-btbn_linuxarm64_sha256="6cad88ae5bcec356cfc5d7979a036cc4007128201928a0cf243df3db483276cc"
+gyan_build="ffmpeg-9.1-essentials_build"
+gyan_url="https://github.com/GyanD/codexffmpeg/releases/download/9.1/$gyan_build.zip"
+gyan_sha256="b9bbbb3acece000cbeec994f856649354e52c773807841e78908374b24d658fd"
+
+# mwader/static-ffmpeg:9.1 (the FFMPEG_IMAGE of the Dockerfile): the one layer
+# of the amd64 and of the arm64 image, an uncompressed tar with ffmpeg and
+# ffprobe at its root.
+static_image="mwader/static-ffmpeg"
+static_amd64_layer="92b424de5640d180909a9900705ff37b58642b07685e26c5a3fdea0b455201d2"
+static_arm64_layer="8c7e5f24811c61755f475e043e7ccc799f7b4db7f9b81309afc4b7bff987932b"
 
 riedl="https://ffmpeg.martin-riedl.de/download/macos"
-riedl_arm64="arm64/1789931890_9.0.2"
-riedl_arm64_ffmpeg_sha256="c8ed4c4e6978a03c485edbfe4e0a5dc2380f8a30bba5150531b31b094492d924"
-riedl_arm64_ffprobe_sha256="fcbe839537485eaee7a7a8bc5cbc0f90d53617e80943e8a5b2e31cb851197ea6"
-riedl_amd64="amd64/1789931006_9.0.2"
-riedl_amd64_ffmpeg_sha256="7c6b4125b191cbf773832dc51f424cf2b6bb7da43007d1e066f95909e47cacd4"
-riedl_amd64_ffprobe_sha256="2322438ed2f6319a691291b247d09c69dcaa3a982460d1f269a7e1af335cfdfd"
+riedl_arm64="arm64/1795207104_9.1"
+riedl_arm64_ffmpeg_sha256="1f66e9a690a7f1c9e60b012379f8869c11818d1797f45b21dbb2f2564ba61ae1"
+riedl_arm64_ffprobe_sha256="6ef2df5f575042923a28537ab37adf936f28bf3e7b85de23a1447ed447ec1dbd"
+riedl_amd64="amd64/1795212433_9.1"
+riedl_amd64_ffmpeg_sha256="35b3d82cccc2c1d644d49d15f5e57eb913a08ef68f798042c90eecec62c51f1e"
+riedl_amd64_ffprobe_sha256="41ca7b7cba7992e33f1da3f1bf54db8ec103a4d387b1bfac3162062e8b1074ad"
 
-# fetch <url> <sha256> <file>
+# fetch <url> <sha256> <file> [curl options...]
 fetch() {
 	echo "downloading $1"
-	curl --fail --location --silent --show-error --retry 3 --output "$3" "$1"
+	curl --fail --location --silent --show-error --retry 3 --output "$3" "${@:4}" "$1"
 	local actual
 	if command -v sha256sum >/dev/null; then
 		actual="$(sha256sum "$3" | cut -d ' ' -f 1)"
@@ -79,25 +81,25 @@ unzip_into() {
 
 case "$target" in
 	x86_64-pc-windows-msvc)
-		fetch "https://github.com/BtbN/FFmpeg-Builds/releases/download/$btbn_tag/$btbn_win64.zip" \
-			"$btbn_win64_sha256" "$work/win64.zip"
+		fetch "$gyan_url" "$gyan_sha256" "$work/win64.zip"
 		unzip_into "$work/win64.zip" "$work/win64"
 		for tool in ffmpeg ffprobe; do
-			cp "$work/win64/$btbn_win64/bin/$tool.exe" "$out/$tool-$target.exe"
+			cp "$work/win64/$gyan_build/bin/$tool.exe" "$out/$tool-$target.exe"
 		done
 		;;
 	x86_64-unknown-linux-gnu | aarch64-unknown-linux-gnu)
-		if [ "$target" = x86_64-unknown-linux-gnu ]; then
-			build="$btbn_linux64" sha="$btbn_linux64_sha256"
-		else
-			build="$btbn_linuxarm64" sha="$btbn_linuxarm64_sha256"
-		fi
-		fetch "https://github.com/BtbN/FFmpeg-Builds/releases/download/$btbn_tag/$build.tar.xz" \
-			"$sha" "$work/linux.tar.xz"
+		layer="$static_amd64_layer"
+		[ "$target" = aarch64-unknown-linux-gnu ] && layer="$static_arm64_layer"
+		# Docker Hub serves public blobs with an anonymous pull token.
+		token="$(curl --fail --silent --show-error --retry 3 \
+			"https://auth.docker.io/token?service=registry.docker.io&scope=repository:$static_image:pull" |
+			sed -E 's/.*"token":"([^"]+)".*/\1/')"
+		fetch "https://registry-1.docker.io/v2/$static_image/blobs/sha256:$layer" \
+			"$layer" "$work/layer.tar" --header "Authorization: Bearer $token"
 		mkdir -p "$work/linux"
-		tar -xJf "$work/linux.tar.xz" -C "$work/linux"
+		tar -xf "$work/layer.tar" -C "$work/linux" ffmpeg ffprobe
 		for tool in ffmpeg ffprobe; do
-			cp "$work/linux/$build/bin/$tool" "$out/$tool-$target"
+			cp "$work/linux/$tool" "$out/$tool-$target"
 			chmod +x "$out/$tool-$target"
 		done
 		;;
