@@ -158,8 +158,7 @@ pub fn parse_version(text: &str) -> Option<String> {
 pub fn parse_configuration(text: &str) -> Vec<String> {
 	text.lines()
 		.find_map(|line| line.strip_prefix("configuration:"))
-		.map(|rest| rest.split_whitespace().map(str::to_owned).collect())
-		.unwrap_or_default()
+		.map_or_default(|rest| rest.split_whitespace().map(str::to_owned).collect())
 }
 
 /// Parses `ffmpeg -encoders` or `-decoders`.
@@ -296,8 +295,7 @@ fn table_rows(text: &str) -> impl Iterator<Item = &str> {
 /// The text after the first occurrence of `word` in `line`, trimmed.
 fn description_after(line: &str, word: &str) -> String {
 	line.find(word)
-		.map(|at| line[at + word.len()..].trim().to_owned())
-		.unwrap_or_default()
+		.map_or_default(|at| line[at + word.len()..].trim().to_owned())
 }
 
 /// Runs the queries and parses the results.

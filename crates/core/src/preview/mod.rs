@@ -88,7 +88,7 @@ impl Default for PreviewConfig {
 			segment_secs: 2.0,
 			max_copy_segment_secs: 30.0,
 			run_idle: Duration::from_secs(30),
-			session_idle: Duration::from_secs(30 * 60),
+			session_idle: Duration::from_mins(30),
 			lookahead: 3,
 			wait_timeout: Duration::from_secs(60),
 			scan_timeout: Duration::from_secs(120),

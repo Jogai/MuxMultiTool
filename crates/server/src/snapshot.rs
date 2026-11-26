@@ -238,8 +238,7 @@ fn checked_position(position_ms: i64, probe: &ProbeResult) -> Result<Duration, C
 fn default_cover_output(input: &Path) -> PathBuf {
 	let stem = input
 		.file_stem()
-		.map(|s| s.to_string_lossy().into_owned())
-		.unwrap_or_default();
+		.map_or_default(|s| s.to_string_lossy().into_owned());
 	let name = match input.extension() {
 		Some(ext) => format!("{stem}.cover.{}", ext.to_string_lossy()),
 		None => format!("{stem}.cover"),
@@ -252,8 +251,7 @@ fn job_name(name: &str, output: &Path) -> String {
 	if name.is_empty() {
 		output
 			.file_name()
-			.map(|n| n.to_string_lossy().into_owned())
-			.unwrap_or_default()
+			.map_or_default(|n| n.to_string_lossy().into_owned())
 	} else {
 		name.to_owned()
 	}

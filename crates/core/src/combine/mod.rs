@@ -59,8 +59,7 @@ impl Source {
 			path: path.to_path_buf(),
 			name: path
 				.file_name()
-				.map(|n| n.to_string_lossy().into_owned())
-				.unwrap_or_default(),
+				.map_or_default(|n| n.to_string_lossy().into_owned()),
 			duration: probe
 				.duration_secs()
 				.and_then(|secs| Duration::try_from_secs_f64(secs).ok()),

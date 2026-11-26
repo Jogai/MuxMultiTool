@@ -345,8 +345,7 @@ fn decide(
 
 /// A path component as text, empty when there is none.
 fn component(part: Option<&std::ffi::OsStr>) -> String {
-	part.map(|p| p.to_string_lossy().into_owned())
-		.unwrap_or_default()
+	part.map_or_default(|p| p.to_string_lossy().into_owned())
 }
 
 /// The distinct languages of the kept audio streams, in stream order,
@@ -440,8 +439,7 @@ mod tests {
 			.map(|i| {
 				i.output
 					.as_ref()
-					.map(|p| p.display().to_string())
-					.unwrap_or_default()
+					.map_or_default(|p| p.display().to_string())
 			})
 			.collect()
 	}

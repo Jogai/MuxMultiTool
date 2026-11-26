@@ -535,8 +535,7 @@ fn output_path(
 	if export == Export::SeparateFiles {
 		let name = template
 			.file_name()
-			.map(|n| n.to_string_lossy().into_owned())
-			.unwrap_or_default();
+			.map_or_default(|n| n.to_string_lossy().into_owned());
 		let name = if ["{n}", "{start}", "{end}"].iter().any(|p| name.contains(p)) {
 			name
 		} else {

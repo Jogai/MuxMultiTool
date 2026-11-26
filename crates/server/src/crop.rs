@@ -258,13 +258,12 @@ fn plan_of(source: &Source, operation: &CropOperation) -> Result<Plan, ConnectEr
 	let requested = operation
 		.crop
 		.as_option()
-		.map(|window| crop::Crop {
+		.map_or_default(|window| crop::Crop {
 			top: window.top,
 			bottom: window.bottom,
 			left: window.left,
 			right: window.right,
-		})
-		.unwrap_or_default();
+		});
 	crop::plan(source, requested).map_err(|error| ConnectError::invalid_argument(error.to_string()))
 }
 
@@ -272,8 +271,7 @@ fn plan_of(source: &Source, operation: &CropOperation) -> Result<Plan, ConnectEr
 fn default_output(input: &Path) -> PathBuf {
 	let stem = input
 		.file_stem()
-		.map(|s| s.to_string_lossy().into_owned())
-		.unwrap_or_default();
+		.map_or_default(|s| s.to_string_lossy().into_owned());
 	let name = match input.extension() {
 		Some(ext) => format!("{stem}.cropped.{}", ext.to_string_lossy()),
 		None => format!("{stem}.cropped"),
@@ -286,8 +284,7 @@ fn job_name(name: &str, output: &Path) -> String {
 	if name.is_empty() {
 		output
 			.file_name()
-			.map(|n| n.to_string_lossy().into_owned())
-			.unwrap_or_default()
+			.map_or_default(|n| n.to_string_lossy().into_owned())
 	} else {
 		name.to_owned()
 	}

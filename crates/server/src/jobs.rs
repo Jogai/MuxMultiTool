@@ -219,8 +219,7 @@ impl Jobs {
 		let name = if name.is_empty() {
 			output
 				.file_name()
-				.map(|n| n.to_string_lossy().into_owned())
-				.unwrap_or_default()
+				.map_or_default(|n| n.to_string_lossy().into_owned())
 		} else {
 			name.to_owned()
 		};

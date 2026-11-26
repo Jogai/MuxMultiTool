@@ -324,11 +324,10 @@ impl Batches {
 			output: item
 				.output
 				.as_ref()
-				.map(|o| o.display().to_string())
-				.unwrap_or_default(),
-			output_name: item.output.as_deref().map(file_name).unwrap_or_default(),
+				.map_or_default(|o| o.display().to_string()),
+			output_name: item.output.as_deref().map_or_default(file_name),
 			ready: ready.is_some(),
-			skip: item.skip().map(ToString::to_string).unwrap_or_default(),
+			skip: item.skip().map_or_default(ToString::to_string),
 			overwrites: ready.is_some_and(|r| r.overwrites),
 			container: ready.map_or_else(String::new, |r| r.plan.container.name().to_owned()),
 			streams,
@@ -342,7 +341,7 @@ impl Batches {
 					..Default::default()
 				})
 				.collect(),
-			warnings: ready.map(|r| r.warnings.clone()).unwrap_or_default(),
+			warnings: ready.map_or_default(|r| r.warnings.clone()),
 			command: command.unwrap_or_default(),
 			duration_ms: ready
 				.and_then(|r| r.expected_duration)

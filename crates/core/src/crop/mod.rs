@@ -442,7 +442,7 @@ mod tests {
 			height: 2160,
 			unit: UNIT_420,
 			pix_fmt: "yuv420p10le".into(),
-			duration: Some(Duration::from_secs(5400)),
+			duration: Some(Duration::from_mins(90)),
 		}
 	}
 

@@ -103,8 +103,7 @@ impl SystemService for System {
 			.to_owned_message()
 			.settings
 			.into_option()
-			.map(settings_from_proto)
-			.unwrap_or_default();
+			.map_or_default(settings_from_proto);
 		let stored = self.state.settings.update(patch).await.map_err(|error| {
 			warn!(%error, "cannot store the settings");
 			ConnectError::internal("the settings could not be saved")
