@@ -52,11 +52,7 @@ fn trim_point(plan: &Plan, segment: &PlannedSegment) -> f64 {
 /// open what its whitelist names.
 #[must_use]
 pub fn merged(plan: &Plan, input: &Path) -> FfmpegCommand {
-	let output = plan
-		.segments
-		.first()
-		.map(|s| s.output.clone())
-		.unwrap_or_default();
+	let output = plan.segments.first().map_or_default(|s| s.output.clone());
 	FfmpegCommand::new()
 		.option("-f", "concat")
 		.option("-safe", "0")

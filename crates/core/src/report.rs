@@ -70,7 +70,7 @@ impl Default for ReportOptions {
 		Self {
 			quick: false,
 			probe_timeout: Duration::from_secs(60),
-			measure_timeout: Duration::from_secs(15 * 60),
+			measure_timeout: Duration::from_mins(15),
 			cancel: CancellationToken::new(),
 		}
 	}

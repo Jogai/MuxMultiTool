@@ -30,8 +30,7 @@ fn write_atomically_blocking(path: &Path, contents: &[u8]) -> io::Result<()> {
 	std::fs::create_dir_all(&dir)?;
 	let name = path
 		.file_name()
-		.map(|n| n.to_string_lossy().into_owned())
-		.unwrap_or_default();
+		.map_or_default(|n| n.to_string_lossy().into_owned());
 	let mut temp = tempfile::Builder::new()
 		.prefix(&format!(".{name}."))
 		.suffix(".tmp")

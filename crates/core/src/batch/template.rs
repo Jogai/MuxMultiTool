@@ -247,8 +247,7 @@ impl fmt::Display for Template {
 pub fn utc_date(now: SystemTime) -> String {
 	let days = now
 		.duration_since(UNIX_EPOCH)
-		.map(|d| d.as_secs() / 86_400)
-		.unwrap_or_default();
+		.map_or_default(|d| d.as_secs() / 86_400);
 	let (year, month, day) = civil_from_days(i64::try_from(days).unwrap_or(i64::MAX));
 	format!("{year:04}-{month:02}-{day:02}")
 }
@@ -392,6 +391,10 @@ mod tests {
 	}
 
 	#[test]
+	#[expect(
+		clippy::duration_suboptimal_units,
+		reason = "Unix timestamps read best in seconds"
+	)]
 	fn the_date_is_the_utc_calendar_day() {
 		assert_eq!(utc_date(UNIX_EPOCH), "1970-01-01");
 		// 2026-11-04T23:59:59Z

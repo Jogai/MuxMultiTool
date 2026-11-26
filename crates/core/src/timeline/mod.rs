@@ -91,7 +91,7 @@ impl Default for TimelineConfig {
 			peaks_per_second: 50,
 			max_peaks: 8192,
 			max_files: 16,
-			analysis_timeout: Duration::from_secs(60 * 60),
+			analysis_timeout: Duration::from_hours(1),
 			probe_timeout: Duration::from_secs(120),
 		}
 	}

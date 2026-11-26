@@ -191,8 +191,7 @@ impl Jobs {
 			})?;
 		let stem = input
 			.file_stem()
-			.map(|s| s.to_string_lossy().into_owned())
-			.unwrap_or_default();
+			.map_or_default(|s| s.to_string_lossy().into_owned());
 		let plan = extract::plan(&probe, &selection, &stem).map_err(|error| match error {
 			ExtractError::NothingToExtract => ConnectError::failed_precondition(error.to_string()),
 			ExtractError::Selection(_) => ConnectError::invalid_argument(error.to_string()),

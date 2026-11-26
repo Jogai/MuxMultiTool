@@ -468,8 +468,7 @@ fn status(session: &Session, source: &Path) -> Result<SourceStatus, Error> {
 fn file_name(source: &Path) -> String {
 	let stem: String = source
 		.file_stem()
-		.map(|stem| stem.to_string_lossy())
-		.unwrap_or_default()
+		.map_or_default(|stem| stem.to_string_lossy())
 		.chars()
 		.map(|c| {
 			if c.is_ascii_alphanumeric() || c == '.' {
